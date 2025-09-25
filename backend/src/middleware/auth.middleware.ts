@@ -185,54 +185,101 @@ export const requireValidOAuth = async (
 };
 
 /**
- * Rate limiting middleware for authentication endpoints
+ * Enhanced rate limiting middleware for authentication endpoints
+ * Uses both IP-based and user-based rate limiting for better security
  */
 export const authRateLimit = (
   maxAttempts: number = 5,
   windowMs: number = 15 * 60 * 1000
 ) => {
-  const attempts = new Map<string, { count: number; resetTime: number }>();
+  const ipAttempts = new Map<string, { count: number; resetTime: number }>();
+  const userAttempts = new Map<string, { count: number; resetTime: number }>();
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    const clientId = req.ip || "unknown";
+    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+    const userAgent = req.get("User-Agent") || "unknown";
     const now = Date.now();
 
+    // Create a more unique identifier combining IP and User-Agent
+    const clientId = `${clientIp}:${userAgent.substring(0, 50)}`;
+
     // Clean up expired entries
-    for (const [key, value] of attempts.entries()) {
+    for (const [key, value] of ipAttempts.entries()) {
       if (now > value.resetTime) {
-        attempts.delete(key);
+        ipAttempts.delete(key);
       }
     }
 
-    const clientAttempts = attempts.get(clientId);
-
-    if (!clientAttempts) {
-      attempts.set(clientId, { count: 1, resetTime: now + windowMs });
-      next();
-      return;
+    for (const [key, value] of userAttempts.entries()) {
+      if (now > value.resetTime) {
+        userAttempts.delete(key);
+      }
     }
 
-    if (clientAttempts.count >= maxAttempts) {
-      logger.warn("Rate limit exceeded for authentication", {
-        clientId,
-        attempts: clientAttempts.count,
+    // Check IP-based rate limiting
+    const ipClientAttempts = ipAttempts.get(clientId);
+
+    if (!ipClientAttempts) {
+      ipAttempts.set(clientId, { count: 1, resetTime: now + windowMs });
+    } else if (ipClientAttempts.count >= maxAttempts) {
+      logger.warn("IP-based rate limit exceeded for authentication", {
+        clientId: clientIp,
+        userAgent,
+        attempts: ipClientAttempts.count,
         path: req.path,
+        method: req.method,
       });
 
       res.status(429).json({
         error: "Too Many Requests",
-        message: `Too many authentication attempts. Try again in ${Math.ceil(
-          (clientAttempts.resetTime - now) / 1000
+        message: `Too many authentication attempts from this IP. Try again in ${Math.ceil(
+          (ipClientAttempts.resetTime - now) / 1000
         )} seconds.`,
-        code: "RATE_LIMIT_EXCEEDED",
+        code: "IP_RATE_LIMIT_EXCEEDED",
         timestamp: new Date().toISOString(),
         path: req.path,
-        retryAfter: Math.ceil((clientAttempts.resetTime - now) / 1000),
+        retryAfter: Math.ceil((ipClientAttempts.resetTime - now) / 1000),
       });
       return;
+    } else {
+      ipClientAttempts.count++;
     }
 
-    clientAttempts.count++;
+    // For callback endpoints, also check user-based rate limiting
+    if (req.body?.email || req.body?.state) {
+      const userIdentifier = req.body.email || req.body.state || "anonymous";
+      const userClientAttempts = userAttempts.get(userIdentifier);
+
+      if (!userClientAttempts) {
+        userAttempts.set(userIdentifier, {
+          count: 1,
+          resetTime: now + windowMs,
+        });
+      } else if (userClientAttempts.count >= maxAttempts) {
+        logger.warn("User-based rate limit exceeded for authentication", {
+          userIdentifier: userIdentifier.substring(0, 10) + "...",
+          clientId: clientIp,
+          attempts: userClientAttempts.count,
+          path: req.path,
+          method: req.method,
+        });
+
+        res.status(429).json({
+          error: "Too Many Requests",
+          message: `Too many authentication attempts for this account. Try again in ${Math.ceil(
+            (userClientAttempts.resetTime - now) / 1000
+          )} seconds.`,
+          code: "USER_RATE_LIMIT_EXCEEDED",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          retryAfter: Math.ceil((userClientAttempts.resetTime - now) / 1000),
+        });
+        return;
+      } else {
+        userClientAttempts.count++;
+      }
+    }
+
     next();
   };
 };

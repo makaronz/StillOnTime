@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
+import { helmetConfig, corsConfig, securityConfig } from "@/config/security";
 
 import { errorHandler, notFoundHandler } from "@/middleware/errorHandler";
 import { logger, structuredLogger } from "@/utils/logger";
@@ -18,22 +19,43 @@ dotenv.config();
 const app = express();
 const PORT = config.port || 3001;
 
-// Security middleware
-app.use(helmet());
-app.use(
-  cors({
-    origin: config.frontendUrl,
-    credentials: true,
-  })
-);
+// Enhanced security middleware
+app.use(helmet(helmetConfig));
+app.use(cors(corsConfig));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
+// Global rate limiting with enhanced security
+const globalLimiter = rateLimit({
+  windowMs: securityConfig.rateLimiting.global.windowMs,
+  max: securityConfig.rateLimiting.global.max,
+  message: {
+    error: "Too Many Requests",
+    message: "Too many requests from this IP, please try again later.",
+    code: "GLOBAL_RATE_LIMIT_EXCEEDED",
+    timestamp: new Date().toISOString(),
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip rate limiting for health checks
+  skip: (req) => req.path === "/health" || req.path.startsWith("/health/"),
 });
-app.use(limiter);
+
+// Stricter rate limiting for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: securityConfig.rateLimiting.auth.windowMs,
+  max: securityConfig.rateLimiting.auth.max,
+  message: {
+    error: "Too Many Requests",
+    message:
+      "Too many authentication requests from this IP, please try again later.",
+    code: "AUTH_RATE_LIMIT_EXCEEDED",
+    timestamp: new Date().toISOString(),
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(globalLimiter);
+app.use("/api/auth", authLimiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));

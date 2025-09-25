@@ -8,6 +8,7 @@ import {
 } from "@/middleware/auth.middleware";
 import { body, query, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
+import { securityConfig } from "@/config/security";
 
 const router = Router();
 
@@ -41,7 +42,10 @@ const handleValidationErrors = (
 // GET /auth/login - Initiate OAuth flow
 router.get(
   "/login",
-  authRateLimit(10, 15 * 60 * 1000), // 10 attempts per 15 minutes
+  authRateLimit(
+    securityConfig.rateLimiting.auth.login.max,
+    securityConfig.rateLimiting.auth.login.windowMs
+  ),
   [
     query("state")
       .optional()
@@ -56,7 +60,10 @@ router.get(
 // POST /auth/callback - Handle OAuth callback
 router.post(
   "/callback",
-  authRateLimit(20, 15 * 60 * 1000), // 20 attempts per 15 minutes
+  authRateLimit(
+    securityConfig.rateLimiting.auth.callback.max,
+    securityConfig.rateLimiting.auth.callback.windowMs
+  ),
   [
     body("code")
       .optional()
@@ -84,6 +91,10 @@ router.post(
 // POST /auth/refresh - Refresh JWT token
 router.post(
   "/refresh",
+  authRateLimit(
+    securityConfig.rateLimiting.auth.refresh.max,
+    securityConfig.rateLimiting.auth.refresh.windowMs
+  ),
   authenticateToken,
   authController.refresh.bind(authController)
 );
@@ -91,6 +102,10 @@ router.post(
 // POST /auth/logout - Logout and revoke tokens
 router.post(
   "/logout",
+  authRateLimit(
+    securityConfig.rateLimiting.auth.logout.max,
+    securityConfig.rateLimiting.auth.logout.windowMs
+  ),
   authenticateToken,
   authController.logout.bind(authController)
 );
@@ -98,6 +113,10 @@ router.post(
 // POST /auth/reauth - Force OAuth re-authentication
 router.post(
   "/reauth",
+  authRateLimit(
+    securityConfig.rateLimiting.auth.reauth.max,
+    securityConfig.rateLimiting.auth.reauth.windowMs
+  ),
   authenticateToken,
   authController.reauth.bind(authController)
 );
