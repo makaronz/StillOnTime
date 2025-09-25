@@ -167,7 +167,7 @@
   - Implement processing statistics endpoints
   - _Requirements: 7.1, 7.4, 7.6, 10.1_
 
-- [-] 9.3 Create schedule and calendar management endpoints
+- [x] 9.3 Create schedule and calendar management endpoints
 
   - Implement schedule data CRUD endpoints
   - Create calendar event management endpoints

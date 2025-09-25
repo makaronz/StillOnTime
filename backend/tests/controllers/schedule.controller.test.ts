@@ -38,7 +38,7 @@ describe("ScheduleController", () => {
 
     // Mock request and response
     mockRequest = {
-      user: { userId: "test-user-id" },
+      user: { userId: "test-user-id", email: "test@example.com" },
       params: {},
       query: {},
       body: {},
