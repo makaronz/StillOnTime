@@ -259,3 +259,177 @@ export interface GeneratedSummary {
     callTime: string;
   };
 }
+
+// Additional types for fixing 'any' usage
+
+// Database query types
+export interface WhereCondition {
+  [key: string]: any;
+}
+
+export interface OrderByCondition {
+  [key: string]: "asc" | "desc";
+}
+
+export interface FindManyOptions {
+  where?: WhereCondition;
+  orderBy?: OrderByCondition | OrderByCondition[];
+  skip?: number;
+  take?: number;
+  include?: Record<string, boolean | object>;
+  select?: Record<string, boolean>;
+}
+
+// Calendar override types
+export interface CalendarOverride {
+  eventId: string;
+  overrideType: "time" | "location" | "description" | "alarms";
+  originalValue: string | Date | object;
+  overrideValue: string | Date | object;
+  timestamp: Date;
+  reason: string;
+  appliedBy: string;
+}
+
+// Calendar update data
+export interface CalendarUpdateData {
+  summary?: string;
+  description?: string;
+  start?: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end?: {
+    dateTime: string;
+    timeZone: string;
+  };
+  location?: string;
+  reminders?: {
+    useDefault: boolean;
+    overrides?: Array<{
+      method: string;
+      minutes: number;
+    }>;
+  };
+}
+
+// Conflict resolution types
+export interface CalendarConflict {
+  type: "time_overlap" | "duplicate_event" | "invalid_time";
+  existingEvent?: CalendarEvent;
+  conflictingData: ScheduleData;
+  severity: "low" | "medium" | "high";
+  suggestedResolution: string;
+}
+
+// Error handling types
+export interface ErrorContext {
+  operation: string;
+  userId?: string;
+  scheduleId?: string;
+  messageId?: string;
+  additionalData?: Record<string, unknown>;
+}
+
+export interface FallbackData {
+  [key: string]: unknown;
+}
+
+// Weather monitoring types
+export interface WeatherChange {
+  type: "temperature" | "precipitation" | "wind" | "conditions";
+  field: string;
+  previousValue: number | string | string[];
+  currentValue: number | string | string[];
+  timestamp: Date;
+  changeAmount?: number;
+  changePercentage?: number;
+}
+
+// Time calculation types
+export interface TimeCalculationOptions {
+  includeWeatherBuffer?: boolean;
+  includeTrafficBuffer?: boolean;
+  customBuffers?: Partial<TimeBuffers>;
+  minimumWakeUpTime?: Date;
+  maximumWakeUpTime?: Date;
+}
+
+export interface TimeRecommendation {
+  type: "buffer_adjustment" | "route_alternative" | "schedule_change";
+  description: string;
+  impact: "positive" | "negative" | "neutral";
+  timeSaving?: number;
+  confidence: number;
+}
+
+// Monitoring and metrics types
+export interface MetricsData {
+  timestamp: Date;
+  errorRate: number;
+  responseTime: number;
+  throughput: number;
+  circuitBreakers: Record<string, CircuitBreakerState>;
+  [key: string]: unknown;
+}
+
+export interface CircuitBreakerState {
+  state: "CLOSED" | "OPEN" | "HALF_OPEN";
+  failureCount: number;
+  lastFailureTime?: Date;
+  nextAttemptTime?: Date;
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  condition: string;
+  threshold: number;
+  severity: "low" | "medium" | "high" | "critical";
+  enabled: boolean;
+}
+
+export interface Alert {
+  id: string;
+  ruleId: string;
+  severity: "low" | "medium" | "high" | "critical";
+  message: string;
+  timestamp: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+}
+
+// SMS service types
+export interface SMSDeliveryStatus {
+  messageId: string;
+  status: "queued" | "sent" | "delivered" | "failed" | "undelivered";
+  errorCode?: string;
+  errorMessage?: string;
+  timestamp: Date;
+}
+
+export interface SMSAccountInfo {
+  accountSid: string;
+  balance?: string;
+  currency?: string;
+  usage?: Array<{
+    category: string;
+    count: number;
+    price: string;
+  }>;
+}
+
+// Nested object access types
+export type NestedKeyOf<ObjectType extends object> = {
+  [Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object
+    ? `${Key}` | `${Key}.${NestedKeyOf<ObjectType[Key]>}`
+    : `${Key}`;
+}[keyof ObjectType & (string | number)];
+
+export type NestedValue<T, K extends string> = K extends keyof T
+  ? T[K]
+  : K extends `${infer K1}.${infer K2}`
+  ? K1 extends keyof T
+    ? NestedValue<T[K1], K2>
+    : never
+  : never;
