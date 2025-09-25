@@ -34,6 +34,13 @@ export * from "./calendar-manager.service";
 export * from "./notification.service";
 export * from "./summary.service";
 
+// Error handling and recovery services
+export * from "./error-handler.service";
+export * from "./monitoring.service";
+export * from "./fallback.service";
+export * from "./error-recovery.service";
+export * from "./error-recovery-integration.service";
+
 // Service instances (singletons)
 import { cacheService } from "./cache.service";
 import { weatherCacheService } from "./weather-cache.service";
@@ -52,6 +59,11 @@ import { CalendarService } from "./calendar.service";
 import { CalendarManagerService } from "./calendar-manager.service";
 import { NotificationService } from "./notification.service";
 import { SummaryService } from "./summary.service";
+import { ErrorHandlerService } from "./error-handler.service";
+import { MonitoringService } from "./monitoring.service";
+import { FallbackService } from "./fallback.service";
+import { ErrorRecoveryService } from "./error-recovery.service";
+import { ErrorRecoveryIntegrationService } from "./error-recovery-integration.service";
 import { UserRepository } from "../repositories/user.repository";
 import { ProcessedEmailRepository } from "../repositories/processed-email.repository";
 import { ScheduleDataRepository } from "../repositories/schedule-data.repository";
@@ -102,6 +114,30 @@ const jobProcessorService = new JobProcessorService(
   scheduleDataRepository
 );
 
+// Initialize error handling and recovery services
+const monitoringService = new MonitoringService(
+  null as any, // Will be initialized properly in main app
+  cacheService,
+  notificationService
+);
+const fallbackService = new FallbackService(cacheService, notificationService);
+const errorRecoveryService = new ErrorRecoveryService(
+  fallbackService,
+  monitoringService,
+  notificationService,
+  cacheService
+);
+const errorHandlerService = new ErrorHandlerService(
+  oauth2Service,
+  cacheService,
+  notificationService
+);
+const errorRecoveryIntegrationService = new ErrorRecoveryIntegrationService(
+  notificationService,
+  cacheService,
+  monitoringService
+);
+
 // Service container for dependency injection
 export const services = {
   cache: cacheService,
@@ -121,6 +157,11 @@ export const services = {
   notification: notificationService,
   summary: summaryService,
   jobProcessor: jobProcessorService,
+  errorHandler: errorHandlerService,
+  monitoring: monitoringService,
+  fallback: fallbackService,
+  errorRecovery: errorRecoveryService,
+  errorRecoveryIntegration: errorRecoveryIntegrationService,
 } as const;
 
 export type ServiceContainer = typeof services;

@@ -7,7 +7,8 @@ import {
   History, 
   LogOut,
   Calendar,
-  Mail
+  Mail,
+  Activity
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -22,6 +23,7 @@ export default function Layout({ children }: LayoutProps): JSX.Element {
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Configuration', href: '/configuration', icon: Settings },
     { name: 'History', href: '/history', icon: History },
+    { name: 'Monitoring', href: '/monitoring', icon: Activity },
   ]
 
   const isActive = (path: string): boolean => location.pathname === path

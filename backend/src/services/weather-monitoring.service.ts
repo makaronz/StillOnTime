@@ -550,20 +550,73 @@ export class WeatherMonitoringService {
     const { scheduleId, location, date, significantChanges, impactAnalysis } =
       notification;
 
-    // Create notification message
-    const message = this.createWeatherChangeMessage(notification);
+    try {
+      // Get the schedule to find the user
+      const schedule = await this.scheduleRepository.findById(scheduleId);
+      if (!schedule) {
+        logger.error("Schedule not found for weather notification", {
+          scheduleId,
+        });
+        return;
+      }
 
-    logger.info("Weather change notification created", {
-      scheduleId,
-      location,
-      date,
-      changesCount: significantChanges.length,
-      overallRisk: impactAnalysis.overallRisk,
-      message: message.substring(0, 100) + "...",
-    });
+      // Create notification template data
+      const templateData = {
+        scheduleData: schedule,
+        weatherData: {
+          warnings: significantChanges.map((change) => change.description),
+          location,
+          date,
+          impactAnalysis,
+        },
+        location,
+        date,
+        warnings: significantChanges
+          .map((change) => change.description)
+          .join(", "),
+      };
 
-    // TODO: Integrate with notification service to send email/SMS/push notifications
-    // This would be implemented when the notification service is available
+      // Import notification service dynamically to avoid circular dependency
+      const { NotificationService } = await import("./notification.service");
+      const { NotificationRepository } = await import(
+        "../repositories/notification.repository"
+      );
+      const { UserRepository } = await import(
+        "../repositories/user.repository"
+      );
+
+      // Create notification service instance
+      const notificationRepository = new NotificationRepository();
+      const userRepository = new UserRepository();
+      const notificationService = new NotificationService(
+        notificationRepository,
+        userRepository
+      );
+
+      // Send weather warning notification
+      await notificationService.sendNotification(
+        schedule.userId,
+        "weather_warning",
+        templateData
+      );
+
+      logger.info("Weather change notification sent successfully", {
+        scheduleId,
+        location,
+        date,
+        changesCount: significantChanges.length,
+        overallRisk: impactAnalysis.overallRisk,
+        userId: schedule.userId,
+      });
+    } catch (error) {
+      logger.error("Failed to send weather change notification", {
+        scheduleId,
+        location,
+        date,
+        error: error instanceof Error ? error.message : String(error),
+        functionName: "WeatherMonitoringService.sendWeatherChangeNotification",
+      });
+    }
   }
 
   /**

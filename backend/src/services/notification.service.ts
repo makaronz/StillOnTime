@@ -210,7 +210,7 @@ export class NotificationService {
       logger.error("Failed to send notification", {
         userId,
         template,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.sendNotification",
       });
       throw error;
@@ -251,7 +251,7 @@ export class NotificationService {
         } catch (error) {
           logger.error("Failed to process scheduled notification", {
             notificationId: notification.id,
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
             functionName: "NotificationService.processScheduledNotifications",
           });
 

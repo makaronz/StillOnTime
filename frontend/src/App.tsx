@@ -5,6 +5,7 @@ import Dashboard from '@/pages/Dashboard'
 import Login from '@/pages/Login'
 import Configuration from '@/pages/Configuration'
 import History from '@/pages/History'
+import { Monitoring } from '@/pages/Monitoring'
 import Layout from '@/components/Layout'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import OAuthCallback from '@/components/OAuthCallback'
@@ -49,6 +50,16 @@ function App(): JSX.Element {
           <ProtectedRoute>
             <Layout>
               <History />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/monitoring"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Monitoring />
             </Layout>
           </ProtectedRoute>
         }

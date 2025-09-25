@@ -55,7 +55,7 @@ export class SMSService {
       });
     } catch (error) {
       logger.error("Failed to initialize Twilio SMS service", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSService.initializeTwilio",
       });
     }
@@ -138,15 +138,17 @@ export class SMSService {
       };
     } catch (error) {
       logger.error("Failed to send SMS", {
-        error: error.message,
-        errorCode: error.code,
+        error: error instanceof Error ? error.message : String(error),
+        errorCode: (error as any)?.code,
         toNumber: this.maskPhoneNumber(toNumber),
         functionName: "SMSService.sendSMS",
       });
 
       return {
         success: false,
-        error: `SMS delivery failed: ${error.message}`,
+        error: `SMS delivery failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         deliveredAt: new Date(),
       };
     }
@@ -173,7 +175,7 @@ export class SMSService {
     } catch (error) {
       logger.error("Failed to fetch SMS delivery status", {
         messageId,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSService.getDeliveryStatus",
       });
       throw error;
@@ -301,13 +303,15 @@ export class SMSService {
       };
     } catch (error) {
       logger.error("Failed to test SMS service configuration", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSService.testConfiguration",
       });
 
       return {
         isConfigured: false,
-        error: `Configuration test failed: ${error.message}`,
+        error: `Configuration test failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       };
     }
   }
@@ -355,18 +359,20 @@ export class SMSService {
           count: record.count,
           countUnit: record.countUnit,
           description: record.description,
-          price: record.price,
+          price: record.price.toString(),
           priceUnit: record.priceUnit,
         })),
       };
     } catch (error) {
       logger.error("Failed to fetch account usage", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSService.getAccountUsage",
       });
 
       return {
-        error: `Failed to fetch usage: ${error.message}`,
+        error: `Failed to fetch usage: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       };
     }
   }
