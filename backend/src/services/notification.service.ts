@@ -865,10 +865,246 @@ export class NotificationService {
   async getSMSAccountUsage(): Promise<{
     balance?: string;
     currency?: string;
-    usage?: any[];
+    usage?: Array<{
+      category: string;
+      count: number;
+      price: string;
+    }>;
     error?: string;
   }> {
     return this.smsService.getAccountUsage();
+  }
+
+  /**
+   * Validate push notification configuration for a user
+   */
+  async validatePushConfiguration(userId: string): Promise<{
+    isValid: boolean;
+    hasPushToken: boolean;
+    isServiceConfigured: boolean;
+    pushTokenValid?: boolean;
+    error?: string;
+  }> {
+    try {
+      const userWithConfig = await this.userRepository.findByIdWithConfig(
+        userId
+      );
+      const pushToken = userWithConfig?.userConfig?.pushToken;
+
+      const hasPushToken = !!pushToken;
+      const isServiceConfigured = this.pushService.isServiceConfigured();
+
+      let pushTokenValid = false;
+      if (pushToken) {
+        const validation = this.pushService.validateToken(pushToken);
+        pushTokenValid = validation.isValid;
+      }
+
+      return {
+        isValid: hasPushToken && isServiceConfigured && pushTokenValid,
+        hasPushToken,
+        isServiceConfigured,
+        pushTokenValid: hasPushToken ? pushTokenValid : undefined,
+      };
+    } catch (error) {
+      logger.error("Failed to validate push notification configuration", {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+        functionName: "NotificationService.validatePushConfiguration",
+      });
+
+      return {
+        isValid: false,
+        hasPushToken: false,
+        isServiceConfigured: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Test push notification service configuration
+   */
+  async testPushService(): Promise<{
+    isConfigured: boolean;
+    projectInfo?: {
+      projectId: string;
+      hasVapidKey: boolean;
+    };
+    error?: string;
+  }> {
+    return this.pushService.testConfiguration();
+  }
+
+  /**
+   * Send system alert notification
+   */
+  async sendSystemAlert(alertData: {
+    type: string;
+    serviceName: string;
+    errorCode: string;
+    impact: "low" | "medium" | "high" | "critical";
+    affectedOperations: string[];
+    estimatedRecoveryTime?: number;
+    timestamp: Date;
+  }): Promise<void> {
+    try {
+      // Get admin users (simplified - would need proper admin user management)
+      const adminUsers = await this.getAdminUsers();
+
+      const templateData = {
+        alertType: alertData.type,
+        serviceName: alertData.serviceName,
+        errorCode: alertData.errorCode,
+        impact: alertData.impact,
+        affectedOperations: alertData.affectedOperations.join(", "),
+        estimatedRecoveryTime: alertData.estimatedRecoveryTime
+          ? `${Math.round(alertData.estimatedRecoveryTime / 60)} minutes`
+          : "Unknown",
+        timestamp: alertData.timestamp.toISOString(),
+        message: this.formatSystemAlertMessage(alertData),
+      };
+
+      // Send to all admin users
+      for (const adminUser of adminUsers) {
+        await this.sendNotification(
+          adminUser.id,
+          "system_alert",
+          templateData,
+          ["email"] // Only email for system alerts
+        );
+      }
+
+      logger.info("System alert sent", {
+        alertType: alertData.type,
+        serviceName: alertData.serviceName,
+        impact: alertData.impact,
+        adminUserCount: adminUsers.length,
+      });
+    } catch (error) {
+      logger.error("Failed to send system alert", {
+        alertData,
+        error: error instanceof Error ? error.message : String(error),
+        functionName: "NotificationService.sendSystemAlert",
+      });
+    }
+  }
+
+  /**
+   * Send monitoring alert notification
+   */
+  async sendAlert(alertData: {
+    id: string;
+    severity: "low" | "medium" | "high" | "critical";
+    title: string;
+    message: string;
+    timestamp: Date;
+    metadata: Record<string, any>;
+  }): Promise<void> {
+    try {
+      // Get admin users for alerts
+      const adminUsers = await this.getAdminUsers();
+
+      const templateData = {
+        alertId: alertData.id,
+        severity: alertData.severity,
+        title: alertData.title,
+        message: alertData.message,
+        timestamp: alertData.timestamp.toISOString(),
+        metadata: JSON.stringify(alertData.metadata, null, 2),
+      };
+
+      // Determine notification channels based on severity
+      const channels: NotificationChannel[] = ["email"];
+      if (alertData.severity === "critical" || alertData.severity === "high") {
+        channels.push("sms"); // Also send SMS for high/critical alerts
+      }
+
+      // Send to all admin users
+      for (const adminUser of adminUsers) {
+        await this.sendNotification(
+          adminUser.id,
+          "system_alert",
+          templateData,
+          channels
+        );
+      }
+
+      logger.info("Monitoring alert sent", {
+        alertId: alertData.id,
+        severity: alertData.severity,
+        title: alertData.title,
+        adminUserCount: adminUsers.length,
+        channels,
+      });
+    } catch (error) {
+      logger.error("Failed to send monitoring alert", {
+        alertData,
+        error: error instanceof Error ? error.message : String(error),
+        functionName: "NotificationService.sendAlert",
+      });
+    }
+  }
+
+  /**
+   * Format system alert message
+   */
+  private formatSystemAlertMessage(alertData: {
+    type: string;
+    serviceName: string;
+    errorCode: string;
+    impact: "low" | "medium" | "high" | "critical";
+    affectedOperations: string[];
+    estimatedRecoveryTime?: number;
+    timestamp: Date;
+  }): string {
+    const impactEmoji = {
+      low: "🟡",
+      medium: "🟠",
+      high: "🔴",
+      critical: "🚨",
+    };
+
+    const recoveryTime = alertData.estimatedRecoveryTime
+      ? `${Math.round(alertData.estimatedRecoveryTime / 60)} minutes`
+      : "Unknown";
+
+    return `${
+      impactEmoji[alertData.impact]
+    } ${alertData.impact.toUpperCase()} IMPACT ALERT
+
+Service: ${alertData.serviceName}
+Error: ${alertData.errorCode}
+Type: ${alertData.type}
+Time: ${alertData.timestamp.toLocaleString()}
+
+Affected Operations:
+${alertData.affectedOperations.map((op) => `• ${op}`).join("\n")}
+
+Estimated Recovery: ${recoveryTime}
+
+Please check the monitoring dashboard for more details.`;
+  }
+
+  /**
+   * Get admin users (simplified implementation)
+   */
+  private async getAdminUsers(): Promise<User[]> {
+    try {
+      // This is a simplified implementation
+      // In a real system, you'd have proper role-based access control
+      const users = await this.userRepository.findAll();
+
+      // For now, return all users as potential admins
+      // In production, filter by admin role
+      return users.slice(0, 5); // Limit to first 5 users to avoid spam
+    } catch (error) {
+      logger.error("Failed to get admin users", {
+        error: error instanceof Error ? error.message : String(error),
+        functionName: "NotificationService.getAdminUsers",
+      });
+      return [];
+    }
   }
 }
 
