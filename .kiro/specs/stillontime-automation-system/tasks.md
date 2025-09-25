@@ -208,8 +208,42 @@
   - Implement analytics charts and statistics
   - _Requirements: 7.6, 9.6, 10.1, 10.2, 10.3_
 
-- [-] 11. Complete notification service integrations
-- [ ] 11.1 Implement SMS notification provider integration
+- [ ] 11. **CRITICAL SECURITY FIXES** (Based on Code Analysis - IMMEDIATE ACTION REQUIRED)
+- [x] 11.1 Fix critical security vulnerabilities
+
+  - **CRITICAL**: Remove default JWT secret fallback in config.ts (Line 29)
+  - **CRITICAL**: Remove default database credentials from config.ts (Line 27)
+  - **HIGH**: Require all production environment variables without fallbacks
+  - **MEDIUM**: Validate API keys on startup and fail fast if missing
+  - **MEDIUM**: Review and tighten rate limiting for authentication endpoints
+  - _Security Priority: CRITICAL - Must be completed before production deployment_
+
+- [x] 11.2 Improve type safety and code quality
+
+  - Replace all 17 instances of `any` type with proper TypeScript interfaces
+  - Fix type safety issues in notification.service.ts:550 (getNestedValue function)
+  - Fix loose typing in schedule.controller.ts:69 (dynamic query conditions)
+  - Fix repository type issues in backend/src/repositories/\*.ts
+  - _Code Quality Priority: HIGH - Improves maintainability and prevents runtime errors_
+
+- [ ] 11.3 Complete TODO implementations and technical debt cleanup
+
+  - Implement SMS provider integration (notification.service.ts:425)
+  - Implement push notification service (notification.service.ts:453)
+  - Complete notification integration (weather-monitoring.service.ts:576)
+  - Standardize language to English-only in codebase (remove Polish strings)
+  - _Technical Debt Priority: MEDIUM - Completes planned features_
+
+- [ ] 11.4 Refactor large service files and improve architecture
+
+  - Refactor schedule.controller.ts (926 lines) - break into smaller, focused controllers
+  - Refactor job-processor.service.ts (830 lines) - extract job handlers into separate classes
+  - Refactor summary.service.ts (805 lines) - separate summary generation logic
+  - Implement service composition pattern for better maintainability
+  - _Architecture Priority: MEDIUM - Improves code maintainability and testability_
+
+- [ ] 12. Complete notification service integrations
+- [ ] 12.1 Implement SMS notification provider integration
 
   - Integrate with SMS provider (Twilio, AWS SNS, or similar)
   - Add SMS configuration and validation in user settings
@@ -217,7 +251,7 @@
   - Write tests for SMS notification functionality
   - _Requirements: 6.1, 6.2, 6.6_
 
-- [ ] 11.2 Implement push notification service integration
+- [ ] 12.2 Implement push notification service integration
 
   - Integrate with push notification service (FCM, APNs, or similar)
   - Add push token management and device registration
@@ -225,8 +259,8 @@
   - Write tests for push notification functionality
   - _Requirements: 6.1, 6.2, 6.6_
 
-- [ ] 12. Enhance error handling and resilience
-- [ ] 12.1 Implement comprehensive error recovery mechanisms
+- [x] 13. Enhance error handling and resilience
+- [x] 13.1 Implement comprehensive error recovery mechanisms
 
   - Add circuit breaker pattern for external API calls
   - Implement exponential backoff with jitter for retries
@@ -234,7 +268,7 @@
   - Add comprehensive error logging and monitoring
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-- [ ] 12.2 Implement advanced monitoring and alerting
+- [x] 13.2 Implement advanced monitoring and alerting
 
   - Set up application performance monitoring (APM)
   - Create custom metrics and dashboards
@@ -242,8 +276,8 @@
   - Add health check endpoints with detailed service status
   - _Requirements: 7.7, 9.6_
 
-- [ ] 13. Expand testing coverage and quality assurance
-- [ ] 13.1 Complete unit test coverage for all services
+- [ ] 14. Expand testing coverage and quality assurance
+- [ ] 14.1 Complete unit test coverage for all services
 
   - Achieve 90%+ code coverage for all service classes
   - Add comprehensive edge case testing
@@ -251,7 +285,7 @@
   - Create performance benchmarks for critical operations
   - _Requirements: All requirements validation_
 
-- [ ] 13.2 Implement end-to-end testing suite
+- [ ] 14.2 Implement end-to-end testing suite
 
   - Create full workflow tests from email to calendar event
   - Add browser automation tests for frontend functionality
@@ -259,8 +293,17 @@
   - Create chaos engineering tests for resilience validation
   - _Requirements: All requirements validation_
 
-- [ ] 14. Optimize performance and scalability
-- [ ] 14.1 Implement advanced caching strategies
+- [ ] 14.3 Add missing API documentation and monitoring
+
+  - Implement OpenAPI/Swagger documentation for all endpoints (missing from current codebase)
+  - Add comprehensive test coverage metrics and reporting
+  - Implement performance monitoring with metrics collection
+  - Add dependency vulnerability scanning with npm audit
+  - Create API versioning strategy for future compatibility
+  - _Documentation Priority: HIGH - Required for production readiness_
+
+- [ ] 15. Optimize performance and scalability
+- [ ] 15.1 Implement advanced caching strategies
 
   - Add intelligent cache warming for frequently accessed data
   - Implement distributed caching for multi-instance deployments
@@ -268,7 +311,7 @@
   - Create cache invalidation strategies for real-time updates
   - _Requirements: 5.5, 3.6, 7.7_
 
-- [ ] 14.2 Optimize database performance and queries
+- [ ] 15.2 Optimize database performance and queries
 
   - Add database query optimization and indexing analysis
   - Implement connection pooling optimization
@@ -276,8 +319,8 @@
   - Create database backup and recovery automation
   - _Requirements: 1.4, 2.7, 6.7, 8.7_
 
-- [ ] 15. Prepare production deployment infrastructure
-- [ ] 15.1 Create production-ready Docker configuration
+- [ ] 16. Prepare production deployment infrastructure
+- [ ] 16.1 Create production-ready Docker configuration
 
   - Build optimized production Docker images
   - Implement multi-stage builds for smaller image sizes
@@ -285,7 +328,7 @@
   - Create container orchestration configuration (Kubernetes/Docker Swarm)
   - _Requirements: 8.7_
 
-- [ ] 15.2 Implement CI/CD pipeline and deployment automation
+- [ ] 16.2 Implement CI/CD pipeline and deployment automation
 
   - Set up automated testing and deployment pipeline
   - Implement blue-green deployment strategy
@@ -293,8 +336,8 @@
   - Create environment-specific configuration management
   - _Requirements: 8.7_
 
-- [ ] 16. Create comprehensive documentation
-- [ ] 16.1 Generate API documentation and developer guides
+- [ ] 17. Create comprehensive documentation
+- [ ] 17.1 Generate API documentation and developer guides
 
   - Create OpenAPI/Swagger documentation for all endpoints
   - Write comprehensive developer onboarding guide
@@ -302,7 +345,7 @@
   - Create architecture decision records (ADRs)
   - _Requirements: 8.7_
 
-- [ ] 16.2 Create user documentation and training materials
+- [ ] 17.2 Create user documentation and training materials
 
   - Write detailed user manual for dashboard functionality
   - Create video tutorials for key features and workflows
