@@ -93,6 +93,12 @@ export class UserConfigRepository
       notificationEmail: true,
       notificationSMS: false,
       notificationPush: true,
+      smsNumber: null,
+      smsVerified: false,
+      smsVerificationCode: null,
+      smsVerificationExpiry: null,
+      pushToken: null,
+      pushTokenVerified: false,
       userId: "",
     };
   }
@@ -113,6 +119,12 @@ export class UserConfigRepository
       notificationEmail: true,
       notificationSMS: false,
       notificationPush: true,
+      smsNumber: null,
+      smsVerified: false,
+      smsVerificationCode: null,
+      smsVerificationExpiry: null,
+      pushToken: null,
+      pushTokenVerified: false,
     };
   }
 

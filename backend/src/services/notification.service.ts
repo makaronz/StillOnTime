@@ -8,16 +8,20 @@ import {
   NotificationPreferences,
   User,
   UserConfig,
+  NestedValue,
+  SMSAccountInfo,
 } from "../types";
 import { NotificationRepository } from "../repositories/notification.repository";
 import { UserRepository } from "../repositories/user.repository";
 import { SMSService } from "./sms.service";
+import { PushNotificationService } from "./push-notification.service";
 import { logger } from "../utils/logger";
 
 export class NotificationService {
-  private emailTransporter: nodemailer.Transporter;
-  private smsService: SMSService;
-  private templates: Map<NotificationTemplate, NotificationTemplateConfig>;
+  private emailTransporter!: nodemailer.Transporter;
+  private smsService!: SMSService;
+  private pushService!: PushNotificationService;
+  private templates!: Map<NotificationTemplate, NotificationTemplateConfig>;
 
   constructor(
     private notificationRepository: NotificationRepository,
@@ -25,6 +29,7 @@ export class NotificationService {
   ) {
     this.initializeEmailTransporter();
     this.initializeSMSService();
+    this.initializePushService();
     this.initializeTemplates();
   }
 
@@ -48,6 +53,13 @@ export class NotificationService {
    */
   private initializeSMSService(): void {
     this.smsService = new SMSService();
+  }
+
+  /**
+   * Initialize push notification service
+   */
+  private initializePushService(): void {
+    this.pushService = new PushNotificationService();
   }
 
   /**
@@ -478,7 +490,7 @@ export class NotificationService {
   }
 
   /**
-   * Send push notification (placeholder - integrate with push service)
+   * Send push notification via Firebase Cloud Messaging
    */
   private async sendPushNotification(
     notification: Notification,
@@ -492,18 +504,68 @@ export class NotificationService {
       };
     }
 
-    // TODO: Integrate with push notification service (FCM, APNs, etc.)
-    logger.info("Push notification would be sent", {
-      pushToken,
-      subject: notification.subject,
-      message: notification.message,
-    });
+    if (!this.pushService.isServiceConfigured()) {
+      return {
+        success: false,
+        error:
+          "Push notification service not configured - missing Firebase credentials",
+        deliveredAt: new Date(),
+      };
+    }
 
-    return {
-      success: true,
-      messageId: `push_${Date.now()}`,
-      deliveredAt: new Date(),
-    };
+    try {
+      const pushMessage = {
+        title: notification.subject,
+        body: notification.message,
+        icon: "/icon-192x192.png",
+        badge: "1",
+        data: {
+          notificationId: notification.id,
+          template: notification.template,
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      const result = await this.pushService.sendToToken(
+        pushToken,
+        pushMessage,
+        {
+          priority: "high",
+          timeToLive: 3600, // 1 hour
+        }
+      );
+
+      if (result.success) {
+        logger.info("Push notification sent successfully", {
+          notificationId: notification.id,
+          messageId: result.messageId,
+          pushToken: pushToken.slice(0, 8) + "...", // Mask token
+        });
+      } else {
+        logger.error("Push notification failed", {
+          notificationId: notification.id,
+          error: result.error,
+          pushToken: pushToken.slice(0, 8) + "...",
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error("Push notification error", {
+        notificationId: notification.id,
+        error: error instanceof Error ? error.message : String(error),
+        pushToken: pushToken.slice(0, 8) + "...",
+        functionName: "NotificationService.sendPushNotification",
+      });
+
+      return {
+        success: false,
+        error: `Push notification delivery failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        deliveredAt: new Date(),
+      };
+    }
   }
 
   /**
