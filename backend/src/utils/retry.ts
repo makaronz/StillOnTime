@@ -249,47 +249,161 @@ export function withRetry(config: Partial<RetryConfig> = {}) {
   };
 }
 
-// Specific retry configurations for different services
+// Enhanced retry configurations for different services with improved jitter
 export const RETRY_CONFIGS = {
   OAUTH: {
-    maxAttempts: 2,
+    maxAttempts: 3,
     baseDelay: 1000,
-    maxDelay: 5000,
-    retryableErrors: ["OAUTH_TOKEN_EXPIRED", "OAUTH_RATE_LIMITED"],
+    maxDelay: 8000,
+    backoffMultiplier: 2,
+    jitterFactor: 0.2,
+    retryableErrors: [
+      "OAUTH_TOKEN_EXPIRED",
+      "OAUTH_RATE_LIMITED",
+      "NETWORK_ERROR",
+      "ECONNRESET",
+      "ETIMEDOUT",
+    ],
   },
 
   GMAIL_API: {
-    maxAttempts: 3,
+    maxAttempts: 4,
     baseDelay: 2000,
-    maxDelay: 10000,
-    retryableErrors: ["RATE_LIMITED", "SERVICE_UNAVAILABLE", "NETWORK_ERROR"],
+    maxDelay: 30000,
+    backoffMultiplier: 2.5,
+    jitterFactor: 0.3,
+    retryableErrors: [
+      "RATE_LIMITED",
+      "SERVICE_UNAVAILABLE",
+      "NETWORK_ERROR",
+      "QUOTA_EXCEEDED",
+      "BACKEND_ERROR",
+      "ECONNRESET",
+      "ETIMEDOUT",
+      "ENOTFOUND",
+    ],
   },
 
   CALENDAR_API: {
-    maxAttempts: 3,
+    maxAttempts: 4,
     baseDelay: 1500,
-    maxDelay: 8000,
-    retryableErrors: ["RATE_LIMITED", "SERVICE_UNAVAILABLE", "NETWORK_ERROR"],
+    maxDelay: 25000,
+    backoffMultiplier: 2.2,
+    jitterFactor: 0.25,
+    retryableErrors: [
+      "RATE_LIMITED",
+      "SERVICE_UNAVAILABLE",
+      "NETWORK_ERROR",
+      "QUOTA_EXCEEDED",
+      "BACKEND_ERROR",
+      "ECONNRESET",
+      "ETIMEDOUT",
+    ],
   },
 
   MAPS_API: {
-    maxAttempts: 2,
+    maxAttempts: 3,
     baseDelay: 1000,
-    maxDelay: 5000,
-    retryableErrors: ["RATE_LIMITED", "SERVICE_UNAVAILABLE"],
+    maxDelay: 15000,
+    backoffMultiplier: 2,
+    jitterFactor: 0.2,
+    retryableErrors: [
+      "RATE_LIMITED",
+      "SERVICE_UNAVAILABLE",
+      "QUOTA_EXCEEDED",
+      "NETWORK_ERROR",
+      "ECONNRESET",
+      "ETIMEDOUT",
+    ],
   },
 
   WEATHER_API: {
-    maxAttempts: 3,
+    maxAttempts: 4,
     baseDelay: 2000,
-    maxDelay: 15000,
-    retryableErrors: ["RATE_LIMITED", "SERVICE_UNAVAILABLE", "NETWORK_ERROR"],
+    maxDelay: 60000,
+    backoffMultiplier: 3,
+    jitterFactor: 0.4,
+    retryableErrors: [
+      "RATE_LIMITED",
+      "SERVICE_UNAVAILABLE",
+      "NETWORK_ERROR",
+      "API_KEY_INVALID",
+      "QUOTA_EXCEEDED",
+      "ECONNRESET",
+      "ETIMEDOUT",
+      "ENOTFOUND",
+    ],
   },
 
   DATABASE: {
-    maxAttempts: 3,
+    maxAttempts: 4,
     baseDelay: 500,
+    maxDelay: 10000,
+    backoffMultiplier: 2,
+    jitterFactor: 0.15,
+    retryableErrors: [
+      "CONNECTION_ERROR",
+      "TIMEOUT_ERROR",
+      "TRANSACTION_ERROR",
+      "DEADLOCK_DETECTED",
+      "CONNECTION_LOST",
+      "ECONNRESET",
+      "ETIMEDOUT",
+    ],
+  },
+
+  CACHE: {
+    maxAttempts: 3,
+    baseDelay: 300,
+    maxDelay: 3000,
+    backoffMultiplier: 2,
+    jitterFactor: 0.1,
+    retryableErrors: [
+      "CONNECTION_ERROR",
+      "TIMEOUT_ERROR",
+      "NETWORK_ERROR",
+      "ECONNRESET",
+      "ETIMEDOUT",
+    ],
+  },
+
+  SMS_SERVICE: {
+    maxAttempts: 3,
+    baseDelay: 2000,
+    maxDelay: 20000,
+    backoffMultiplier: 2.5,
+    jitterFactor: 0.3,
+    retryableErrors: [
+      "RATE_LIMITED",
+      "SERVICE_UNAVAILABLE",
+      "NETWORK_ERROR",
+      "QUOTA_EXCEEDED",
+      "ECONNRESET",
+      "ETIMEDOUT",
+    ],
+  },
+
+  PUSH_SERVICE: {
+    maxAttempts: 3,
+    baseDelay: 1500,
+    maxDelay: 15000,
+    backoffMultiplier: 2,
+    jitterFactor: 0.25,
+    retryableErrors: [
+      "RATE_LIMITED",
+      "SERVICE_UNAVAILABLE",
+      "NETWORK_ERROR",
+      "ECONNRESET",
+      "ETIMEDOUT",
+    ],
+  },
+
+  PDF_PROCESSOR: {
+    maxAttempts: 2,
+    baseDelay: 1000,
     maxDelay: 5000,
-    retryableErrors: ["CONNECTION_ERROR", "TIMEOUT_ERROR", "TRANSACTION_ERROR"],
+    backoffMultiplier: 2,
+    jitterFactor: 0.1,
+    retryableErrors: ["PROCESSING_ERROR", "MEMORY_ERROR", "TIMEOUT_ERROR"],
   },
 };

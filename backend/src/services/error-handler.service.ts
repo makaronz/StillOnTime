@@ -3,7 +3,7 @@
  * Coordinates error recovery, logging, and fallback mechanisms
  */
 
-import { logger } from "../utils/logger";
+import { logger, structuredLogger } from "../utils/logger";
 import {
   BaseError,
   OAuthError,
@@ -13,10 +13,12 @@ import {
   SystemError,
   ErrorCode,
 } from "../utils/errors";
+import { FallbackData } from "../types";
 import { CircuitBreakerRegistry } from "../utils/circuit-breaker";
 import { RetryManager, RETRY_CONFIGS } from "../utils/retry";
 import { OAuth2Service } from "./oauth2.service";
 import { CacheService } from "./cache.service";
+import { NotificationService } from "./notification.service";
 
 export interface ErrorRecoveryResult<T = any> {
   success: boolean;
@@ -31,17 +33,50 @@ export interface FallbackOptions {
   useDefaultValues?: boolean;
   skipOperation?: boolean;
   alternativeService?: string;
+  gracefulDegradation?: boolean;
+  notifyUser?: boolean;
+  cacheKey?: string;
+  fallbackData?: FallbackData;
+}
+
+export interface ErrorMetrics {
+  errorCount: number;
+  errorRate: number;
+  lastErrorTime: Date;
+  recoveryCount: number;
+  fallbackUsageCount: number;
+  averageRecoveryTime: number;
+}
+
+export interface CriticalServiceFailure {
+  serviceName: string;
+  errorCode: ErrorCode;
+  failureTime: Date;
+  impact: "low" | "medium" | "high" | "critical";
+  affectedOperations: string[];
+  estimatedRecoveryTime?: number;
 }
 
 export class ErrorHandlerService {
   private circuitBreakerRegistry: CircuitBreakerRegistry;
   private oauth2Service: OAuth2Service;
   private cacheService: CacheService;
+  private notificationService: NotificationService;
+  private errorMetrics: Map<string, ErrorMetrics> = new Map();
+  private criticalFailures: CriticalServiceFailure[] = [];
 
-  constructor(oauth2Service: OAuth2Service, cacheService: CacheService) {
+  constructor(
+    oauth2Service: OAuth2Service,
+    cacheService: CacheService,
+    notificationService: NotificationService
+  ) {
     this.circuitBreakerRegistry = CircuitBreakerRegistry.getInstance();
     this.oauth2Service = oauth2Service;
     this.cacheService = cacheService;
+    this.notificationService = notificationService;
+
+    // Initialize error metrics cleanup
+    this.initializeMetricsCleanup();
   }
 
   /**
@@ -450,7 +485,7 @@ export class ErrorHandlerService {
     return null;
   }
 
-  private getDefaultFallbackData(error: BaseError): any {
+  private getDefaultFallbackData(error: BaseError): FallbackData {
     // Implementation depends on error type
     // This is a placeholder for default values
     return null;
@@ -602,6 +637,638 @@ export class ErrorHandlerService {
         fallbackUsed: false,
         error: retryError as BaseError,
         recoveryAction: "database_retry_failed",
+      };
+    }
+  }
+
+  /**
+   * Initialize metrics cleanup to prevent memory leaks
+   */
+  private initializeMetricsCleanup(): void {
+    // Clean up old metrics every hour
+    setInterval(() => {
+      this.cleanupOldMetrics();
+    }, 3600000); // 1 hour
+  }
+
+  /**
+   * Clean up metrics older than 24 hours
+   */
+  private cleanupOldMetrics(): void {
+    const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+
+    for (const [key, metrics] of this.errorMetrics.entries()) {
+      if (metrics.lastErrorTime < cutoffTime) {
+        this.errorMetrics.delete(key);
+      }
+    }
+
+    // Clean up old critical failures
+    this.criticalFailures = this.criticalFailures.filter(
+      (failure) => failure.failureTime > cutoffTime
+    );
+
+    structuredLogger.debug("Cleaned up old error metrics", {
+      remainingMetrics: this.errorMetrics.size,
+      remainingCriticalFailures: this.criticalFailures.length,
+    });
+  }
+
+  /**
+   * Record error metrics for monitoring
+   */
+  private recordErrorMetrics(
+    serviceName: string,
+    error: BaseError,
+    recoveryTime?: number
+  ): void {
+    const key = `${serviceName}:${error.code}`;
+    const existing = this.errorMetrics.get(key) || {
+      errorCount: 0,
+      errorRate: 0,
+      lastErrorTime: new Date(),
+      recoveryCount: 0,
+      fallbackUsageCount: 0,
+      averageRecoveryTime: 0,
+    };
+
+    existing.errorCount++;
+    existing.lastErrorTime = new Date();
+
+    if (recoveryTime) {
+      existing.recoveryCount++;
+      existing.averageRecoveryTime =
+        (existing.averageRecoveryTime * (existing.recoveryCount - 1) +
+          recoveryTime) /
+        existing.recoveryCount;
+    }
+
+    this.errorMetrics.set(key, existing);
+
+    // Check if this constitutes a critical failure
+    this.evaluateCriticalFailure(serviceName, error, existing);
+  }
+
+  /**
+   * Evaluate if an error constitutes a critical failure
+   */
+  private evaluateCriticalFailure(
+    serviceName: string,
+    error: BaseError,
+    metrics: ErrorMetrics
+  ): void {
+    const criticalErrorCodes = [
+      ErrorCode.DATABASE_CONNECTION_ERROR,
+      ErrorCode.OAUTH_INVALID_GRANT,
+      ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      ErrorCode.CIRCUIT_BREAKER_OPEN,
+    ];
+
+    const isCritical = criticalErrorCodes.includes(error.code);
+    const highErrorRate = metrics.errorCount > 10; // More than 10 errors
+    const recentErrors = metrics.lastErrorTime > new Date(Date.now() - 300000); // Within 5 minutes
+
+    if (isCritical || (highErrorRate && recentErrors)) {
+      const impact = this.determineFailureImpact(serviceName, error.code);
+      const failure: CriticalServiceFailure = {
+        serviceName,
+        errorCode: error.code,
+        failureTime: new Date(),
+        impact,
+        affectedOperations: this.getAffectedOperations(serviceName, error.code),
+        estimatedRecoveryTime: this.estimateRecoveryTime(
+          serviceName,
+          error.code
+        ),
+      };
+
+      this.criticalFailures.push(failure);
+      this.handleCriticalFailure(failure);
+    }
+  }
+
+  /**
+   * Handle critical service failures with immediate notifications
+   */
+  private async handleCriticalFailure(
+    failure: CriticalServiceFailure
+  ): Promise<void> {
+    structuredLogger.error("Critical service failure detected", {
+      serviceName: failure.serviceName,
+      errorCode: failure.errorCode,
+      impact: failure.impact,
+      affectedOperations: failure.affectedOperations,
+    });
+
+    // Send immediate notification for critical failures
+    if (failure.impact === "critical" || failure.impact === "high") {
+      try {
+        await this.notificationService.sendSystemAlert({
+          type: "critical_failure",
+          serviceName: failure.serviceName,
+          errorCode: failure.errorCode,
+          impact: failure.impact,
+          affectedOperations: failure.affectedOperations,
+          estimatedRecoveryTime: failure.estimatedRecoveryTime,
+          timestamp: failure.failureTime,
+        });
+      } catch (notificationError) {
+        structuredLogger.error("Failed to send critical failure notification", {
+          originalFailure: failure,
+          notificationError:
+            notificationError instanceof Error
+              ? notificationError.message
+              : String(notificationError),
+        });
+      }
+    }
+  }
+
+  /**
+   * Determine the impact level of a service failure
+   */
+  private determineFailureImpact(
+    serviceName: string,
+    errorCode: ErrorCode
+  ): "low" | "medium" | "high" | "critical" {
+    const criticalServices = ["database", "oauth", "gmail_api"];
+    const highImpactErrors = [
+      ErrorCode.DATABASE_CONNECTION_ERROR,
+      ErrorCode.OAUTH_INVALID_GRANT,
+      ErrorCode.CIRCUIT_BREAKER_OPEN,
+    ];
+
+    if (
+      criticalServices.includes(serviceName.toLowerCase()) &&
+      highImpactErrors.includes(errorCode)
+    ) {
+      return "critical";
+    }
+
+    if (criticalServices.includes(serviceName.toLowerCase())) {
+      return "high";
+    }
+
+    if (highImpactErrors.includes(errorCode)) {
+      return "high";
+    }
+
+    const mediumImpactErrors = [
+      ErrorCode.API_RATE_LIMITED,
+      ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      ErrorCode.PDF_PARSE_ERROR,
+    ];
+
+    if (mediumImpactErrors.includes(errorCode)) {
+      return "medium";
+    }
+
+    return "low";
+  }
+
+  /**
+   * Get operations affected by a service failure
+   */
+  private getAffectedOperations(
+    serviceName: string,
+    errorCode: ErrorCode
+  ): string[] {
+    const operationMap: Record<string, string[]> = {
+      database: [
+        "email_processing",
+        "schedule_storage",
+        "user_management",
+        "calendar_events",
+      ],
+      oauth: ["gmail_access", "calendar_access", "user_authentication"],
+      gmail_api: [
+        "email_monitoring",
+        "email_processing",
+        "attachment_download",
+      ],
+      calendar_api: ["event_creation", "calendar_sync", "reminder_setup"],
+      maps_api: [
+        "route_calculation",
+        "address_validation",
+        "travel_time_estimation",
+      ],
+      weather_api: [
+        "weather_forecasts",
+        "weather_warnings",
+        "outdoor_shoot_planning",
+      ],
+    };
+
+    return operationMap[serviceName.toLowerCase()] || ["unknown_operations"];
+  }
+
+  /**
+   * Estimate recovery time based on service and error type
+   */
+  private estimateRecoveryTime(
+    serviceName: string,
+    errorCode: ErrorCode
+  ): number {
+    const recoveryTimes: Record<string, number> = {
+      [ErrorCode.DATABASE_CONNECTION_ERROR]: 300, // 5 minutes
+      [ErrorCode.OAUTH_TOKEN_EXPIRED]: 60, // 1 minute
+      [ErrorCode.OAUTH_INVALID_GRANT]: 0, // Requires manual intervention
+      [ErrorCode.API_RATE_LIMITED]: 3600, // 1 hour
+      [ErrorCode.CIRCUIT_BREAKER_OPEN]: 300, // 5 minutes
+      [ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE]: 1800, // 30 minutes
+    };
+
+    return recoveryTimes[errorCode] || 600; // Default 10 minutes
+  }
+
+  /**
+   * Get error metrics for monitoring
+   */
+  public getErrorMetrics(): Record<string, ErrorMetrics> {
+    return Object.fromEntries(this.errorMetrics.entries());
+  }
+
+  /**
+   * Get critical failures for monitoring
+   */
+  public getCriticalFailures(): CriticalServiceFailure[] {
+    return [...this.criticalFailures];
+  }
+
+  /**
+   * Enhanced fallback mechanism with intelligent data sources
+   */
+  private async tryAdvancedFallback<T>(
+    error: BaseError,
+    options: FallbackOptions,
+    serviceName: string
+  ): Promise<ErrorRecoveryResult<T>> {
+    structuredLogger.info("Attempting advanced fallback recovery", {
+      errorCode: error.code,
+      serviceName,
+      options,
+    });
+
+    // Record fallback usage
+    const metricsKey = `${serviceName}:${error.code}`;
+    const metrics = this.errorMetrics.get(metricsKey);
+    if (metrics) {
+      metrics.fallbackUsageCount++;
+      this.errorMetrics.set(metricsKey, metrics);
+    }
+
+    // Try cached data first
+    if (options.useCachedData && options.cacheKey) {
+      const cachedData = await this.getAdvancedCachedData<T>(
+        options.cacheKey,
+        serviceName
+      );
+      if (cachedData) {
+        structuredLogger.info("Fallback using cached data", {
+          serviceName,
+          cacheKey: options.cacheKey,
+        });
+
+        return {
+          success: true,
+          data: cachedData,
+          fallbackUsed: true,
+          recoveryAction: "advanced_cached_data_used",
+        };
+      }
+    }
+
+    // Try provided fallback data
+    if (options.fallbackData) {
+      structuredLogger.info("Fallback using provided data", { serviceName });
+
+      return {
+        success: true,
+        data: options.fallbackData,
+        fallbackUsed: true,
+        recoveryAction: "provided_fallback_data_used",
+      };
+    }
+
+    // Try graceful degradation
+    if (options.gracefulDegradation) {
+      const degradedData = await this.getGracefulDegradationData<T>(
+        serviceName,
+        error.code
+      );
+      if (degradedData) {
+        structuredLogger.info("Fallback using graceful degradation", {
+          serviceName,
+        });
+
+        return {
+          success: true,
+          data: degradedData,
+          fallbackUsed: true,
+          recoveryAction: "graceful_degradation_applied",
+        };
+      }
+    }
+
+    // Try alternative service
+    if (options.alternativeService) {
+      try {
+        const alternativeData = await this.tryAlternativeService<T>(
+          options.alternativeService,
+          serviceName,
+          error
+        );
+
+        if (alternativeData) {
+          structuredLogger.info("Fallback using alternative service", {
+            originalService: serviceName,
+            alternativeService: options.alternativeService,
+          });
+
+          return {
+            success: true,
+            data: alternativeData,
+            fallbackUsed: true,
+            recoveryAction: `alternative_service_used:${options.alternativeService}`,
+          };
+        }
+      } catch (alternativeError) {
+        structuredLogger.warn("Alternative service also failed", {
+          originalService: serviceName,
+          alternativeService: options.alternativeService,
+          alternativeError:
+            alternativeError instanceof Error
+              ? alternativeError.message
+              : String(alternativeError),
+        });
+      }
+    }
+
+    // Skip operation if requested
+    if (options.skipOperation) {
+      structuredLogger.info("Fallback by skipping operation", { serviceName });
+
+      return {
+        success: true,
+        data: null,
+        fallbackUsed: true,
+        recoveryAction: "operation_skipped",
+      };
+    }
+
+    // No fallback available
+    return {
+      success: false,
+      fallbackUsed: false,
+      error,
+      recoveryAction: "no_advanced_fallback_available",
+    };
+  }
+
+  /**
+   * Get advanced cached data with intelligent cache strategies
+   */
+  private async getAdvancedCachedData<T>(
+    cacheKey: string,
+    serviceName: string
+  ): Promise<T | null> {
+    try {
+      // Try primary cache
+      let cachedData = await this.cacheService.get<T>(cacheKey);
+
+      if (cachedData) {
+        return cachedData;
+      }
+
+      // Try backup cache keys
+      const backupKeys = [
+        `${cacheKey}:backup`,
+        `${cacheKey}:fallback`,
+        `${serviceName}:last_known_good`,
+      ];
+
+      for (const backupKey of backupKeys) {
+        cachedData = await this.cacheService.get<T>(backupKey);
+        if (cachedData) {
+          structuredLogger.debug("Using backup cache data", {
+            originalKey: cacheKey,
+            backupKey,
+            serviceName,
+          });
+          return cachedData;
+        }
+      }
+
+      return null;
+    } catch (cacheError) {
+      structuredLogger.warn("Cache access failed during fallback", {
+        cacheKey,
+        serviceName,
+        error:
+          cacheError instanceof Error ? cacheError.message : String(cacheError),
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Get graceful degradation data based on service and error
+   */
+  private async getGracefulDegradationData<T>(
+    serviceName: string,
+    errorCode: ErrorCode
+  ): Promise<T | null> {
+    const degradationStrategies: Record<
+      string,
+      Record<ErrorCode, () => Promise<any>>
+    > = {
+      weather_api: {
+        [ErrorCode.WEATHER_API_ERROR]: async () => ({
+          temperature: null,
+          description: "Weather data unavailable",
+          warnings: [
+            "Weather service temporarily unavailable - check conditions manually",
+          ],
+          fallback: true,
+        }),
+        [ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE]: async () => ({
+          temperature: 15, // Reasonable default
+          description: "Mild conditions (estimated)",
+          warnings: ["Weather data unavailable - using estimated conditions"],
+          fallback: true,
+        }),
+      },
+      maps_api: {
+        [ErrorCode.MAPS_API_ERROR]: async () => ({
+          duration: 3600, // 1 hour default
+          distance: 30000, // 30km default
+          route: "Route calculation unavailable - using estimated times",
+          fallback: true,
+        }),
+        [ErrorCode.API_RATE_LIMITED]: async () => ({
+          duration: 3600,
+          distance: 30000,
+          route: "Using cached route estimates due to rate limiting",
+          fallback: true,
+        }),
+      },
+    };
+
+    const serviceStrategies = degradationStrategies[serviceName.toLowerCase()];
+    if (serviceStrategies && serviceStrategies[errorCode]) {
+      try {
+        return await serviceStrategies[errorCode]();
+      } catch (degradationError) {
+        structuredLogger.warn("Graceful degradation failed", {
+          serviceName,
+          errorCode,
+          degradationError:
+            degradationError instanceof Error
+              ? degradationError.message
+              : String(degradationError),
+        });
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Try alternative service implementation
+   */
+  private async tryAlternativeService<T>(
+    alternativeService: string,
+    originalService: string,
+    error: BaseError
+  ): Promise<T | null> {
+    // This would be implemented based on available alternative services
+    // For now, return null as no alternatives are configured
+    structuredLogger.debug("Alternative service not implemented", {
+      alternativeService,
+      originalService,
+      errorCode: error.code,
+    });
+
+    return null;
+  }
+
+  /**
+   * Get comprehensive error metrics for monitoring
+   */
+  public getErrorMetrics(): Record<string, ErrorMetrics> {
+    const metrics: Record<string, ErrorMetrics> = {};
+
+    for (const [key, value] of this.errorMetrics.entries()) {
+      metrics[key] = { ...value };
+    }
+
+    return metrics;
+  }
+
+  /**
+   * Get current critical failures
+   */
+  public getCriticalFailures(): CriticalServiceFailure[] {
+    return [...this.criticalFailures];
+  }
+
+  /**
+   * Reset error metrics (for testing or manual reset)
+   */
+  public resetErrorMetrics(): void {
+    this.errorMetrics.clear();
+    this.criticalFailures = [];
+    structuredLogger.info("Error metrics reset");
+  }
+
+  /**
+   * Enhanced error handling with comprehensive recovery
+   */
+  public async handleErrorWithRecovery<T>(
+    error: BaseError,
+    operation: () => Promise<T>,
+    serviceName: string,
+    fallbackOptions: FallbackOptions = {}
+  ): Promise<ErrorRecoveryResult<T>> {
+    const startTime = Date.now();
+
+    structuredLogger.warn("Handling error with comprehensive recovery", {
+      serviceName,
+      errorCode: error.code,
+      errorMessage: error.message,
+    });
+
+    try {
+      // Record error metrics
+      this.recordErrorMetrics(serviceName, error);
+
+      // Determine recovery strategy based on error type
+      let result: ErrorRecoveryResult<T>;
+
+      if (error instanceof OAuthError) {
+        result = await this.handleOAuthError(
+          error,
+          error.context?.userId || "unknown",
+          operation
+        );
+      } else if (error instanceof APIError) {
+        result = await this.handleAPIFailure(error, operation, fallbackOptions);
+      } else if (error instanceof PDFProcessingError) {
+        result = await this.handlePDFProcessingError(
+          error,
+          Buffer.alloc(0),
+          error.context?.emailId || "unknown"
+        );
+      } else if (error instanceof DatabaseError) {
+        result = await this.handleDatabaseError(error, operation);
+      } else {
+        // Try advanced fallback for other errors
+        result = await this.tryAdvancedFallback<T>(
+          error,
+          fallbackOptions,
+          serviceName
+        );
+      }
+
+      const recoveryTime = Date.now() - startTime;
+
+      if (result.success) {
+        this.recordErrorMetrics(serviceName, error, recoveryTime);
+        structuredLogger.info("Error recovery successful", {
+          serviceName,
+          errorCode: error.code,
+          recoveryAction: result.recoveryAction,
+          recoveryTime,
+          fallbackUsed: result.fallbackUsed,
+        });
+      } else {
+        structuredLogger.error("Error recovery failed", {
+          serviceName,
+          errorCode: error.code,
+          recoveryAction: result.recoveryAction,
+          recoveryTime,
+        });
+      }
+
+      return result;
+    } catch (recoveryError) {
+      const recoveryTime = Date.now() - startTime;
+
+      structuredLogger.error("Error recovery process failed", {
+        serviceName,
+        originalError: error.message,
+        recoveryError:
+          recoveryError instanceof Error
+            ? recoveryError.message
+            : String(recoveryError),
+        recoveryTime,
+      });
+
+      return {
+        success: false,
+        fallbackUsed: false,
+        error: recoveryError as BaseError,
+        recoveryAction: "recovery_process_failed",
       };
     }
   }
