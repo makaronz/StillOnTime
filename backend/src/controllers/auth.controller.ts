@@ -134,7 +134,7 @@ export class AuthController {
    * Refresh JWT session token
    * POST /auth/refresh
    */
-  async refresh(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async refresh(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -202,7 +202,7 @@ export class AuthController {
    * Logout user and revoke tokens
    * POST /auth/logout
    */
-  async logout(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async logout(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -247,7 +247,7 @@ export class AuthController {
    * Get current user's authentication status
    * GET /auth/status
    */
-  async status(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async status(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.json({
@@ -303,7 +303,7 @@ export class AuthController {
    * Force OAuth re-authentication
    * POST /auth/reauth
    */
-  async reauth(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async reauth(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -349,7 +349,7 @@ export class AuthController {
    * Get user profile information
    * GET /auth/profile
    */
-  async profile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async profile(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
