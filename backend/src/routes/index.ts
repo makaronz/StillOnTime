@@ -5,6 +5,7 @@ import { emailRoutes } from "./email.routes";
 import { scheduleRoutes } from "./schedule.routes";
 import { calendarRoutes } from "./calendar.routes";
 import { routePlanningRoutes } from "./route-planning.routes";
+import smsRoutes from "./sms.routes";
 
 const router = Router();
 
@@ -31,6 +32,9 @@ router.use("/calendar", calendarRoutes);
 // Route planning routes - /api/route-planning/*
 router.use("/route-planning", routePlanningRoutes);
 
+// SMS notification routes - /api/sms/*
+router.use("/sms", smsRoutes);
+
 // API health check
 router.get("/health", (req, res) => {
   res.json({
@@ -45,6 +49,7 @@ router.get("/health", (req, res) => {
       schedule: "/api/schedule",
       calendar: "/api/calendar",
       routePlanning: "/api/route-planning",
+      sms: "/api/sms",
     },
   });
 });

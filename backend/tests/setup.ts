@@ -122,4 +122,32 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+import express from "express";
+import { apiRoutes } from "@/routes";
+import { errorHandler } from "@/middleware/errorHandler";
+
+/**
+ * Create test Express app
+ */
+export function createTestApp() {
+  const app = express();
+
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Add test middleware to mock authentication
+  app.use((req, res, next) => {
+    req.user = {
+      userId: "test-user-id",
+      email: "test@example.com",
+    };
+    next();
+  });
+
+  app.use("/api", apiRoutes);
+  app.use(errorHandler);
+
+  return app;
+}
+
 export {};

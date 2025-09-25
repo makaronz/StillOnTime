@@ -150,7 +150,11 @@ model UserConfig {
   notificationSMS       Boolean @default(false)
   notificationPush      Boolean @default(true)
   smsNumber             String?
+  smsVerified           Boolean @default(false)
+  smsVerificationCode   String?
+  smsVerificationExpiry DateTime?
   pushToken             String?
+  pushTokenVerified     Boolean @default(false)
 
   userId                String @unique
   user                  User   @relation(fields: [userId], references: [id], onDelete: Cascade)

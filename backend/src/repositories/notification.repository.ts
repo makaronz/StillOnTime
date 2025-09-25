@@ -28,6 +28,20 @@ export class NotificationRepository extends BaseRepository {
   }
 
   /**
+   * Find notification by external message ID (e.g., Twilio message SID)
+   */
+  async findByMessageId(messageId: string): Promise<Notification | null> {
+    return this.prisma.notification.findFirst({
+      where: {
+        data: {
+          path: ["messageId"],
+          equals: messageId,
+        },
+      },
+    });
+  }
+
+  /**
    * Find notifications by user ID
    */
   async findByUserId(

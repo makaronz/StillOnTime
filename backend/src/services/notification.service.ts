@@ -11,10 +11,12 @@ import {
 } from "../types";
 import { NotificationRepository } from "../repositories/notification.repository";
 import { UserRepository } from "../repositories/user.repository";
+import { SMSService } from "./sms.service";
 import { logger } from "../utils/logger";
 
 export class NotificationService {
   private emailTransporter: nodemailer.Transporter;
+  private smsService: SMSService;
   private templates: Map<NotificationTemplate, NotificationTemplateConfig>;
 
   constructor(
@@ -22,6 +24,7 @@ export class NotificationService {
     private userRepository: UserRepository
   ) {
     this.initializeEmailTransporter();
+    this.initializeSMSService();
     this.initializeTemplates();
   }
 
@@ -38,6 +41,13 @@ export class NotificationService {
         pass: process.env.SMTP_PASS,
       },
     });
+  }
+
+  /**
+   * Initialize SMS service
+   */
+  private initializeSMSService(): void {
+    this.smsService = new SMSService();
   }
 
   /**
@@ -408,7 +418,7 @@ export class NotificationService {
   }
 
   /**
-   * Send SMS notification (placeholder - integrate with SMS provider)
+   * Send SMS notification via Twilio
    */
   private async sendSMS(
     notification: Notification,
@@ -422,17 +432,49 @@ export class NotificationService {
       };
     }
 
-    // TODO: Integrate with SMS provider (Twilio, AWS SNS, etc.)
-    logger.info("SMS notification would be sent", {
-      phoneNumber,
-      message: notification.message,
-    });
+    if (!this.smsService.isServiceConfigured()) {
+      return {
+        success: false,
+        error: "SMS service not configured - missing Twilio credentials",
+        deliveredAt: new Date(),
+      };
+    }
 
-    return {
-      success: true,
-      messageId: `sms_${Date.now()}`,
-      deliveredAt: new Date(),
-    };
+    try {
+      const result = await this.smsService.sendSMS(
+        phoneNumber,
+        notification.message
+      );
+
+      if (result.success) {
+        logger.info("SMS notification sent successfully", {
+          notificationId: notification.id,
+          messageId: result.messageId,
+          phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, "*"), // Mask phone number
+        });
+      } else {
+        logger.error("SMS notification failed", {
+          notificationId: notification.id,
+          error: result.error,
+          phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, "*"),
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error("SMS notification error", {
+        notificationId: notification.id,
+        error: error.message,
+        phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, "*"),
+        functionName: "NotificationService.sendSMS",
+      });
+
+      return {
+        success: false,
+        error: `SMS delivery failed: ${error.message}`,
+        deliveredAt: new Date(),
+      };
+    }
   }
 
   /**
@@ -624,6 +666,139 @@ export class NotificationService {
       <h2>🔧 Alert systemowy</h2>
       <p>{{message}}</p>
     `;
+  }
+
+  /**
+   * Validate SMS configuration for a user
+   */
+  async validateSMSConfiguration(userId: string): Promise<{
+    isValid: boolean;
+    hasPhoneNumber: boolean;
+    isServiceConfigured: boolean;
+    phoneNumberValid?: boolean;
+    error?: string;
+  }> {
+    try {
+      const userWithConfig = await this.userRepository.findByIdWithConfig(
+        userId
+      );
+      const phoneNumber = userWithConfig?.userConfig?.smsNumber;
+
+      const hasPhoneNumber = !!phoneNumber;
+      const isServiceConfigured = this.smsService.isServiceConfigured();
+
+      let phoneNumberValid = false;
+      if (phoneNumber) {
+        // Use the SMS service's validation logic
+        const cleaned = phoneNumber.replace(/[^\d+]/g, "");
+        phoneNumberValid =
+          cleaned.length >= 8 &&
+          (cleaned.startsWith("+") || /^[45678]/.test(cleaned));
+      }
+
+      return {
+        isValid: hasPhoneNumber && isServiceConfigured && phoneNumberValid,
+        hasPhoneNumber,
+        isServiceConfigured,
+        phoneNumberValid: hasPhoneNumber ? phoneNumberValid : undefined,
+      };
+    } catch (error) {
+      logger.error("Failed to validate SMS configuration", {
+        userId,
+        error: error.message,
+        functionName: "NotificationService.validateSMSConfiguration",
+      });
+
+      return {
+        isValid: false,
+        hasPhoneNumber: false,
+        isServiceConfigured: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Test SMS service configuration
+   */
+  async testSMSService(): Promise<{
+    isConfigured: boolean;
+    accountInfo?: any;
+    error?: string;
+  }> {
+    return this.smsService.testConfiguration();
+  }
+
+  /**
+   * Get SMS delivery status for a notification
+   */
+  async getSMSDeliveryStatus(messageId: string): Promise<{
+    messageId: string;
+    status: string;
+    errorCode?: string;
+    errorMessage?: string;
+    deliveredAt?: Date;
+  } | null> {
+    try {
+      if (!this.smsService.isServiceConfigured()) {
+        return null;
+      }
+
+      const status = await this.smsService.getDeliveryStatus(messageId);
+      return status;
+    } catch (error) {
+      logger.error("Failed to get SMS delivery status", {
+        messageId,
+        error: error.message,
+        functionName: "NotificationService.getSMSDeliveryStatus",
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Update notification delivery status from webhook
+   */
+  async updateDeliveryStatus(
+    notificationId: string,
+    status: "sent" | "delivered" | "failed",
+    error?: string
+  ): Promise<void> {
+    try {
+      if (status === "delivered" || status === "sent") {
+        await this.notificationRepository.markAsSent(notificationId);
+      } else if (status === "failed") {
+        await this.notificationRepository.markAsFailed(
+          notificationId,
+          error || "Delivery failed"
+        );
+      }
+
+      logger.info("Notification delivery status updated", {
+        notificationId,
+        status,
+        error,
+      });
+    } catch (error) {
+      logger.error("Failed to update notification delivery status", {
+        notificationId,
+        status,
+        error: error.message,
+        functionName: "NotificationService.updateDeliveryStatus",
+      });
+    }
+  }
+
+  /**
+   * Get SMS account usage and limits
+   */
+  async getSMSAccountUsage(): Promise<{
+    balance?: string;
+    currency?: string;
+    usage?: any[];
+    error?: string;
+  }> {
+    return this.smsService.getAccountUsage();
   }
 }
 

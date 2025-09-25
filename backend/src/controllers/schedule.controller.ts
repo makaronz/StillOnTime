@@ -72,7 +72,7 @@ export class ScheduleController {
           whereConditions.sceneType = sceneType;
         }
 
-        schedules = await this.scheduleDataRepository.findMany({
+        schedules = (await this.scheduleDataRepository.findMany({
           where: whereConditions,
           include: {
             email: {
@@ -90,7 +90,7 @@ export class ScheduleController {
           orderBy: { shootingDate: "desc" },
           skip: offset,
           take: limitNum,
-        });
+        })) as any[];
       }
 
       res.json({
@@ -836,7 +836,7 @@ export class ScheduleController {
 
       res.json({
         success: true,
-        warnings: warnings.map((weather) => ({
+        warnings: warnings.map((weather: any) => ({
           id: weather.id,
           scheduleId: weather.scheduleId,
           forecastDate: weather.forecastDate,

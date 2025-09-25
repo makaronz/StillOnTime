@@ -47,7 +47,7 @@ export class CalendarController {
           location: event.location,
           startTime: event.start?.dateTime || event.start?.date,
           endTime: event.end?.dateTime || event.end?.date,
-          attendees: event.attendees?.map((attendee) => ({
+          attendees: event.attendees?.map((attendee: any) => ({
             email: attendee.email,
             displayName: attendee.displayName,
             responseStatus: attendee.responseStatus,
@@ -125,8 +125,8 @@ export class CalendarController {
       // Create calendar event
       const calendarEvent = await services.calendarManager.createCalendarEvent(
         schedule,
-        schedule.routePlan,
-        schedule.weatherData,
+        schedule.routePlan || undefined,
+        schedule.weatherData || undefined,
         req.user.userId
       );
 
@@ -364,16 +364,16 @@ export class CalendarController {
               await services.calendarManager.updateCalendarEventFromSchedule(
                 schedule.calendarEvent.calendarEventId,
                 schedule,
-                schedule.routePlan,
-                schedule.weatherData,
+                schedule.routePlan || undefined,
+                schedule.weatherData || undefined,
                 req.user.userId
               );
           } else {
             // Create new event
             calendarEvent = await services.calendarManager.createCalendarEvent(
               schedule,
-              schedule.routePlan,
-              schedule.weatherData,
+              schedule.routePlan || undefined,
+              schedule.weatherData || undefined,
               req.user.userId
             );
           }

@@ -529,7 +529,7 @@ export class CalendarManagerService {
   ): Promise<CalendarEvent> {
     return this.calendarService.createCalendarEvent(
       scheduleData,
-      routePlan,
+      routePlan!,
       weather,
       userId!
     );

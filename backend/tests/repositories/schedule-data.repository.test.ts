@@ -93,6 +93,7 @@ describe("ScheduleDataRepository", () => {
           routePlan: null,
           weatherData: null,
           calendarEvent: null,
+          summary: null,
         },
       ];
 

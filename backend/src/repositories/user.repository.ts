@@ -220,6 +220,57 @@ export class UserRepository
   }
 
   /**
+   * Update or create user configuration
+   */
+  async updateUserConfig(
+    userId: string,
+    configData: Partial<{
+      homeAddress: string;
+      panavisionAddress: string;
+      bufferCarChange: number;
+      bufferParking: number;
+      bufferEntry: number;
+      bufferTraffic: number;
+      bufferMorningRoutine: number;
+      notificationEmail: boolean;
+      notificationSMS: boolean;
+      notificationPush: boolean;
+      smsNumber: string | null;
+      smsVerified: boolean;
+      smsVerificationCode: string | null;
+      smsVerificationExpiry: Date | null;
+      pushToken: string | null;
+      pushTokenVerified: boolean;
+    }>
+  ): Promise<UserConfig> {
+    return await prisma.userConfig.upsert({
+      where: { userId },
+      update: {
+        ...configData,
+      },
+      create: {
+        userId,
+        homeAddress: configData.homeAddress || "",
+        panavisionAddress: configData.panavisionAddress || "",
+        bufferCarChange: configData.bufferCarChange || 15,
+        bufferParking: configData.bufferParking || 10,
+        bufferEntry: configData.bufferEntry || 10,
+        bufferTraffic: configData.bufferTraffic || 20,
+        bufferMorningRoutine: configData.bufferMorningRoutine || 45,
+        notificationEmail: configData.notificationEmail ?? true,
+        notificationSMS: configData.notificationSMS ?? false,
+        notificationPush: configData.notificationPush ?? true,
+        smsNumber: configData.smsNumber,
+        smsVerified: configData.smsVerified ?? false,
+        smsVerificationCode: configData.smsVerificationCode,
+        smsVerificationExpiry: configData.smsVerificationExpiry,
+        pushToken: configData.pushToken,
+        pushTokenVerified: configData.pushTokenVerified ?? false,
+      },
+    });
+  }
+
+  /**
    * Get user statistics
    */
   async getUserStats(userId: string): Promise<{
