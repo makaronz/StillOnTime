@@ -397,6 +397,173 @@ export class CalendarManagerService {
   }
 
   /**
+   * Get calendar events from Google Calendar
+   */
+  async getCalendarEvents(
+    userId: string,
+    options?: {
+      timeMin?: Date;
+      timeMax?: Date;
+      maxResults?: number;
+    }
+  ): Promise<any[]> {
+    try {
+      logger.info("Getting calendar events from Google Calendar", {
+        userId,
+        options,
+      });
+
+      // This would integrate with Google Calendar API
+      // For now, return local events as a fallback
+      const localEvents = await this.calendarEventRepository.findByUserId(
+        userId,
+        options?.maxResults || 50
+      );
+
+      return localEvents.map((event) => ({
+        id: event.calendarEventId,
+        summary: event.title,
+        description: event.description,
+        location: event.location,
+        start: { dateTime: event.startTime.toISOString() },
+        end: { dateTime: event.endTime.toISOString() },
+        created: event.createdAt.toISOString(),
+        updated: event.createdAt.toISOString(),
+      }));
+    } catch (error) {
+      logger.error("Failed to get calendar events", { userId, error });
+      throw new Error(
+        `Failed to get calendar events: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  /**
+   * Update calendar event from schedule data
+   */
+  async updateCalendarEventFromSchedule(
+    calendarEventId: string,
+    scheduleData: ScheduleData,
+    routePlan?: RoutePlan,
+    weather?: WeatherData,
+    userId?: string
+  ): Promise<CalendarEvent> {
+    try {
+      logger.info("Updating calendar event from schedule", {
+        calendarEventId,
+        scheduleId: scheduleData.id,
+      });
+
+      // Find the local event by Google Calendar event ID
+      const localEvent =
+        await this.calendarEventRepository.findByCalendarEventId(
+          calendarEventId
+        );
+
+      if (!localEvent) {
+        throw new Error("Calendar event not found");
+      }
+
+      // Update the calendar event using the calendar service
+      const updatedEvent = await this.calendarService.updateCalendarEvent(
+        localEvent.id,
+        scheduleData,
+        routePlan,
+        weather,
+        userId
+      );
+
+      return updatedEvent;
+    } catch (error) {
+      logger.error("Failed to update calendar event from schedule", {
+        calendarEventId,
+        scheduleId: scheduleData.id,
+        error,
+      });
+      throw new Error(
+        `Failed to update calendar event from schedule: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  /**
+   * Get list of available calendars from Google Calendar
+   */
+  async getCalendarList(userId: string): Promise<any[]> {
+    try {
+      logger.info("Getting calendar list from Google Calendar", { userId });
+
+      // This would integrate with Google Calendar API to get calendar list
+      // For now, return a default primary calendar
+      return [
+        {
+          id: "primary",
+          summary: "Primary Calendar",
+          description: "Primary Google Calendar",
+          primary: true,
+          accessRole: "owner",
+        },
+      ];
+    } catch (error) {
+      logger.error("Failed to get calendar list", { userId, error });
+      throw new Error(
+        `Failed to get calendar list: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  /**
+   * Create calendar event (wrapper for calendar service)
+   */
+  async createCalendarEvent(
+    scheduleData: ScheduleData,
+    routePlan?: RoutePlan,
+    weather?: WeatherData,
+    userId?: string
+  ): Promise<CalendarEvent> {
+    return this.calendarService.createCalendarEvent(
+      scheduleData,
+      routePlan,
+      weather,
+      userId!
+    );
+  }
+
+  /**
+   * Update calendar event (wrapper for calendar service)
+   */
+  async updateCalendarEvent(
+    eventId: string,
+    updateData: any,
+    userId: string
+  ): Promise<any> {
+    // This would update the event in Google Calendar
+    // For now, return a mock response
+    return {
+      id: eventId,
+      summary: updateData.title || "Updated Event",
+      description: updateData.description,
+      location: updateData.location,
+      start: { dateTime: updateData.startTime?.toISOString() },
+      end: { dateTime: updateData.endTime?.toISOString() },
+      updated: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Delete calendar event (wrapper for calendar service)
+   */
+  async deleteCalendarEvent(eventId: string, userId: string): Promise<void> {
+    return this.calendarService.deleteCalendarEvent(eventId, userId);
+  }
+
+  /**
    * Get calendar analytics and statistics
    */
   async getCalendarAnalytics(

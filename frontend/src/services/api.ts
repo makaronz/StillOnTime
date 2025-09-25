@@ -1,5 +1,4 @@
 import axios from "axios";
-import type { AxiosInstance, AxiosResponse, AxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
 
@@ -7,7 +6,7 @@ const API_BASE_URL =
   (import.meta.env?.VITE_API_URL as string) || "http://localhost:3001";
 
 class ApiService {
-  private client: AxiosInstance;
+  private client: ReturnType<typeof axios.create>;
 
   constructor() {
     this.client = axios.create({
@@ -20,7 +19,7 @@ class ApiService {
 
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
-      (config: AxiosRequestConfig) => {
+      (config: any) => {
         const token = useAuthStore.getState().token;
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -34,15 +33,27 @@ class ApiService {
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: any) => response,
       (error: any) => {
         if (error.response?.status === 401) {
           // Token expired or invalid
-          useAuthStore.getState().logout();
-          toast.error("Session expired. Please log in again.");
-          window.location.href = "/login";
+          const { isAuthenticated } = useAuthStore.getState();
+          if (isAuthenticated) {
+            useAuthStore.getState().logout();
+            toast.error("Session expired. Please log in again.");
+            // Only redirect if not already on login page
+            if (window.location.pathname !== "/login") {
+              window.location.href = "/login";
+            }
+          }
+        } else if (error.response?.status === 403) {
+          toast.error(
+            "Access denied. You don't have permission for this action."
+          );
         } else if (error.response?.status >= 500) {
           toast.error("Server error. Please try again later.");
+        } else if (error.code === "NETWORK_ERROR" || !error.response) {
+          toast.error("Network error. Please check your connection.");
         }
         return Promise.reject(error);
       }

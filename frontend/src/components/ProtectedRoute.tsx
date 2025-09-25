@@ -8,13 +8,18 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps): JSX.Element {
-  const { isAuthenticated, isLoading } = useAuthStore()
+  const { isAuthenticated, isLoading, user } = useAuthStore()
   const location = useLocation()
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" text="Loading..." />
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="mb-4" />
+          <p className="text-sm text-gray-600">
+            {user ? `Loading dashboard for ${user.name || user.email}...` : "Checking authentication..."}
+          </p>
+        </div>
       </div>
     )
   }

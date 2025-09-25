@@ -2,6 +2,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authService } from "@/services/auth";
 import { User } from "@/types";
+import {
+  generateSecureState,
+  validateState,
+  validateAuthCode,
+  cleanupOAuthStorage,
+} from "@/utils/oauth";
 import toast from "react-hot-toast";
 
 interface AuthState {
@@ -126,14 +132,21 @@ export const useAuthStore = create<AuthState>()(
       startGoogleLogin: async () => {
         set({ isLoading: true });
         try {
+          // Generate secure state parameter
+          const secureState = generateSecureState();
+
           const response = await authService.getGoogleAuthUrl();
-          // Store state for validation
-          sessionStorage.setItem("oauth_state", response.state);
+
+          // Store state for validation (use our secure state if backend doesn't provide one)
+          const stateToStore = response.state || secureState;
+          sessionStorage.setItem("oauth_state", stateToStore);
+
           // Redirect to Google OAuth
           window.location.href = response.authUrl;
         } catch (error) {
           console.error("Failed to start Google login:", error);
           toast.error("Failed to start login process");
+          cleanupOAuthStorage();
           set({ isLoading: false });
         }
       },
@@ -141,10 +154,15 @@ export const useAuthStore = create<AuthState>()(
       handleOAuthCallback: async (code: string, state: string) => {
         set({ isLoading: true });
         try {
-          // Validate state parameter
+          // Validate state parameter using secure comparison
           const storedState = sessionStorage.getItem("oauth_state");
-          if (state !== storedState) {
-            throw new Error("Invalid state parameter");
+          if (!validateState(state, storedState)) {
+            throw new Error("Invalid state parameter - possible CSRF attack");
+          }
+
+          // Validate authorization code format
+          if (!validateAuthCode(code)) {
+            throw new Error("Invalid authorization code format");
           }
 
           const response = await authService.exchangeCodeForTokens(code, state);
@@ -158,15 +176,25 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
 
-          // Clean up
-          sessionStorage.removeItem("oauth_state");
+          // Clean up OAuth storage
+          cleanupOAuthStorage();
           toast.success(
             `Welcome, ${response.user.name || response.user.email}!`
           );
         } catch (error) {
           console.error("OAuth callback failed:", error);
-          toast.error("Login failed. Please try again.");
-          set({ isLoading: false });
+          const errorMessage =
+            error instanceof Error ? error.message : "Login failed";
+          toast.error(`Authentication error: ${errorMessage}`);
+          set({
+            isLoading: false,
+            token: null,
+            user: null,
+            isAuthenticated: false,
+            tokenExpiry: null,
+          });
+          // Clean up on error
+          cleanupOAuthStorage();
           throw error;
         }
       },

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { BrowserRouter } from 'react-router-dom'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
 // Utility function for rendering components with router context
