@@ -1,5 +1,11 @@
 import { prisma } from "@/config/database";
-import { RoutePlan, CreateRoutePlanInput, UpdateRoutePlanInput } from "@/types";
+import {
+  RoutePlan,
+  CreateRoutePlanInput,
+  UpdateRoutePlanInput,
+  RouteSegment,
+  TimeBuffers,
+} from "@/types";
 import { AbstractBaseRepository } from "./base.repository";
 
 /**
@@ -229,8 +235,8 @@ export class RoutePlanRepository
       departureTime: Date;
       arrivalTime: Date;
       totalTravelMinutes: number;
-      routeSegments: any;
-      buffers: any;
+      routeSegments: RouteSegment[];
+      buffers: TimeBuffers;
     }
   ): Promise<RoutePlan> {
     return await this.model.update({

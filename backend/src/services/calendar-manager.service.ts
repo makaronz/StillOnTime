@@ -9,6 +9,9 @@ import {
   WeatherData,
   CreateCalendarEventInput,
   UpdateCalendarEventInput,
+  CalendarOverride,
+  CalendarUpdateData,
+  CalendarConflict,
 } from "@/types";
 
 export interface ConflictResolution {
@@ -27,15 +30,7 @@ export interface SyncStatus {
   needsManualReview: boolean;
 }
 
-export interface CalendarOverride {
-  eventId: string;
-  overrideType: "time" | "location" | "description" | "alarms";
-  originalValue: any;
-  overrideValue: any;
-  reason: string;
-  appliedBy: string;
-  appliedAt: Date;
-}
+// CalendarOverride interface moved to types/index.ts
 
 export interface BatchSyncResult {
   synced: CalendarEvent[];
@@ -540,9 +535,9 @@ export class CalendarManagerService {
    */
   async updateCalendarEvent(
     eventId: string,
-    updateData: any,
+    updateData: CalendarUpdateData,
     userId: string
-  ): Promise<any> {
+  ): Promise<CalendarEvent> {
     // This would update the event in Google Calendar
     // For now, return a mock response
     return {
@@ -636,7 +631,7 @@ export class CalendarManagerService {
    * Resolve calendar conflict using intelligent strategies
    */
   private async resolveConflict(
-    conflict: any,
+    conflict: CalendarConflict,
     newScheduleData: ScheduleData,
     userId: string
   ): Promise<ConflictResolution> {

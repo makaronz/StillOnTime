@@ -32,7 +32,7 @@ export class NotificationService {
    * Initialize email transporter
    */
   private initializeEmailTransporter(): void {
-    this.emailTransporter = nodemailer.createTransporter({
+    this.emailTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || "smtp.gmail.com",
       port: parseInt(process.env.SMTP_PORT || "587"),
       secure: false,
@@ -723,7 +723,7 @@ export class NotificationService {
    */
   async testSMSService(): Promise<{
     isConfigured: boolean;
-    accountInfo?: any;
+    accountInfo?: SMSAccountInfo;
     error?: string;
   }> {
     return this.smsService.testConfiguration();

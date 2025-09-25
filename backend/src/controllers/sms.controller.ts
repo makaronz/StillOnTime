@@ -44,18 +44,7 @@ export class SMSController {
         return;
       }
 
-      const userId = req.user?.id;
-      if (!userId) {
-        res.status(401).json({
-          error: "Unauthorized",
-          message: "User not authenticated",
-          code: "AUTH_ERROR",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
-        return;
-      }
-
+      const userId = req.user.userId;
       const { smsNumber, enabled } = req.body;
 
       // Validate SMS service configuration
@@ -112,7 +101,7 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to configure SMS", {
-        userId: req.user?.id,
+        userId: req.user.userId,
         error: error.message,
         functionName: "SMSController.configureSMS",
       });
@@ -164,21 +153,13 @@ export class SMSController {
   /**
    * Verify SMS code
    */
-  verifySMS = async (req: Request, res: Response): Promise<void> => {
+  verifySMS = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const { code } = req.body;
-      const userId = req.user?.id;
-
-      if (!userId) {
-        res.status(401).json({
-          error: "Unauthorized",
-          message: "User not authenticated",
-          code: "AUTH_ERROR",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
-        return;
-      }
+      const userId = req.user.userId;
 
       if (!code || code.length !== 6) {
         res.status(400).json({
@@ -253,7 +234,7 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to verify SMS", {
-        userId: req.user?.id,
+        userId: req.user.userId,
         error: error.message,
         functionName: "SMSController.verifySMS",
       });
@@ -272,22 +253,11 @@ export class SMSController {
    * Resend verification code
    */
   resendVerificationCode = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response
   ): Promise<void> => {
     try {
-      const userId = req.user?.id;
-
-      if (!userId) {
-        res.status(401).json({
-          error: "Unauthorized",
-          message: "User not authenticated",
-          code: "AUTH_ERROR",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
-        return;
-      }
+      const userId = req.user.userId;
 
       const userWithConfig = await this.userRepository.findByIdWithConfig(
         userId
@@ -318,7 +288,7 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to resend verification code", {
-        userId: req.user?.id,
+        userId: req.user.userId,
         error: error.message,
         functionName: "SMSController.resendVerificationCode",
       });
@@ -336,20 +306,12 @@ export class SMSController {
   /**
    * Get SMS configuration status
    */
-  getSMSStatus = async (req: Request, res: Response): Promise<void> => {
+  getSMSStatus = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
-      const userId = req.user?.id;
-
-      if (!userId) {
-        res.status(401).json({
-          error: "Unauthorized",
-          message: "User not authenticated",
-          code: "AUTH_ERROR",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
-        return;
-      }
+      const userId = req.user.userId;
 
       const [validation, serviceTest, userWithConfig] = await Promise.all([
         this.notificationService.validateSMSConfiguration(userId),
@@ -375,7 +337,7 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to get SMS status", {
-        userId: req.user?.id,
+        userId: req.user.userId,
         error: error.message,
         functionName: "SMSController.getSMSStatus",
       });
@@ -393,20 +355,9 @@ export class SMSController {
   /**
    * Test SMS delivery
    */
-  testSMS = async (req: Request, res: Response): Promise<void> => {
+  testSMS = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-      const userId = req.user?.id;
-
-      if (!userId) {
-        res.status(401).json({
-          error: "Unauthorized",
-          message: "User not authenticated",
-          code: "AUTH_ERROR",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
-        return;
-      }
+      const userId = req.user.userId;
 
       const validation =
         await this.notificationService.validateSMSConfiguration(userId);
@@ -444,7 +395,7 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to send test SMS", {
-        userId: req.user?.id,
+        userId: req.user.userId,
         error: error.message,
         functionName: "SMSController.testSMS",
       });

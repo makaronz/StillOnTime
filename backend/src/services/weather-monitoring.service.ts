@@ -2,7 +2,7 @@ import { WeatherService } from "./weather.service";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { weatherCacheService, WeatherCacheData } from "./weather-cache.service";
-import { WeatherData, ScheduleDataWithRelations } from "@/types";
+import { WeatherData, ScheduleDataWithRelations, WeatherChange } from "@/types";
 import { logger } from "@/utils/logger";
 
 /**
@@ -22,16 +22,7 @@ export interface WeatherChangeNotification {
   timestamp: Date;
 }
 
-export interface WeatherChange {
-  type: "temperature" | "precipitation" | "wind" | "conditions";
-  field: string;
-  previousValue: any;
-  currentValue: any;
-  changeAmount?: number;
-  changePercentage?: number;
-  significance: "low" | "medium" | "high";
-  description: string;
-}
+// WeatherChange interface moved to types/index.ts
 
 export interface WeatherImpact {
   routePlanning: {

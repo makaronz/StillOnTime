@@ -7,6 +7,7 @@ import {
   GeneratedSummary,
   SummaryGenerationOptions,
   CreateSummaryInput,
+  ContactInfo,
 } from "../types";
 import { SummaryRepository } from "../repositories/summary.repository";
 import { logger } from "../utils/logger";
@@ -190,7 +191,7 @@ export class SummaryService {
       fromDate?: Date;
       toDate?: Date;
     }
-  ): Promise<Array<Summary & { schedule: any }>> {
+  ): Promise<Array<Summary & { schedule: ScheduleDataWithRelations }>> {
     return await this.summaryRepository.findWithSchedule(userId, options);
   }
 
@@ -439,7 +440,7 @@ export class SummaryService {
       Array.isArray(scheduleData.contacts)
     ) {
       content += `${templates.sections.contacts}\n`;
-      scheduleData.contacts.forEach((contact: any) => {
+      scheduleData.contacts.forEach((contact: ContactInfo) => {
         content += `• ${contact.name}`;
         if (contact.role) content += ` (${contact.role})`;
         if (contact.phone) content += ` - ${contact.phone}`;
@@ -612,7 +613,7 @@ export class SummaryService {
           <h2>${templates.sections.contacts}</h2>
           <ul class="contacts-list">
       `;
-      scheduleData.contacts.forEach((contact: any) => {
+      scheduleData.contacts.forEach((contact: ContactInfo) => {
         html += `
           <li class="contact-item">
             <strong>${contact.name}</strong>

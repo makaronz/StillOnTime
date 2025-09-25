@@ -4,6 +4,8 @@ import {
   CreateProcessedEmailInput,
   UpdateProcessedEmailInput,
   ProcessedEmailWithSchedule,
+  WhereCondition,
+  FindManyOptions,
 } from "@/types";
 import { AbstractBaseRepository } from "./base.repository";
 import crypto from "crypto";
@@ -152,7 +154,7 @@ export class ProcessedEmailRepository
    * Check if email is duplicate based on message ID or PDF hash
    */
   async isDuplicate(messageId: string, pdfHash?: string): Promise<boolean> {
-    const whereConditions: any[] = [{ messageId }];
+    const whereConditions: WhereCondition[] = [{ messageId }];
 
     if (pdfHash) {
       whereConditions.push({ pdfHash });
@@ -275,12 +277,9 @@ export class ProcessedEmailRepository
   /**
    * Find many emails with schedule data and pagination
    */
-  async findManyWithSchedule(options: {
-    where?: any;
-    orderBy?: any;
-    skip?: number;
-    take?: number;
-  }): Promise<ProcessedEmailWithSchedule[]> {
+  async findManyWithSchedule(
+    options: FindManyOptions
+  ): Promise<ProcessedEmailWithSchedule[]> {
     return await this.model.findMany({
       ...options,
       include: {

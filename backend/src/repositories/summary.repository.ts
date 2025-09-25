@@ -1,6 +1,12 @@
 import { AbstractBaseRepository } from "./base.repository";
 import { prisma } from "../config/database";
-import { Summary, CreateSummaryInput, UpdateSummaryInput } from "../types";
+import {
+  Summary,
+  CreateSummaryInput,
+  UpdateSummaryInput,
+  WhereCondition,
+  ScheduleDataWithRelations,
+} from "../types";
 
 export class SummaryRepository extends AbstractBaseRepository<
   Summary,
@@ -32,7 +38,7 @@ export class SummaryRepository extends AbstractBaseRepository<
       language?: string;
     }
   ): Promise<Summary[]> {
-    const where: any = { userId };
+    const where: WhereCondition = { userId };
 
     if (options?.language) {
       where.language = options.language;
@@ -57,8 +63,8 @@ export class SummaryRepository extends AbstractBaseRepository<
       fromDate?: Date;
       toDate?: Date;
     }
-  ): Promise<Array<Summary & { schedule: any }>> {
-    const where: any = { userId };
+  ): Promise<Array<Summary & { schedule: ScheduleDataWithRelations }>> {
+    const where: WhereCondition = { userId };
 
     if (options?.fromDate || options?.toDate) {
       where.schedule = {};
@@ -136,7 +142,7 @@ export class SummaryRepository extends AbstractBaseRepository<
     byLanguage: Record<string, number>;
     recentCount: number;
   }> {
-    const where: any = { userId };
+    const where: WhereCondition = { userId };
 
     if (fromDate || toDate) {
       where.createdAt = {};
@@ -164,7 +170,10 @@ export class SummaryRepository extends AbstractBaseRepository<
     return {
       total,
       byLanguage: byLanguage.reduce(
-        (acc: Record<string, number>, item: any) => {
+        (
+          acc: Record<string, number>,
+          item: { language: string; _count: { language: number } }
+        ) => {
           acc[item.language] = item._count.language;
           return acc;
         },

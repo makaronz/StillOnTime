@@ -1,6 +1,10 @@
 import { Twilio } from "twilio";
 import { logger } from "../utils/logger";
-import { NotificationDeliveryResult } from "../types";
+import {
+  NotificationDeliveryResult,
+  SMSDeliveryStatus,
+  SMSAccountInfo,
+} from "../types";
 
 export interface SMSConfig {
   accountSid: string;
@@ -8,17 +12,11 @@ export interface SMSConfig {
   fromNumber: string;
 }
 
-export interface SMSDeliveryStatus {
-  messageId: string;
-  status: "queued" | "sent" | "delivered" | "failed" | "undelivered";
-  errorCode?: string;
-  errorMessage?: string;
-  deliveredAt?: Date;
-}
+// SMSDeliveryStatus interface moved to types/index.ts
 
 export class SMSService {
-  private twilioClient: Twilio;
-  private fromNumber: string;
+  private twilioClient!: Twilio;
+  private fromNumber!: string;
   private isConfigured: boolean = false;
 
   constructor() {
@@ -120,9 +118,9 @@ export class SMSService {
       const twilioMessage = await this.twilioClient.messages.create({
         body: message,
         from: this.fromNumber,
-        to: validatedNumber.formatted,
+        to: validatedNumber.formatted!,
         statusCallback: options?.statusCallback,
-        maxPrice: options?.maxPrice,
+        maxPrice: options?.maxPrice ? parseFloat(options.maxPrice) : undefined,
         validityPeriod: options?.validityPeriod,
       });
 
@@ -290,7 +288,7 @@ export class SMSService {
 
     try {
       const account = await this.twilioClient.api
-        .accounts(process.env.TWILIO_ACCOUNT_SID)
+        .accounts(process.env.TWILIO_ACCOUNT_SID!)
         .fetch();
 
       return {
@@ -339,10 +337,10 @@ export class SMSService {
     try {
       const [balance, usage] = await Promise.all([
         this.twilioClient.api
-          .accounts(process.env.TWILIO_ACCOUNT_SID)
+          .accounts(process.env.TWILIO_ACCOUNT_SID!)
           .balance.fetch(),
         this.twilioClient.api
-          .accounts(process.env.TWILIO_ACCOUNT_SID)
+          .accounts(process.env.TWILIO_ACCOUNT_SID!)
           .usage.records.list({
             category: "sms",
             startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
@@ -376,7 +374,12 @@ export class SMSService {
   /**
    * Handle Twilio webhook for delivery status updates
    */
-  handleDeliveryStatusWebhook(webhookData: any): SMSDeliveryStatus {
+  handleDeliveryStatusWebhook(webhookData: {
+    MessageSid: string;
+    MessageStatus: string;
+    ErrorCode?: string;
+    ErrorMessage?: string;
+  }): SMSDeliveryStatus {
     return {
       messageId: webhookData.MessageSid,
       status: webhookData.MessageStatus,

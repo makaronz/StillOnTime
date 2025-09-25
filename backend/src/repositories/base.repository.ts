@@ -1,3 +1,5 @@
+import { WhereCondition, OrderByCondition, FindManyOptions } from "../types";
+
 /**
  * Base Repository Interface
  * Defines common CRUD operations for all repositories
@@ -11,28 +13,22 @@ export interface BaseRepository<T, CreateInput, UpdateInput> {
   // Read operations
   findById(id: string): Promise<T | null>;
   findMany(options?: FindManyOptions): Promise<T[]>;
-  findFirst(where: any): Promise<T | null>;
-  count(where?: any): Promise<number>;
+  findFirst(where: WhereCondition): Promise<T | null>;
+  count(where?: WhereCondition): Promise<number>;
 
   // Update operations
   update(id: string, data: UpdateInput): Promise<T>;
-  updateMany(where: any, data: UpdateInput): Promise<{ count: number }>;
+  updateMany(
+    where: WhereCondition,
+    data: UpdateInput
+  ): Promise<{ count: number }>;
 
   // Delete operations
   delete(id: string): Promise<T>;
-  deleteMany(where: any): Promise<{ count: number }>;
+  deleteMany(where: WhereCondition): Promise<{ count: number }>;
 
   // Utility operations
-  exists(where: any): Promise<boolean>;
-}
-
-export interface FindManyOptions {
-  where?: any;
-  orderBy?: any;
-  skip?: number;
-  take?: number;
-  include?: any;
-  select?: any;
+  exists(where: WhereCondition): Promise<boolean>;
 }
 
 export interface PaginationOptions {
@@ -57,7 +53,21 @@ export interface PaginatedResult<T> {
 export abstract class AbstractBaseRepository<T, CreateInput, UpdateInput>
   implements BaseRepository<T, CreateInput, UpdateInput>
 {
-  protected abstract model: any;
+  protected abstract model: {
+    create: (args: { data: CreateInput }) => Promise<T>;
+    createMany: (args: { data: CreateInput[] }) => Promise<{ count: number }>;
+    findUnique: (args: { where: { id: string } }) => Promise<T | null>;
+    findMany: (args?: FindManyOptions) => Promise<T[]>;
+    findFirst: (args: { where: WhereCondition }) => Promise<T | null>;
+    count: (args?: { where?: WhereCondition }) => Promise<number>;
+    update: (args: { where: { id: string }; data: UpdateInput }) => Promise<T>;
+    updateMany: (args: {
+      where: WhereCondition;
+      data: UpdateInput;
+    }) => Promise<{ count: number }>;
+    delete: (args: { where: { id: string } }) => Promise<T>;
+    deleteMany: (args: { where: WhereCondition }) => Promise<{ count: number }>;
+  };
 
   async create(data: CreateInput): Promise<T> {
     return await this.model.create({ data });
@@ -75,11 +85,11 @@ export abstract class AbstractBaseRepository<T, CreateInput, UpdateInput>
     return await this.model.findMany(options);
   }
 
-  async findFirst(where: any): Promise<T | null> {
+  async findFirst(where: WhereCondition): Promise<T | null> {
     return await this.model.findFirst({ where });
   }
 
-  async count(where?: any): Promise<number> {
+  async count(where?: WhereCondition): Promise<number> {
     return await this.model.count({ where });
   }
 
@@ -90,7 +100,10 @@ export abstract class AbstractBaseRepository<T, CreateInput, UpdateInput>
     });
   }
 
-  async updateMany(where: any, data: UpdateInput): Promise<{ count: number }> {
+  async updateMany(
+    where: WhereCondition,
+    data: UpdateInput
+  ): Promise<{ count: number }> {
     return await this.model.updateMany({ where, data });
   }
 
@@ -98,11 +111,11 @@ export abstract class AbstractBaseRepository<T, CreateInput, UpdateInput>
     return await this.model.delete({ where: { id } });
   }
 
-  async deleteMany(where: any): Promise<{ count: number }> {
+  async deleteMany(where: WhereCondition): Promise<{ count: number }> {
     return await this.model.deleteMany({ where });
   }
 
-  async exists(where: any): Promise<boolean> {
+  async exists(where: WhereCondition): Promise<boolean> {
     const count = await this.model.count({ where });
     return count > 0;
   }

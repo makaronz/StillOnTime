@@ -1,4 +1,8 @@
-import { TimeBuffers } from "../types";
+import {
+  TimeBuffers,
+  TimeRecommendation,
+  TimeCalculationOptions,
+} from "../types";
 import { logger } from "../utils/logger";
 
 export interface TimeCalculationResult {
@@ -316,7 +320,7 @@ export class TimeCalculationService {
     departureTime: Date,
     callTime: Date,
     bufferBreakdown: BufferBreakdown,
-    options: any
+    options: TimeCalculationOptions
   ): TimeRecommendation[] {
     const recommendations: TimeRecommendation[] = [];
 
@@ -382,7 +386,7 @@ export class TimeCalculationService {
   private generateTimeWarnings(
     wakeUpTime: Date,
     bufferBreakdown: BufferBreakdown,
-    options: any
+    options: TimeCalculationOptions
   ): string[] {
     const warnings: string[] = [];
 

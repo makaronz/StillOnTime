@@ -3,6 +3,7 @@ import {
   CalendarEvent,
   CreateCalendarEventInput,
   UpdateCalendarEventInput,
+  WhereCondition,
 } from "@/types";
 import { AbstractBaseRepository } from "./base.repository";
 
@@ -162,7 +163,7 @@ export class CalendarEventRepository
     endTime: Date,
     excludeEventId?: string
   ): Promise<CalendarEvent[]> {
-    const whereClause: any = {
+    const whereClause: WhereCondition = {
       userId,
       OR: [
         {

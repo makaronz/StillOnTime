@@ -3,12 +3,14 @@ import express from "express";
 import { SMSController } from "../../src/controllers/sms.controller";
 import { NotificationService } from "../../src/services/notification.service";
 import { UserRepository } from "../../src/repositories/user.repository";
-import { authMiddleware } from "../../src/middleware/auth.middleware";
+import { authenticateToken } from "../../src/middleware/auth.middleware";
 
 // Mock dependencies
 jest.mock("../../src/services/notification.service");
 jest.mock("../../src/repositories/user.repository");
-jest.mock("../../src/middleware/auth.middleware");
+jest.mock("../../src/middleware/auth.middleware", () => ({
+  authenticateToken: jest.fn(),
+}));
 jest.mock("../../src/utils/logger", () => ({
   logger: {
     info: jest.fn(),
@@ -42,26 +44,26 @@ describe("SMSController", () => {
     app.use(express.json());
 
     // Mock auth middleware to add user to request
-    (authMiddleware as jest.Mock).mockImplementation((req, res, next) => {
-      req.user = { id: "test-user-id", email: "test@example.com" };
+    (authenticateToken as jest.Mock).mockImplementation((req, res, next) => {
+      req.user = { userId: "test-user-id", email: "test@example.com" };
       next();
     });
 
     // Setup routes
     app.post(
       "/sms/configure",
-      authMiddleware,
+      authenticateToken,
       SMSController.validateSMSConfig,
       smsController.configureSMS
     );
-    app.post("/sms/verify", authMiddleware, smsController.verifySMS);
+    app.post("/sms/verify", authenticateToken, smsController.verifySMS);
     app.post(
       "/sms/resend-code",
-      authMiddleware,
+      authenticateToken,
       smsController.resendVerificationCode
     );
-    app.get("/sms/status", authMiddleware, smsController.getSMSStatus);
-    app.post("/sms/test", authMiddleware, smsController.testSMS);
+    app.get("/sms/status", authenticateToken, smsController.getSMSStatus);
+    app.post("/sms/test", authenticateToken, smsController.testSMS);
     app.post("/sms/webhook", smsController.handleWebhook);
   });
 

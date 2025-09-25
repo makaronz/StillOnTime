@@ -1,6 +1,6 @@
 import axios from "axios";
 import { config } from "@/config/config";
-import { WeatherData, CreateWeatherDataInput } from "@/types";
+import { WeatherData, CreateWeatherDataInput, WeatherForecast } from "@/types";
 import { weatherCacheService, WeatherCacheData } from "./weather-cache.service";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
 import { logger } from "@/utils/logger";
@@ -122,7 +122,7 @@ export interface WeatherWarning {
 }
 
 export class WeatherService {
-  private client: any;
+  private client: typeof axios;
   private weatherRepository: WeatherDataRepository;
   private readonly baseUrl = "https://api.openweathermap.org/data/2.5";
   private readonly apiKey: string;
@@ -147,14 +147,14 @@ export class WeatherService {
 
     // Add request interceptor for logging
     this.client.interceptors.request.use(
-      (config: any) => {
+      (config: axios.AxiosRequestConfig) => {
         logger.debug("Weather API request", {
           url: config.url,
           params: config.params,
         });
         return config;
       },
-      (error: any) => {
+      (error: axios.AxiosError) => {
         logger.error("Weather API request error", { error: error.message });
         return Promise.reject(error);
       }
@@ -162,14 +162,14 @@ export class WeatherService {
 
     // Add response interceptor for error handling
     this.client.interceptors.response.use(
-      (response: any) => {
+      (response: axios.AxiosResponse) => {
         logger.debug("Weather API response", {
           status: response.status,
           data: response.data,
         });
         return response;
       },
-      (error: any) => {
+      (error: axios.AxiosError) => {
         logger.error("Weather API response error", {
           status: error.response?.status,
           message: error.message,
@@ -201,7 +201,9 @@ export class WeatherService {
           temperature: data.main.temp,
           windSpeed: data.wind.speed,
           precipitation: 0,
-          conditions: data.weather.map((w: any) => w.main.toLowerCase()),
+          conditions: data.weather.map((w: { main: string }) =>
+            w.main.toLowerCase()
+          ),
         }),
         fetchedAt: new Date(),
         location,
@@ -320,8 +322,8 @@ export class WeatherService {
 
     // Find the forecast entry closest to the target date
     const targetDateStr = targetDate.toISOString().split("T")[0];
-    const relevantForecasts = forecastData.list.filter((item: any) =>
-      item.dt_txt.startsWith(targetDateStr)
+    const relevantForecasts = forecastData.list.filter(
+      (item: { dt_txt: string }) => item.dt_txt.startsWith(targetDateStr)
     );
 
     if (relevantForecasts.length === 0) {
@@ -330,8 +332,9 @@ export class WeatherService {
 
     // Use midday forecast (around 12:00) if available, otherwise first available
     const middayForecast =
-      relevantForecasts.find((item: any) => item.dt_txt.includes("12:00:00")) ||
-      relevantForecasts[0];
+      relevantForecasts.find((item: { dt_txt: string }) =>
+        item.dt_txt.includes("12:00:00")
+      ) || relevantForecasts[0];
 
     const precipitation =
       (middayForecast.rain?.["3h"] || 0) + (middayForecast.snow?.["3h"] || 0);
@@ -346,7 +349,7 @@ export class WeatherService {
         temperature: middayForecast.main.temp,
         windSpeed: middayForecast.wind.speed,
         precipitation,
-        conditions: middayForecast.weather.map((w: any) =>
+        conditions: middayForecast.weather.map((w: { main: string }) =>
           w.main.toLowerCase()
         ),
       }),
@@ -500,7 +503,7 @@ export class WeatherService {
    * Requirement 5.5: Handle weather API failures with cached data
    */
   private handleWeatherAPIError(
-    error: any,
+    error: axios.AxiosError,
     location: string,
     date?: string
   ): Error {

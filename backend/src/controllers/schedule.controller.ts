@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from "@/middleware/auth.middleware";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { RoutePlanRepository } from "@/repositories/route-plan.repository";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
+import { WhereCondition } from "@/types";
 import { logger } from "@/utils/logger";
 import { services } from "@/services";
 
@@ -66,7 +67,7 @@ export class ScheduleController {
       } else {
         // Get all schedules with pagination
         const offset = (pageNum - 1) * limitNum;
-        const whereConditions: any = { userId: req.user.userId };
+        const whereConditions: WhereCondition = { userId: req.user.userId };
 
         if (sceneType && sceneType !== "all") {
           whereConditions.sceneType = sceneType;
