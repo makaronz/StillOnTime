@@ -4,12 +4,13 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
 
-import { errorHandler } from "@/middleware/errorHandler";
-import { logger } from "@/utils/logger";
+import { errorHandler, notFoundHandler } from "@/middleware/errorHandler";
+import { logger, structuredLogger } from "@/utils/logger";
 import { config } from "@/config/config";
 import { initializeDatabase, checkDatabaseConnection } from "@/config/database";
 import { initializeRedis, checkRedisConnection } from "@/config/redis";
 import { apiRoutes } from "@/routes";
+import healthRoutes from "@/routes/health.routes";
 
 // Load environment variables
 dotenv.config();
@@ -38,38 +39,39 @@ app.use(limiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get("/health", async (req, res) => {
-  const dbHealthy = await checkDatabaseConnection();
-  const redisHealthy = await checkRedisConnection();
+// Request ID middleware for tracing
+app.use((req, res, next) => {
+  const requestId =
+    (req.headers["x-request-id"] as string) ||
+    `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const allHealthy = dbHealthy && redisHealthy;
+  req.headers["x-request-id"] = requestId;
+  res.setHeader("x-request-id", requestId);
 
-  res.status(allHealthy ? 200 : 503).json({
-    status: allHealthy ? "OK" : "Service Unavailable",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    services: {
-      database: dbHealthy,
-      redis: redisHealthy,
-    },
+  structuredLogger.setRequestId(requestId);
+
+  // Log incoming request
+  structuredLogger.http("Incoming request", {
+    method: req.method,
+    url: req.url,
+    userAgent: req.get("User-Agent"),
+    ip: req.ip,
   });
+
+  next();
 });
+
+// Health check routes
+app.use("/health", healthRoutes);
 
 // API routes
 app.use("/api", apiRoutes);
 
+// 404 handler
+app.use(notFoundHandler);
+
 // Error handling middleware (must be last)
 app.use(errorHandler);
-
-// 404 handler
-app.use("*", (req, res) => {
-  res.status(404).json({
-    error: "Not Found",
-    message: "The requested resource was not found",
-    path: req.originalUrl,
-  });
-});
 
 // Initialize database and start server
 async function startServer() {
@@ -82,14 +84,25 @@ async function startServer() {
 
     // Start server
     app.listen(PORT, () => {
-      logger.info(`StillOnTime Backend API server running on port ${PORT}`, {
-        port: PORT,
-        environment: config.nodeEnv,
-        timestamp: new Date().toISOString(),
-      });
+      structuredLogger.info(
+        `StillOnTime Backend API server running on port ${PORT}`,
+        {
+          port: PORT,
+          environment: config.nodeEnv,
+          timestamp: new Date().toISOString(),
+          category: "startup",
+        }
+      );
     });
   } catch (error) {
-    logger.error("Failed to start server:", error);
+    structuredLogger.error(
+      "Failed to start server",
+      {
+        category: "startup",
+        fatal: true,
+      },
+      error as Error
+    );
     process.exit(1);
   }
 }
