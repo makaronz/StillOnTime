@@ -74,7 +74,7 @@ export default function Layout({ children }: LayoutProps): JSX.Element {
               </div>
             </div>
             <button
-              onClick={logout}
+              onClick={() => logout()}
               className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
             >
               <LogOut className="h-4 w-4 mr-3" />

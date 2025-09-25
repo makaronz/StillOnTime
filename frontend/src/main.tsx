@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import App from './App.tsx'
 import './styles/index.css'
+import './utils/sessionManager' // Initialize session management
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

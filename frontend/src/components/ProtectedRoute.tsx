@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import { Loader2 } from 'lucide-react'
+import LoadingSpinner from './LoadingSpinner'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -13,11 +13,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps): JSX.E
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
-          <span className="text-gray-600">Loading...</span>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner size="lg" text="Loading..." />
       </div>
     )
   }

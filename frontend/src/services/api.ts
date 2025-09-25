@@ -1,8 +1,10 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios from "axios";
+import type { AxiosInstance, AxiosResponse, AxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/stores/authStore";
 import toast from "react-hot-toast";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_BASE_URL =
+  (import.meta.env?.VITE_API_URL as string) || "http://localhost:3001";
 
 class ApiService {
   private client: AxiosInstance;
@@ -18,14 +20,14 @@ class ApiService {
 
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
-      (config) => {
+      (config: AxiosRequestConfig) => {
         const token = useAuthStore.getState().token;
-        if (token) {
+        if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
       },
-      (error) => {
+      (error: any) => {
         return Promise.reject(error);
       }
     );
@@ -33,7 +35,7 @@ class ApiService {
     // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response: AxiosResponse) => response,
-      (error) => {
+      (error: any) => {
         if (error.response?.status === 401) {
           // Token expired or invalid
           useAuthStore.getState().logout();
