@@ -215,9 +215,9 @@ export class WeatherMonitoringService {
         currentValue: current.temperature,
         changeAmount: tempDiff,
         significance: Math.abs(tempDiff) >= 10 ? "high" : "medium",
-        description: `Temperatura ${
-          tempDiff > 0 ? "wzrosła" : "spadła"
-        } o ${Math.abs(tempDiff)}°C`,
+        description: `Temperature ${
+          tempDiff > 0 ? "increased" : "decreased"
+        } by ${Math.abs(tempDiff)}°C`,
       });
     }
 
@@ -231,9 +231,9 @@ export class WeatherMonitoringService {
         currentValue: current.precipitation,
         changeAmount: precipDiff,
         significance: Math.abs(precipDiff) >= 5 ? "high" : "medium",
-        description: `Opady ${
-          precipDiff > 0 ? "wzrosły" : "zmniejszyły się"
-        } o ${Math.abs(precipDiff)}mm`,
+        description: `Precipitation ${
+          precipDiff > 0 ? "increased" : "decreased"
+        } by ${Math.abs(precipDiff)}mm`,
       });
     }
 
@@ -247,9 +247,9 @@ export class WeatherMonitoringService {
         currentValue: current.windSpeed,
         changeAmount: windDiff,
         significance: Math.abs(windDiff) >= 7 ? "high" : "medium",
-        description: `Prędkość wiatru ${
-          windDiff > 0 ? "wzrosła" : "spadła"
-        } o ${Math.abs(windDiff)}m/s`,
+        description: `Wind speed ${
+          windDiff > 0 ? "increased" : "decreased"
+        } by ${Math.abs(windDiff)}m/s`,
       });
     }
 
@@ -261,7 +261,7 @@ export class WeatherMonitoringService {
         previousValue: previous.description,
         currentValue: current.description,
         significance: "medium",
-        description: `Warunki pogodowe zmieniły się z "${previous.description}" na "${current.description}"`,
+        description: `Weather conditions changed from "${previous.description}" to "${current.description}"`,
       });
     }
 
@@ -316,7 +316,7 @@ export class WeatherMonitoringService {
       impact.routePlanning.affectsTravel = true;
       impact.routePlanning.suggestedBufferIncrease += 15;
       impact.routePlanning.recommendations.push(
-        "Dodatkowy czas na odśnieżanie i ogrzanie samochodu"
+        "Extra time for snow removal and car warming"
       );
     }
 
@@ -324,7 +324,7 @@ export class WeatherMonitoringService {
       impact.routePlanning.affectsTravel = true;
       impact.routePlanning.suggestedBufferIncrease += 10;
       impact.routePlanning.recommendations.push(
-        "Unikaj podróży w najgorętszych godzinach"
+        "Avoid travel during the hottest hours"
       );
     }
 
@@ -335,17 +335,17 @@ export class WeatherMonitoringService {
       if (precipitation < 2) {
         impact.routePlanning.suggestedBufferIncrease += 10;
         impact.routePlanning.recommendations.push(
-          "Lekkie opady - jedź ostrożnie"
+          "Light precipitation - drive carefully"
         );
       } else if (precipitation < 10) {
         impact.routePlanning.suggestedBufferIncrease += 20;
         impact.routePlanning.recommendations.push(
-          "Umiarkowane opady - znacznie zwiększ ostrożność"
+          "Moderate precipitation - significantly increase caution"
         );
       } else {
         impact.routePlanning.suggestedBufferIncrease += 30;
         impact.routePlanning.recommendations.push(
-          "Intensywne opady - rozważ opóźnienie wyjazdu"
+          "Heavy precipitation - consider delaying departure"
         );
       }
     }
@@ -355,7 +355,7 @@ export class WeatherMonitoringService {
       impact.routePlanning.affectsTravel = true;
       impact.routePlanning.suggestedBufferIncrease += 15;
       impact.routePlanning.recommendations.push(
-        "Silny wiatr - uwaga na mosty i otwarte przestrzenie"
+        "Strong wind - caution on bridges and open areas"
       );
     }
 
@@ -368,7 +368,7 @@ export class WeatherMonitoringService {
       impact.routePlanning.affectsTravel = true;
       impact.routePlanning.suggestedBufferIncrease += 25;
       impact.routePlanning.recommendations.push(
-        "Trudne warunki pogodowe - rozważ alternatywną trasę"
+        "Difficult weather conditions - consider alternative route"
       );
     }
   }
@@ -393,23 +393,23 @@ export class WeatherMonitoringService {
     // Temperature concerns for exterior shoots
     if (temperature < 0) {
       impact.shootingConditions.severity = "moderate";
-      impact.shootingConditions.concerns.push("Bardzo niska temperatura");
+      impact.shootingConditions.concerns.push("Very low temperature");
       impact.shootingConditions.recommendations.push(
-        "Przygotuj ciepłą odzież dla ekipy"
+        "Prepare warm clothing for the crew"
       );
       impact.shootingConditions.recommendations.push(
-        "Chroń sprzęt przed mrozem"
+        "Protect equipment from frost"
       );
     }
 
     if (temperature > 30) {
       impact.shootingConditions.severity = "moderate";
-      impact.shootingConditions.concerns.push("Wysoka temperatura");
+      impact.shootingConditions.concerns.push("High temperature");
       impact.shootingConditions.recommendations.push(
-        "Zapewnij cień i nawodnienie dla ekipy"
+        "Provide shade and hydration for the crew"
       );
       impact.shootingConditions.recommendations.push(
-        "Planuj przerwy w najgorętszych godzinach"
+        "Plan breaks during the hottest hours"
       );
     }
 
@@ -417,18 +417,18 @@ export class WeatherMonitoringService {
     if (precipitation > 0) {
       if (precipitation < 5) {
         impact.shootingConditions.severity = "minor";
-        impact.shootingConditions.concerns.push("Lekkie opady");
+        impact.shootingConditions.concerns.push("Light precipitation");
         impact.shootingConditions.recommendations.push(
-          "Przygotuj ochronę dla sprzętu"
+          "Prepare equipment protection"
         );
       } else {
         impact.shootingConditions.severity = "severe";
-        impact.shootingConditions.concerns.push("Intensywne opady");
+        impact.shootingConditions.concerns.push("Heavy precipitation");
         impact.shootingConditions.recommendations.push(
-          "Rozważ przełożenie zdjęć zewnętrznych"
+          "Consider postponing outdoor shoots"
         );
         impact.shootingConditions.recommendations.push(
-          "Przygotuj plan awaryjny dla scen wewnętrznych"
+          "Prepare backup plan for indoor scenes"
         );
       }
     }
@@ -436,24 +436,22 @@ export class WeatherMonitoringService {
     // Wind concerns
     if (windSpeed > 10) {
       impact.shootingConditions.severity = "moderate";
-      impact.shootingConditions.concerns.push("Silny wiatr");
+      impact.shootingConditions.concerns.push("Strong wind");
+      impact.shootingConditions.recommendations.push("Secure film equipment");
       impact.shootingConditions.recommendations.push(
-        "Zabezpiecz sprzęt filmowy"
-      );
-      impact.shootingConditions.recommendations.push(
-        "Uwaga na mikrofony i oświetlenie"
+        "Watch out for microphones and lighting"
       );
     }
 
     // Severe weather
-    if (warnings.some((w) => w.includes("Burza"))) {
+    if (warnings.some((w) => w.includes("Storm") || w.includes("Thunder"))) {
       impact.shootingConditions.severity = "severe";
-      impact.shootingConditions.concerns.push("Burza");
+      impact.shootingConditions.concerns.push("Storm");
       impact.shootingConditions.recommendations.push(
-        "Przerwij zdjęcia zewnętrzne podczas burzy"
+        "Stop outdoor shooting during storms"
       );
       impact.shootingConditions.recommendations.push(
-        "Zabezpiecz sprzęt elektroniczny"
+        "Secure electronic equipment"
       );
     }
   }
@@ -576,16 +574,16 @@ export class WeatherMonitoringService {
   ): string {
     const { location, date, significantChanges, impactAnalysis } = notification;
 
-    let message = `🌤️ Zmiana pogody dla zdjęć w ${location} (${date})\n\n`;
+    let message = `🌤️ Weather change for shoot at ${location} (${date})\n\n`;
 
     // Add changes
-    message += "📊 Wykryte zmiany:\n";
+    message += "📊 Detected changes:\n";
     significantChanges.forEach((change) => {
       message += `• ${change.description}\n`;
     });
 
     // Add impact analysis
-    message += "\n🎬 Wpływ na zdjęcia:\n";
+    message += "\n🎬 Impact on shooting:\n";
     if (impactAnalysis.shootingConditions.concerns.length > 0) {
       impactAnalysis.shootingConditions.concerns.forEach((concern) => {
         message += `• ${concern}\n`;
@@ -594,7 +592,7 @@ export class WeatherMonitoringService {
 
     // Add recommendations
     if (impactAnalysis.shootingConditions.recommendations.length > 0) {
-      message += "\n💡 Zalecenia:\n";
+      message += "\n💡 Recommendations:\n";
       impactAnalysis.shootingConditions.recommendations.forEach((rec) => {
         message += `• ${rec}\n`;
       });
@@ -602,8 +600,8 @@ export class WeatherMonitoringService {
 
     // Add route planning impact
     if (impactAnalysis.routePlanning.affectsTravel) {
-      message += `\n🚗 Wpływ na podróż:\n`;
-      message += `• Sugerowany dodatkowy czas: ${impactAnalysis.routePlanning.suggestedBufferIncrease} minut\n`;
+      message += `\n🚗 Impact on travel:\n`;
+      message += `• Suggested additional time: ${impactAnalysis.routePlanning.suggestedBufferIncrease} minutes\n`;
       impactAnalysis.routePlanning.recommendations.forEach((rec) => {
         message += `• ${rec}\n`;
       });
@@ -619,7 +617,7 @@ export class WeatherMonitoringService {
 
     message += `\n${
       riskEmoji[impactAnalysis.overallRisk]
-    } Ogólne ryzyko: ${impactAnalysis.overallRisk.toUpperCase()}`;
+    } Overall risk: ${impactAnalysis.overallRisk.toUpperCase()}`;
 
     return message;
   }

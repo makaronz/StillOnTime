@@ -376,15 +376,15 @@ export class WeatherService {
     // Temperature warnings (Requirement 5.2)
     if (conditions.temperature < 0) {
       warnings.push(
-        `⚠️ Temperatura poniżej zera: ${Math.round(
+        `⚠️ Temperature below zero: ${Math.round(
           conditions.temperature
-        )}°C - przygotuj ciepłą odzież`
+        )}°C - prepare warm clothing`
       );
     } else if (conditions.temperature > 30) {
       warnings.push(
-        `🌡️ Wysoka temperatura: ${Math.round(
+        `🌡️ High temperature: ${Math.round(
           conditions.temperature
-        )}°C - zadbaj o nawodnienie`
+        )}°C - ensure hydration`
       );
     }
 
@@ -392,11 +392,11 @@ export class WeatherService {
     if (conditions.precipitation > 0) {
       if (conditions.precipitation > 5) {
         warnings.push(
-          `🌧️ Intensywne opady: ${conditions.precipitation}mm - przygotuj ochronę przeciwdeszczową`
+          `🌧️ Heavy precipitation: ${conditions.precipitation}mm - prepare rain protection`
         );
       } else {
         warnings.push(
-          `🌦️ Możliwe opady: ${conditions.precipitation}mm - weź parasol`
+          `🌦️ Possible precipitation: ${conditions.precipitation}mm - bring umbrella`
         );
       }
     }
@@ -404,9 +404,9 @@ export class WeatherService {
     // Wind warnings (Requirement 5.2)
     if (conditions.windSpeed > 10) {
       warnings.push(
-        `💨 Silny wiatr: ${Math.round(
+        `💨 Strong wind: ${Math.round(
           conditions.windSpeed
-        )}m/s - uwaga na sprzęt filmowy`
+        )}m/s - watch out for film equipment`
       );
     }
 

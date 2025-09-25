@@ -348,7 +348,7 @@ export class RoutePlannerService {
         `Czas pobudki (${wakeUpTime.toLocaleTimeString("pl-PL", {
           hour: "2-digit",
           minute: "2-digit",
-        })}) jest bardzo wczesny. Rozważ zwiększenie buforów czasowych lub wcześniejszy wyjazd poprzedniego dnia.`
+        })}) is very early. Consider increasing time buffers or departing the previous day.`
       );
     }
 

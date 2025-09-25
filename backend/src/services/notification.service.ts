@@ -70,38 +70,38 @@ export class NotificationService {
       [
         "schedule_processed",
         {
-          subject: "✅ Plan zdjęciowy przetworzony - {{location}}",
+          subject: "✅ Shooting Schedule Processed - {{location}}",
           emailTemplate: this.getScheduleProcessedEmailTemplate(),
           smsTemplate:
-            "StillOnTime: Plan na {{date}} przetworzony. Pobudka: {{wakeUpTime}}. Wyjazd: {{departureTime}}.",
+            "StillOnTime: Schedule for {{date}} processed. Wake up: {{wakeUpTime}}. Departure: {{departureTime}}.",
           pushTemplate: {
-            title: "Plan zdjęciowy gotowy",
-            body: "{{location}} - {{date}}. Pobudka: {{wakeUpTime}}",
+            title: "Shooting Schedule Ready",
+            body: "{{location}} - {{date}}. Wake up: {{wakeUpTime}}",
           },
         },
       ],
       [
         "schedule_updated",
         {
-          subject: "🔄 Aktualizacja planu zdjęciowego - {{location}}",
+          subject: "🔄 Shooting Schedule Updated - {{location}}",
           emailTemplate: this.getScheduleUpdatedEmailTemplate(),
           smsTemplate:
-            "StillOnTime: Plan na {{date}} zaktualizowany. Nowa pobudka: {{wakeUpTime}}.",
+            "StillOnTime: Schedule for {{date}} updated. New wake up time: {{wakeUpTime}}.",
           pushTemplate: {
-            title: "Plan zaktualizowany",
-            body: "{{location}} - nowe czasy",
+            title: "Schedule Updated",
+            body: "{{location}} - new times",
           },
         },
       ],
       [
         "weather_warning",
         {
-          subject: "⚠️ Ostrzeżenie pogodowe - {{location}}",
+          subject: "⚠️ Weather Warning - {{location}}",
           emailTemplate: this.getWeatherWarningEmailTemplate(),
           smsTemplate:
-            "StillOnTime: Ostrzeżenie pogodowe na {{date}} w {{location}}: {{warnings}}",
+            "StillOnTime: Weather warning for {{date}} at {{location}}: {{warnings}}",
           pushTemplate: {
-            title: "Ostrzeżenie pogodowe",
+            title: "Weather Warning",
             body: "{{location}} - {{warnings}}",
           },
         },
@@ -109,50 +109,50 @@ export class NotificationService {
       [
         "processing_error",
         {
-          subject: "❌ Błąd przetwarzania planu zdjęciowego",
+          subject: "❌ Schedule Processing Error",
           emailTemplate: this.getProcessingErrorEmailTemplate(),
           smsTemplate:
-            "StillOnTime: Błąd przetwarzania planu. Sprawdź dashboard.",
+            "StillOnTime: Schedule processing error. Check dashboard.",
           pushTemplate: {
-            title: "Błąd przetwarzania",
-            body: "Wymagana interwencja użytkownika",
+            title: "Processing Error",
+            body: "User intervention required",
           },
         },
       ],
       [
         "wake_up_reminder",
         {
-          subject: "⏰ Czas wstawać! - {{location}}",
+          subject: "⏰ Time to Wake Up! - {{location}}",
           emailTemplate: this.getWakeUpReminderEmailTemplate(),
           smsTemplate:
-            "StillOnTime: POBUDKA! Plan na {{date}} w {{location}}. Wyjazd za {{timeToDepart}}.",
+            "StillOnTime: WAKE UP! Schedule for {{date}} at {{location}}. Departure in {{timeToDepart}}.",
           pushTemplate: {
-            title: "Czas wstawać!",
-            body: "{{location}} - wyjazd za {{timeToDepart}}",
+            title: "Time to Wake Up!",
+            body: "{{location}} - departure in {{timeToDepart}}",
           },
         },
       ],
       [
         "departure_reminder",
         {
-          subject: "🚗 Czas wyjeżdżać! - {{location}}",
+          subject: "🚗 Time to Leave! - {{location}}",
           emailTemplate: this.getDepartureReminderEmailTemplate(),
           smsTemplate:
-            "StillOnTime: WYJAZD! Do {{location}}. Przyjazd o {{arrivalTime}}.",
+            "StillOnTime: DEPARTURE! To {{location}}. Arrival at {{arrivalTime}}.",
           pushTemplate: {
-            title: "Czas wyjeżdżać!",
-            body: "Do {{location}} - przyjazd {{arrivalTime}}",
+            title: "Time to Leave!",
+            body: "To {{location}} - arrival {{arrivalTime}}",
           },
         },
       ],
       [
         "system_alert",
         {
-          subject: "🔧 Alert systemowy StillOnTime",
+          subject: "🔧 StillOnTime System Alert",
           emailTemplate: this.getSystemAlertEmailTemplate(),
           smsTemplate: "StillOnTime: {{message}}",
           pushTemplate: {
-            title: "Alert systemowy",
+            title: "System Alert",
             body: "{{message}}",
           },
         },
@@ -651,22 +651,30 @@ export class NotificationService {
   /**
    * Get nested value from object
    */
-  private getNestedValue(obj: any, path: string): any {
-    return path.split(".").reduce((current, key) => current?.[key], obj);
+  private getNestedValue<T extends Record<string, unknown>>(
+    obj: T,
+    path: string
+  ): unknown {
+    return path.split(".").reduce((current: unknown, key: string) => {
+      if (current && typeof current === "object" && key in current) {
+        return (current as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj);
   }
 
   // Template methods (simplified versions - can be expanded)
   private getScheduleProcessedEmailTemplate(): string {
     return `
-      <h2>✅ Plan zdjęciowy przetworzony</h2>
-      <p><strong>Lokacja:</strong> {{scheduleData.location}}</p>
-      <p><strong>Data:</strong> {{scheduleData.shootingDate}}</p>
+      <h2>✅ Shooting Schedule Processed</h2>
+      <p><strong>Location:</strong> {{scheduleData.location}}</p>
+      <p><strong>Date:</strong> {{scheduleData.shootingDate}}</p>
       <p><strong>Call time:</strong> {{scheduleData.callTime}}</p>
-      <p><strong>Pobudka:</strong> {{routePlan.wakeUpTime}}</p>
-      <p><strong>Wyjazd:</strong> {{routePlan.departureTime}}</p>
-      <p><strong>Przyjazd:</strong> {{routePlan.arrivalTime}}</p>
+      <p><strong>Wake up:</strong> {{routePlan.wakeUpTime}}</p>
+      <p><strong>Departure:</strong> {{routePlan.departureTime}}</p>
+      <p><strong>Arrival:</strong> {{routePlan.arrivalTime}}</p>
       {{#if weatherData.warnings}}
-      <h3>⚠️ Ostrzeżenia pogodowe:</h3>
+      <h3>⚠️ Weather Warnings:</h3>
       <ul>{{#each weatherData.warnings}}<li>{{this}}</li>{{/each}}</ul>
       {{/if}}
     `;
@@ -674,58 +682,58 @@ export class NotificationService {
 
   private getScheduleUpdatedEmailTemplate(): string {
     return `
-      <h2>🔄 Plan zdjęciowy zaktualizowany</h2>
-      <p>Twój plan na {{scheduleData.shootingDate}} został zaktualizowany.</p>
-      <p><strong>Nowe czasy:</strong></p>
+      <h2>🔄 Shooting Schedule Updated</h2>
+      <p>Your schedule for {{scheduleData.shootingDate}} has been updated.</p>
+      <p><strong>New times:</strong></p>
       <ul>
-        <li>Pobudka: {{routePlan.wakeUpTime}}</li>
-        <li>Wyjazd: {{routePlan.departureTime}}</li>
-        <li>Przyjazd: {{routePlan.arrivalTime}}</li>
+        <li>Wake up: {{routePlan.wakeUpTime}}</li>
+        <li>Departure: {{routePlan.departureTime}}</li>
+        <li>Arrival: {{routePlan.arrivalTime}}</li>
       </ul>
     `;
   }
 
   private getWeatherWarningEmailTemplate(): string {
     return `
-      <h2>⚠️ Ostrzeżenie pogodowe</h2>
-      <p><strong>Lokacja:</strong> {{scheduleData.location}}</p>
-      <p><strong>Data:</strong> {{scheduleData.shootingDate}}</p>
-      <h3>Ostrzeżenia:</h3>
+      <h2>⚠️ Weather Warning</h2>
+      <p><strong>Location:</strong> {{scheduleData.location}}</p>
+      <p><strong>Date:</strong> {{scheduleData.shootingDate}}</p>
+      <h3>Warnings:</h3>
       <ul>{{#each weatherData.warnings}}<li>{{this}}</li>{{/each}}</ul>
-      <p>Przygotuj się odpowiednio na warunki pogodowe.</p>
+      <p>Please prepare appropriately for the weather conditions.</p>
     `;
   }
 
   private getProcessingErrorEmailTemplate(): string {
     return `
-      <h2>❌ Błąd przetwarzania</h2>
-      <p>Wystąpił błąd podczas przetwarzania planu zdjęciowego.</p>
-      <p><strong>Błąd:</strong> {{error}}</p>
-      <p>Sprawdź dashboard i spróbuj ponownie.</p>
+      <h2>❌ Processing Error</h2>
+      <p>An error occurred while processing the shooting schedule.</p>
+      <p><strong>Error:</strong> {{error}}</p>
+      <p>Please check the dashboard and try again.</p>
     `;
   }
 
   private getWakeUpReminderEmailTemplate(): string {
     return `
-      <h2>⏰ Czas wstawać!</h2>
-      <p>Dzisiaj masz plan zdjęciowy w {{scheduleData.location}}</p>
-      <p><strong>Wyjazd za:</strong> {{timeToDepart}}</p>
+      <h2>⏰ Time to Wake Up!</h2>
+      <p>Today you have a shooting schedule at {{scheduleData.location}}</p>
+      <p><strong>Departure in:</strong> {{timeToDepart}}</p>
       <p><strong>Call time:</strong> {{scheduleData.callTime}}</p>
     `;
   }
 
   private getDepartureReminderEmailTemplate(): string {
     return `
-      <h2>🚗 Czas wyjeżdżać!</h2>
-      <p><strong>Cel:</strong> {{scheduleData.location}}</p>
-      <p><strong>Przewidywany przyjazd:</strong> {{routePlan.arrivalTime}}</p>
-      <p>Miłego dnia zdjęciowego!</p>
+      <h2>🚗 Time to Leave!</h2>
+      <p><strong>Destination:</strong> {{scheduleData.location}}</p>
+      <p><strong>Expected arrival:</strong> {{routePlan.arrivalTime}}</p>
+      <p>Have a great shooting day!</p>
     `;
   }
 
   private getSystemAlertEmailTemplate(): string {
     return `
-      <h2>🔧 Alert systemowy</h2>
+      <h2>🔧 System Alert</h2>
       <p>{{message}}</p>
     `;
   }
