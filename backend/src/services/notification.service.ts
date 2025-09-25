@@ -257,13 +257,13 @@ export class NotificationService {
 
           await this.notificationRepository.markAsFailed(
             notification.id,
-            error.message
+            error instanceof Error ? error.message : String(error)
           );
         }
       }
     } catch (error) {
       logger.error("Failed to process scheduled notifications", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.processScheduledNotifications",
       });
     }
@@ -299,13 +299,13 @@ export class NotificationService {
         } catch (error) {
           await this.notificationRepository.markAsFailed(
             notification.id,
-            error.message
+            error instanceof Error ? error.message : String(error)
           );
         }
       }
     } catch (error) {
       logger.error("Failed to retry failed notifications", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.retryFailedNotifications",
       });
     }
@@ -389,12 +389,12 @@ export class NotificationService {
     } catch (error) {
       await this.notificationRepository.markAsFailed(
         notification.id,
-        error.message
+        error instanceof Error ? error.message : String(error)
       );
       logger.error("Failed to deliver notification", {
         notificationId: notification.id,
         channel: notification.channel,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.deliverNotification",
       });
     }
@@ -423,7 +423,7 @@ export class NotificationService {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         deliveredAt: new Date(),
       };
     }
@@ -476,14 +476,16 @@ export class NotificationService {
     } catch (error) {
       logger.error("SMS notification error", {
         notificationId: notification.id,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         phoneNumber: phoneNumber.replace(/\d(?=\d{4})/g, "*"),
         functionName: "NotificationService.sendSMS",
       });
 
       return {
         success: false,
-        error: `SMS delivery failed: ${error.message}`,
+        error: `SMS delivery failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         deliveredAt: new Date(),
       };
     }
@@ -775,7 +777,7 @@ export class NotificationService {
     } catch (error) {
       logger.error("Failed to validate SMS configuration", {
         userId,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.validateSMSConfiguration",
       });
 
@@ -783,7 +785,7 @@ export class NotificationService {
         isValid: false,
         hasPhoneNumber: false,
         isServiceConfigured: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -819,7 +821,7 @@ export class NotificationService {
     } catch (error) {
       logger.error("Failed to get SMS delivery status", {
         messageId,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.getSMSDeliveryStatus",
       });
       return null;
@@ -853,7 +855,7 @@ export class NotificationService {
       logger.error("Failed to update notification delivery status", {
         notificationId,
         status,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.updateDeliveryStatus",
       });
     }
@@ -872,7 +874,27 @@ export class NotificationService {
     }>;
     error?: string;
   }> {
-    return this.smsService.getAccountUsage();
+    const result = await this.smsService.getAccountUsage();
+
+    // Transform the usage data to match expected format
+    if (result.usage) {
+      return {
+        balance: result.balance,
+        currency: result.currency,
+        usage: result.usage.map((item) => ({
+          category: item.category,
+          count: item.count,
+          price: item.price,
+        })),
+        error: result.error,
+      };
+    }
+
+    return {
+      balance: result.balance,
+      currency: result.currency,
+      error: result.error,
+    };
   }
 
   /**

@@ -487,7 +487,7 @@ export class CalendarService {
     routePlan?: RoutePlan,
     weather?: WeatherData
   ): CalendarEventData {
-    const title = `StillOnTime — Dzień zdjęciowy (${scheduleData.location})`;
+    const title = `StillOnTime — Shooting Day (${scheduleData.location})`;
 
     // Calculate event times
     const departureTime =
@@ -562,9 +562,9 @@ export class CalendarService {
     const sections: string[] = [];
 
     // Basic information
-    sections.push("🎬 DZIEŃ ZDJĘCIOWY");
+    sections.push("🎬 SHOOTING DAY");
     sections.push(
-      `📅 Data: ${scheduleData.shootingDate.toLocaleDateString("pl-PL")}`
+      `📅 Date: ${scheduleData.shootingDate.toLocaleDateString("en-US")}`
     );
     sections.push(`⏰ Call Time: ${scheduleData.callTime}`);
     sections.push(`📍 Lokacja: ${scheduleData.location}`);
@@ -577,21 +577,21 @@ export class CalendarService {
     // Route information
     if (routePlan) {
       sections.push("");
-      sections.push("🚗 PLAN PODRÓŻY");
+      sections.push("🚗 TRAVEL PLAN");
       sections.push(
-        `⏰ Pobudka: ${routePlan.wakeUpTime.toLocaleTimeString("pl-PL", {
+        `⏰ Wake up: ${routePlan.wakeUpTime.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
         })}`
       );
       sections.push(
-        `🚪 Wyjazd: ${routePlan.departureTime.toLocaleTimeString("pl-PL", {
+        `🚪 Departure: ${routePlan.departureTime.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
         })}`
       );
       sections.push(
-        `🎯 Przyjazd: ${routePlan.arrivalTime.toLocaleTimeString("pl-PL", {
+        `🎯 Arrival: ${routePlan.arrivalTime.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
         })}`

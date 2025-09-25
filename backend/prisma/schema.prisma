@@ -185,7 +185,7 @@ model Notification {
 
 model Summary {
   id            String   @id @default(cuid())
-  language      String   @default("pl") // pl, en
+  language      String   @default("en") // en, pl
   content       String   @db.Text
   htmlContent   String   @db.Text
   timeline      Json

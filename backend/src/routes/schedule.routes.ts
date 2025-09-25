@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { scheduleController } from "@/controllers/schedule.controller";
+import { scheduleController } from "@/controllers/schedule";
 import {
   authenticateToken,
   requireValidOAuth,

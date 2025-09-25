@@ -137,7 +137,7 @@ async function testDatabaseSchema() {
     const testCalendarEvent = await prisma.calendarEvent.create({
       data: {
         calendarEventId: "test-calendar-event-id",
-        title: "StillOnTime — Dzień zdjęciowy (Test Location)",
+        title: "StillOnTime — Shooting Day (Test Location)",
         startTime: new Date("2024-01-15T07:00:00Z"),
         endTime: new Date("2024-01-15T18:00:00Z"),
         description: "Test shooting day event",

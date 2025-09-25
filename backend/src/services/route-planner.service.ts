@@ -345,7 +345,7 @@ export class RoutePlannerService {
     // Check if wake-up time is too early
     if (wakeUpTime.getUTCHours() < 4) {
       warnings.push(
-        `Czas pobudki (${wakeUpTime.toLocaleTimeString("pl-PL", {
+        `Wake up time (${wakeUpTime.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
         })}) is very early. Consider increasing time buffers or departing the previous day.`

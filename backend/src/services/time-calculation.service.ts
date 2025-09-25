@@ -420,7 +420,7 @@ export class TimeCalculationService {
    * Format time for display
    */
   private formatTime(date: Date): string {
-    return date.toLocaleTimeString("pl-PL", {
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: "UTC",

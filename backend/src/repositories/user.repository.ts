@@ -271,6 +271,15 @@ export class UserRepository
   }
 
   /**
+   * Find all users (for admin operations)
+   */
+  async findAll(): Promise<User[]> {
+    return await this.model.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  /**
    * Get user statistics
    */
   async getUserStats(userId: string): Promise<{

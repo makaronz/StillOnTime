@@ -167,10 +167,15 @@ export class SMSService {
 
       return {
         messageId: message.sid,
-        status: message.status as SMSDeliveryStatus["status"],
+        status: message.status as
+          | "queued"
+          | "sent"
+          | "delivered"
+          | "failed"
+          | "undelivered",
         errorCode: message.errorCode?.toString(),
         errorMessage: message.errorMessage || undefined,
-        deliveredAt: message.dateUpdated || undefined,
+        timestamp: message.dateUpdated || new Date(),
       };
     } catch (error) {
       logger.error("Failed to fetch SMS delivery status", {
@@ -324,11 +329,8 @@ export class SMSService {
     currency?: string;
     usage?: {
       category: string;
-      count: string;
-      countUnit: string;
-      description: string;
+      count: number;
       price: string;
-      priceUnit: string;
     }[];
     error?: string;
   }> {
@@ -356,11 +358,8 @@ export class SMSService {
         currency: balance.currency,
         usage: usage.map((record) => ({
           category: record.category,
-          count: record.count,
-          countUnit: record.countUnit,
-          description: record.description,
+          count: parseInt(record.count),
           price: record.price.toString(),
-          priceUnit: record.priceUnit,
         })),
       };
     } catch (error) {
@@ -388,11 +387,15 @@ export class SMSService {
   }): SMSDeliveryStatus {
     return {
       messageId: webhookData.MessageSid,
-      status: webhookData.MessageStatus,
+      status: webhookData.MessageStatus as
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "failed"
+        | "undelivered",
       errorCode: webhookData.ErrorCode,
       errorMessage: webhookData.ErrorMessage,
-      deliveredAt:
-        webhookData.MessageStatus === "delivered" ? new Date() : undefined,
+      timestamp: new Date(),
     };
   }
 }

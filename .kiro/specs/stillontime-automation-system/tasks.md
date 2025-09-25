@@ -226,7 +226,7 @@
   - Fix repository type issues in backend/src/repositories/\*.ts
   - _Code Quality Priority: HIGH - Improves maintainability and prevents runtime errors_
 
-- [ ] 11.3 Complete TODO implementations and technical debt cleanup
+- [x] 11.3 Complete TODO implementations and technical debt cleanup
 
   - Implement SMS provider integration (notification.service.ts:425)
   - Implement push notification service (notification.service.ts:453)
@@ -234,7 +234,7 @@
   - Standardize language to English-only in codebase (remove Polish strings)
   - _Technical Debt Priority: MEDIUM - Completes planned features_
 
-- [ ] 11.4 Refactor large service files and improve architecture
+- [x] 11.4 Refactor large service files and improve architecture
 
   - Refactor schedule.controller.ts (926 lines) - break into smaller, focused controllers
   - Refactor job-processor.service.ts (830 lines) - extract job handlers into separate classes

@@ -84,7 +84,7 @@ export class UserConfigRepository
       id: "",
       homeAddress: "",
       panavisionAddress:
-        "Panavision Warszawa, ul. Przykładowa 1, 00-001 Warszawa",
+        "Panavision Office, 123 Example St, Los Angeles, CA 90028",
       bufferCarChange: 15,
       bufferParking: 10,
       bufferEntry: 10,
@@ -110,7 +110,7 @@ export class UserConfigRepository
     return {
       homeAddress: "",
       panavisionAddress:
-        "Panavision Warszawa, ul. Przykładowa 1, 00-001 Warszawa",
+        "Panavision Office, 123 Example St, Los Angeles, CA 90028",
       bufferCarChange: 15,
       bufferParking: 10,
       bufferEntry: 10,
