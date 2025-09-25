@@ -1,0 +1,16 @@
+{
+  "name": "OAuth Security Check",
+  "description": "Check OAuth 2.0 implementation for security best practices",
+  "trigger": {
+    "type": "file_save",
+    "patterns": ["**/oauth*.ts", "**/auth*.ts", "**/security*.ts"]
+  },
+  "actions": [
+    {
+      "type": "agent_execution",
+      "prompt": "Review this OAuth 2.0 implementation for security best practices:\n\n1. Check if PKCE is implemented\n2. Verify token storage is secure\n3. Ensure proper scope validation\n4. Check for token refresh mechanisms\n5. Verify HTTPS enforcement\n6. Check for proper error handling\n\nFile content: {file.content}",
+      "showOutput": true
+    }
+  ],
+  "enabled": true
+}

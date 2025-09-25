@@ -1,0 +1,16 @@
+{
+  "name": "API Integration Validator",
+  "description": "Validate API integrations follow StillOnTime standards",
+  "trigger": {
+    "type": "file_save",
+    "patterns": ["**/services/**/*.ts", "**/controllers/**/*.ts"]
+  },
+  "actions": [
+    {
+      "type": "agent_execution",
+      "prompt": "Review this API integration code for StillOnTime standards compliance:\n\n1. Check error handling with exponential backoff\n2. Verify proper rate limiting implementation\n3. Check caching strategy for external APIs\n4. Verify proper logging and monitoring\n5. Check input validation and sanitization\n6. Verify proper HTTP status codes\n\nStillOnTime Business Rules:\n- Gmail: Process schedule keywords, validate sender domains\n- Calendar: Use proper event format 'StillOnTime — Dzień zdjęciowy (location)'\n- Routes: Always Dom→Panavision→Location with standard buffers\n- Weather: EXT shoots get detailed, INT shoots get basic info\n\nFile content: {file.content}",
+      "showOutput": true
+    }
+  ],
+  "enabled": true
+}

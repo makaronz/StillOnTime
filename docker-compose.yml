@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: stillontime-postgres
+    environment:
+      POSTGRES_DB: stillontime_automation
+      POSTGRES_USER: stillontime_user
+      POSTGRES_PASSWORD: stillontime_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - stillontime-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: stillontime-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - stillontime-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: stillontime-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://stillontime_user:stillontime_password@postgres:5432/stillontime_automation
+      REDIS_URL: redis://redis:6379
+      PORT: 3001
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - stillontime-network
+    command: npm run dev
+
+  # Frontend React App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: stillontime-frontend
+    environment:
+      VITE_API_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - stillontime-network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  stillontime-network:
+    driver: bridge

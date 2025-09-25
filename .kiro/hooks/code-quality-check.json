@@ -1,0 +1,40 @@
+{
+  "name": "Code Quality Check",
+  "description": "Run linting and type checking on code changes",
+  "trigger": {
+    "type": "file_save",
+    "patterns": ["**/*.ts", "**/*.tsx"],
+    "exclude": ["**/node_modules/**", "**/dist/**", "**/build/**"]
+  },
+  "actions": [
+    {
+      "type": "command",
+      "command": "npm run lint:check",
+      "cwd": "backend",
+      "condition": "file.path.includes('backend/')",
+      "showOutput": true
+    },
+    {
+      "type": "command",
+      "command": "npm run type-check",
+      "cwd": "backend",
+      "condition": "file.path.includes('backend/')",
+      "showOutput": true
+    },
+    {
+      "type": "command",
+      "command": "npm run lint:check",
+      "cwd": "frontend",
+      "condition": "file.path.includes('frontend/')",
+      "showOutput": true
+    },
+    {
+      "type": "command",
+      "command": "npm run type-check",
+      "cwd": "frontend",
+      "condition": "file.path.includes('frontend/')",
+      "showOutput": true
+    }
+  ],
+  "enabled": true
+}

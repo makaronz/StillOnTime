@@ -1,0 +1,24 @@
+{
+  "name": "Run Tests on Save",
+  "description": "Automatically run tests when TypeScript files are saved",
+  "trigger": {
+    "type": "file_save",
+    "patterns": ["**/*.ts", "**/*.tsx"],
+    "exclude": ["**/node_modules/**", "**/dist/**"]
+  },
+  "actions": [
+    {
+      "type": "command",
+      "command": "npm test -- --passWithNoTests --watchAll=false",
+      "cwd": "backend",
+      "condition": "file.path.includes('backend/')"
+    },
+    {
+      "type": "command",
+      "command": "npm test -- --passWithNoTests --watchAll=false",
+      "cwd": "frontend",
+      "condition": "file.path.includes('frontend/')"
+    }
+  ],
+  "enabled": true
+}

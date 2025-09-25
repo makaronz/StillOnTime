@@ -1,0 +1,62 @@
+{
+  "name": "stillontime-automation-system",
+  "version": "1.0.0",
+  "description": "StillOnTime Film Schedule Automation System - Monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:basic": "npx playwright test basic-functionality.spec.ts",
+    "test:e2e:full": "npx playwright test app-functionality.spec.ts",
+    "test:e2e:smoke": "npx playwright test smoke-test.spec.ts",
+    "test:e2e:report": "npx playwright show-report",
+    "e2e": "tsx e2e-tests/test-runner.ts",
+    "e2e:headed": "tsx e2e-tests/test-runner.ts test --headed",
+    "e2e:basic": "tsx e2e-tests/test-runner.ts test basic-functionality.spec.ts",
+    "e2e:smoke": "npx playwright test smoke-test.spec.ts --headed",
+    "e2e:frontend": "npx playwright test --config=playwright-frontend.config.ts",
+    "e2e:frontend:headed": "npx playwright test --config=playwright-frontend.config.ts --headed",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "prisma:migrate": "cd backend && npx prisma migrate dev",
+    "prisma:studio": "cd backend && npx prisma studio",
+    "prisma:generate": "cd backend && npx prisma generate"
+  },
+  "keywords": [
+    "film",
+    "schedule",
+    "automation",
+    "oauth2",
+    "google-apis",
+    "monorepo"
+  ],
+  "author": "StillOnTime Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "concurrently": "^8.2.2",
+    "tsx": "^4.20.5"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  }
+}
