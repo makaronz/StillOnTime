@@ -41,12 +41,14 @@ export class GmailService {
 
   // StillOnTime email filtering criteria
   private readonly SCHEDULE_KEYWORDS = [
-    "plan zdjęciowy",
-    "drabinka",
+    "plan zdjęciowy", // Keep Polish for backward compatibility
+    "drabinka", // Keep Polish for backward compatibility
+    "harmonogram", // Keep Polish for backward compatibility
+    "zdjęcia", // Keep Polish for backward compatibility
     "call time",
     "shooting schedule",
-    "harmonogram",
-    "zdjęcia",
+    "film schedule",
+    "production schedule",
     "stillontime",
   ];
 
