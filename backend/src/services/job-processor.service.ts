@@ -159,6 +159,47 @@ export class JobProcessorService {
   }
 
   /**
+   * Add route recalculation job to queue
+   */
+  async addRouteRecalculationJob(
+    scheduleId: string,
+    priority: number = 0
+  ): Promise<Job<WeatherUpdateJobData>> {
+    try {
+      const jobData: WeatherUpdateJobData = {
+        scheduleId,
+        retryCount: 0,
+      };
+
+      const job = await this.weatherUpdateQueue.add(
+        "recalculate-route",
+        jobData,
+        {
+          priority,
+          delay: 0,
+          jobId: `route-recalc-${scheduleId}`,
+        }
+      );
+
+      logger.info("Added route recalculation job", {
+        jobId: job.id,
+        scheduleId,
+        priority,
+      });
+
+      return job;
+    } catch (error) {
+      logger.error("Failed to add route recalculation job", {
+        scheduleId,
+        error,
+      });
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`Failed to add route recalculation job: ${errorMessage}`);
+    }
+  }
+
+  /**
    * Add weather update job to queue
    */
   async addWeatherUpdateJob(

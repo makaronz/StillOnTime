@@ -114,8 +114,8 @@
   - Write tests for weather warning scenarios
   - _Requirements: 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 7. Implement Google Calendar integration
-- [ ] 7.1 Create Calendar API service
+- [x] 7. Implement Google Calendar integration
+- [x] 7.1 Create Calendar API service
 
   - Set up Google Calendar client with OAuth 2.0
   - Implement calendar event creation with comprehensive descriptions
@@ -123,7 +123,7 @@
   - Create event update and deletion capabilities
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 7.2 Implement calendar event management
+- [x] 7.2 Implement calendar event management
 
   - Create event conflict detection and resolution
   - Implement batch calendar operations
@@ -132,8 +132,8 @@
   - Write tests for calendar integration scenarios
   - _Requirements: 4.1, 4.2, 4.5, 4.6, 4.7_
 
-- [ ] 8. Create notification and summary system
-- [ ] 8.1 Implement notification service
+- [x] 8. Create notification and summary system
+- [x] 8.1 Implement notification service
 
   - Create multi-channel notification system (email, SMS, push)
   - Implement notification preferences management
@@ -141,7 +141,7 @@
   - Create notification templates for different scenarios
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6_
 
-- [ ] 8.2 Create comprehensive summary generation
+- [x] 8.2 Create comprehensive summary generation
 
   - Implement Polish language summary templates
   - Create timeline generation with all relevant times
@@ -150,8 +150,8 @@
   - Write tests for summary generation accuracy
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.7_
 
-- [ ] 9. Implement REST API endpoints
-- [ ] 9.1 Create authentication and user management endpoints
+- [x] 9. Implement REST API endpoints
+- [x] 9.1 Create authentication and user management endpoints
 
   - Implement OAuth 2.0 login/logout endpoints
   - Create user profile and preferences endpoints
@@ -159,7 +159,7 @@
   - Implement API authentication middleware
   - _Requirements: 7.5, 8.3, 8.4, 8.5_
 
-- [ ] 9.2 Create email processing and monitoring endpoints
+- [x] 9.2 Create email processing and monitoring endpoints
 
   - Implement manual email processing trigger endpoints
   - Create email processing status and history endpoints
@@ -175,8 +175,8 @@
   - Implement weather data endpoints
   - _Requirements: 7.2, 7.3, 10.2, 10.3_
 
-- [ ] 10. Implement React frontend dashboard
-- [ ] 10.1 Create authentication and routing components
+- [-] 10. Implement React frontend dashboard
+- [-] 10.1 Create authentication and routing components
 
   - Implement OAuth 2.0 login flow in React
   - Create protected route components

@@ -27,6 +27,8 @@ model User {
   weatherData     WeatherData[]
   calendarEvents  CalendarEvent[]
   userConfig      UserConfig?
+  notifications   Notification[]
+  summaries       Summary[]
 
   @@map("users")
 }
@@ -75,6 +77,7 @@ model ScheduleData {
   routePlan     RoutePlan?
   weatherData   WeatherData?
   calendarEvent CalendarEvent?
+  summary       Summary?
 
   @@map("schedule_data")
 }
@@ -146,9 +149,51 @@ model UserConfig {
   notificationEmail     Boolean @default(true)
   notificationSMS       Boolean @default(false)
   notificationPush      Boolean @default(true)
+  smsNumber             String?
+  pushToken             String?
 
   userId                String @unique
   user                  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_configs")
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  channel       String   // email, sms, push
+  template      String   // schedule_processed, weather_warning, etc.
+  subject       String
+  message       String   @db.Text
+  data          Json?
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  status        String   @default("pending") // pending, sent, failed, cancelled
+  error         String?
+  retryCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Summary {
+  id            String   @id @default(cuid())
+  language      String   @default("pl") // pl, en
+  content       String   @db.Text
+  htmlContent   String   @db.Text
+  timeline      Json
+  weatherSummary String?
+  warnings      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduleId    String       @unique
+  schedule      ScheduleData @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@map("summaries")
 }

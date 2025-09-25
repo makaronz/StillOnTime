@@ -1,6 +1,7 @@
 import { prisma } from "@/config/database";
 import {
   User,
+  UserConfig,
   CreateUserInput,
   UpdateUserInput,
   UserWithRelations,
@@ -202,6 +203,20 @@ export class UserRepository
         },
       });
     }
+  }
+
+  /**
+   * Find user by ID with user config
+   */
+  async findByIdWithConfig(
+    id: string
+  ): Promise<(User & { userConfig: UserConfig | null }) | null> {
+    return await this.model.findUnique({
+      where: { id },
+      include: {
+        userConfig: true,
+      },
+    });
   }
 
   /**

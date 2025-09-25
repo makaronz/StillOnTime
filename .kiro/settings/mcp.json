@@ -2,43 +2,28 @@
   "mcpServers": {
     "mcp-everything-search": {
       "command": "uvx",
-      "args": [
-        "mcp-server-everything-search"
-      ],
+      "args": ["mcp-server-everything-search"],
       "disabled": false,
-      "autoApprove": [
-        "search"
-      ],
+      "autoApprove": ["search"],
       "disabledTools": []
     },
     "mcp-fetch": {
       "command": "uvx",
-      "args": [
-        "mcp-server-fetch"
-      ],
+      "args": ["mcp-server-fetch"],
       "disabled": false,
       "autoApprove": [],
       "disabledTools": []
     },
     "mcp-todo": {
       "command": "uvx",
-      "args": [
-        "mcp-server-todo"
-      ],
+      "args": ["mcp-server-todo"],
       "disabled": false,
-      "autoApprove": [
-        "list_todos",
-        "get_todo"
-      ],
+      "autoApprove": ["list_todos", "get_todo"],
       "disabledTools": []
     },
     "mcp-router": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mcpr-cli@latest",
-        "connect"
-      ],
+      "args": ["-y", "mcpr-cli@latest", "connect"],
       "env": {
         "MCPR_TOKEN": "mcpr_KDbOhUVD5D4-Qe3PaWq5rVm6TWFjovhZ"
       },

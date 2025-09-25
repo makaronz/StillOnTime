@@ -7,6 +7,8 @@ import {
   WeatherData as PrismaWeatherData,
   CalendarEvent as PrismaCalendarEvent,
   UserConfig as PrismaUserConfig,
+  Notification as PrismaNotification,
+  Summary as PrismaSummary,
   Prisma,
 } from "@prisma/client";
 
@@ -18,6 +20,8 @@ export type RoutePlan = PrismaRoutePlan;
 export type WeatherData = PrismaWeatherData;
 export type CalendarEvent = PrismaCalendarEvent;
 export type UserConfig = PrismaUserConfig;
+export type Notification = PrismaNotification;
+export type Summary = PrismaSummary;
 
 // Prisma input types for creating/updating records
 export type CreateUserInput = Prisma.UserCreateInput;
@@ -34,6 +38,10 @@ export type CreateCalendarEventInput = Prisma.CalendarEventCreateInput;
 export type UpdateCalendarEventInput = Prisma.CalendarEventUpdateInput;
 export type CreateUserConfigInput = Prisma.UserConfigCreateInput;
 export type UpdateUserConfigInput = Prisma.UserConfigUpdateInput;
+export type CreateNotificationInput = Prisma.NotificationCreateInput;
+export type UpdateNotificationInput = Prisma.NotificationUpdateInput;
+export type CreateSummaryInput = Prisma.SummaryCreateInput;
+export type UpdateSummaryInput = Prisma.SummaryUpdateInput;
 
 // Complex types with relations
 export type UserWithRelations = Prisma.UserGetPayload<{
@@ -44,6 +52,8 @@ export type UserWithRelations = Prisma.UserGetPayload<{
     weatherData: true;
     calendarEvents: true;
     userConfig: true;
+    notifications: true;
+    summaries: true;
   };
 }>;
 
@@ -54,6 +64,7 @@ export type ScheduleDataWithRelations = Prisma.ScheduleDataGetPayload<{
     routePlan: true;
     weatherData: true;
     calendarEvent: true;
+    summary: true;
   };
 }>;
 
@@ -146,4 +157,105 @@ export interface SystemHealth {
     weather: boolean;
   };
   timestamp: Date;
+}
+
+// Notification types
+export type NotificationChannel = "email" | "sms" | "push";
+
+export type NotificationTemplate =
+  | "schedule_processed"
+  | "schedule_updated"
+  | "weather_warning"
+  | "processing_error"
+  | "wake_up_reminder"
+  | "departure_reminder"
+  | "system_alert";
+
+export interface NotificationPreferences {
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+  smsNumber?: string;
+  pushToken?: string;
+}
+
+export interface NotificationData {
+  id: string;
+  userId: string;
+  channel: NotificationChannel;
+  template: NotificationTemplate;
+  subject: string;
+  message: string;
+  data?: Record<string, any>;
+  scheduledFor?: Date;
+  sentAt?: Date;
+  status: "pending" | "sent" | "failed" | "cancelled";
+  error?: string;
+  retryCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NotificationTemplateData {
+  scheduleData?: ScheduleDataWithRelations;
+  routePlan?: RoutePlan;
+  weatherData?: WeatherData;
+  error?: string;
+  user?: User;
+  [key: string]: any;
+}
+
+export interface NotificationDeliveryResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+  deliveredAt: Date;
+}
+
+// Summary types
+export interface SummaryData {
+  id: string;
+  userId: string;
+  scheduleId: string;
+  language: "pl" | "en";
+  content: string;
+  htmlContent: string;
+  timeline: TimelineEntry[];
+  weatherSummary?: string;
+  warnings: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TimelineEntry {
+  time: Date;
+  event: string;
+  description?: string;
+  type: "wake_up" | "departure" | "arrival" | "call_time" | "wrap" | "other";
+  location?: string;
+}
+
+export interface SummaryGenerationOptions {
+  language?: "pl" | "en";
+  includeWeather?: boolean;
+  includeRoute?: boolean;
+  includeContacts?: boolean;
+  includeEquipment?: boolean;
+  includeSafetyNotes?: boolean;
+  format?: "text" | "html" | "both";
+}
+
+export interface GeneratedSummary {
+  content: string;
+  htmlContent: string;
+  timeline: TimelineEntry[];
+  weatherSummary?: string;
+  warnings: string[];
+  metadata: {
+    generatedAt: Date;
+    language: string;
+    scheduleDate: Date;
+    location: string;
+    callTime: string;
+  };
 }

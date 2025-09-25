@@ -273,6 +273,30 @@ export class ProcessedEmailRepository
   }
 
   /**
+   * Find many emails with schedule data and pagination
+   */
+  async findManyWithSchedule(options: {
+    where?: any;
+    orderBy?: any;
+    skip?: number;
+    take?: number;
+  }): Promise<ProcessedEmailWithSchedule[]> {
+    return await this.model.findMany({
+      ...options,
+      include: {
+        user: true,
+        schedule: {
+          include: {
+            routePlan: true,
+            weatherData: true,
+            calendarEvent: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * Clean up old processed emails (data retention)
    */
   async cleanupOldEmails(daysToKeep: number = 90): Promise<{ count: number }> {

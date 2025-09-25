@@ -9,6 +9,7 @@ import { logger } from "@/utils/logger";
 import { config } from "@/config/config";
 import { initializeDatabase, checkDatabaseConnection } from "@/config/database";
 import { initializeRedis, checkRedisConnection } from "@/config/redis";
+import { apiRoutes } from "@/routes";
 
 // Load environment variables
 dotenv.config();
@@ -55,14 +56,8 @@ app.get("/health", async (req, res) => {
   });
 });
 
-// API routes will be added here
-app.get("/api", (req, res) => {
-  res.json({
-    message: "StillOnTime Film Schedule Automation API",
-    version: "1.0.0",
-    status: "running",
-  });
-});
+// API routes
+app.use("/api", apiRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

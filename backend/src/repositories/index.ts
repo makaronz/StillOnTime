@@ -14,6 +14,8 @@ export * from "./route-plan.repository";
 export * from "./weather-data.repository";
 export * from "./calendar-event.repository";
 export * from "./user-config.repository";
+export * from "./notification.repository";
+export * from "./summary.repository";
 
 // Repository instances (singletons)
 import { UserRepository } from "./user.repository";
@@ -23,6 +25,8 @@ import { RoutePlanRepository } from "./route-plan.repository";
 import { WeatherDataRepository } from "./weather-data.repository";
 import { CalendarEventRepository } from "./calendar-event.repository";
 import { UserConfigRepository } from "./user-config.repository";
+import { NotificationRepository } from "./notification.repository";
+import { SummaryRepository } from "./summary.repository";
 
 // Create singleton instances
 export const userRepository = new UserRepository();
@@ -32,6 +36,8 @@ export const routePlanRepository = new RoutePlanRepository();
 export const weatherDataRepository = new WeatherDataRepository();
 export const calendarEventRepository = new CalendarEventRepository();
 export const userConfigRepository = new UserConfigRepository();
+export const notificationRepository = new NotificationRepository();
+export const summaryRepository = new SummaryRepository();
 
 // Repository container for dependency injection
 export const repositories = {
@@ -42,6 +48,8 @@ export const repositories = {
   weatherData: weatherDataRepository,
   calendarEvent: calendarEventRepository,
   userConfig: userConfigRepository,
+  notification: notificationRepository,
+  summary: summaryRepository,
 } as const;
 
 export type RepositoryContainer = typeof repositories;
