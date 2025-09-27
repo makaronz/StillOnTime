@@ -298,7 +298,9 @@ export class EmailJobProcessor extends BaseJobProcessor {
         scenes: parsedData.scenes || [],
         safetyNotes: parsedData.safetyNotes,
         equipment: parsedData.equipment || [],
-        contacts: parsedData.contacts || [],
+        contacts: parsedData.contacts
+          ? JSON.parse(JSON.stringify(parsedData.contacts))
+          : [],
         notes: parsedData.notes,
         user: {
           connect: { id: email.userId },

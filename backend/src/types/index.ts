@@ -448,13 +448,13 @@ export function isContactInfo(data: unknown): data is ContactInfo {
   return (
     typeof data === "object" &&
     data !== null &&
-    typeof (data as any).name === "string" &&
-    ((data as any).role === undefined ||
-      typeof (data as any).role === "string") &&
-    ((data as any).phone === undefined ||
-      typeof (data as any).phone === "string") &&
-    ((data as any).email === undefined ||
-      typeof (data as any).email === "string")
+    typeof (data as ContactInfo).name === "string" &&
+    ((data as ContactInfo).role === undefined ||
+      typeof (data as ContactInfo).role === "string") &&
+    ((data as ContactInfo).phone === undefined ||
+      typeof (data as ContactInfo).phone === "string") &&
+    ((data as ContactInfo).email === undefined ||
+      typeof (data as ContactInfo).email === "string")
   );
 }
 
