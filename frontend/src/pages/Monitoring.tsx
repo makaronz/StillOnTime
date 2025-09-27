@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -24,6 +25,8 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 
 const REFRESH_INTERVAL = 30000;
 
+const REFRESH_INTERVAL = 30000;
+
 export const Monitoring: React.FC = () => {
   const [dashboard, setDashboard] = useState<MonitoringDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,7 @@ export const Monitoring: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to fetch monitoring data');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
