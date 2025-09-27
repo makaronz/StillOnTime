@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Cpu, 
-  MemoryStick, 
-  Database, 
-  Wifi, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Cpu,
+  MemoryStick,
+  Database,
+  Wifi,
   TrendingUp,
-  TrendingDown,
   RefreshCw,
-  Settings,
   Bell,
-  BarChart3,
-  LineChart,
-  PieChart
+  BarChart3
 } from 'lucide-react';
 import { monitoringService } from '../services/monitoring';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -107,14 +103,19 @@ interface CustomMetric {
   description: string;
 }
 
+const REFRESH_INTERVAL = 30000;
+
 export const Monitoring: React.FC = () => {
   const [dashboard, setDashboard] = useState<MonitoringDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
     try {
       const data = await monitoringService.getDashboard();
       setDashboard(data);
@@ -123,19 +124,27 @@ export const Monitoring: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to fetch monitoring data');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, [isRefreshing]);
 
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [fetchDashboard]);
 
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const interval = setInterval(fetchDashboard, refreshInterval);
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+    const scheduleNext = async () => {
+      await fetchDashboard();
+      if (autoRefresh) {
+        setTimeout(scheduleNext, REFRESH_INTERVAL);
+      }
+    };
+
+    const timeoutId = setTimeout(scheduleNext, REFRESH_INTERVAL);
+    return () => clearTimeout(timeoutId);
+  }, [autoRefresh, fetchDashboard]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
