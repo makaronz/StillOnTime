@@ -129,26 +129,23 @@ class MonitoringService {
    * Get comprehensive monitoring dashboard
    */
   async getDashboard(): Promise<MonitoringDashboard> {
-    const response = await api.get("/monitoring/dashboard");
-    return response.data;
+    return api.get<MonitoringDashboard>("/monitoring/dashboard");
   }
 
   /**
    * Get performance metrics history
    */
   async getPerformanceHistory(hours: number = 24): Promise<PerformanceHistory> {
-    const response = await api.get(
+    return api.get<PerformanceHistory>(
       `/monitoring/performance/history?hours=${hours}`
     );
-    return response.data;
   }
 
   /**
    * Get APM metrics history
    */
   async getAPMHistory(hours: number = 24): Promise<APMHistory> {
-    const response = await api.get(`/monitoring/apm/history?hours=${hours}`);
-    return response.data;
+    return api.get<APMHistory>(`/monitoring/apm/history?hours=${hours}`);
   }
 
   /**
@@ -158,10 +155,9 @@ class MonitoringService {
     serviceName: string,
     hours: number = 24
   ): Promise<ServiceHealthHistory> {
-    const response = await api.get(
+    return api.get<ServiceHealthHistory>(
       `/monitoring/services/${serviceName}/history?hours=${hours}`
     );
-    return response.data;
   }
 
   /**
@@ -176,8 +172,15 @@ class MonitoringService {
       recentCriticalFailures: number;
     };
   }> {
-    const response = await api.get("/monitoring/errors/metrics");
-    return response.data;
+    return api.get<{
+      errorMetrics: Record<string, any>;
+      criticalFailures: any[];
+      summary: {
+        totalErrorTypes: number;
+        totalCriticalFailures: number;
+        recentCriticalFailures: number;
+      };
+    }>("/monitoring/errors/metrics");
   }
 
   /**
@@ -192,8 +195,15 @@ class MonitoringService {
       closed: number;
     };
   }> {
-    const response = await api.get("/monitoring/circuit-breakers");
-    return response.data;
+    return api.get<{
+      circuitBreakers: Record<string, any>;
+      summary: {
+        total: number;
+        open: number;
+        halfOpen: number;
+        closed: number;
+      };
+    }>("/monitoring/circuit-breakers");
   }
 
   /**
@@ -210,8 +220,10 @@ class MonitoringService {
     metrics: CustomMetric[];
     count: number;
   }> {
-    const response = await api.get("/monitoring/metrics/custom");
-    return response.data;
+    return api.get<{
+      metrics: CustomMetric[];
+      count: number;
+    }>("/monitoring/metrics/custom");
   }
 
   /**
@@ -250,8 +262,20 @@ class MonitoringService {
       };
     };
   }> {
-    const response = await api.get("/monitoring/alerts/rules");
-    return response.data;
+    return api.get<{
+      rules: AlertingRule[];
+      summary: {
+        total: number;
+        enabled: number;
+        disabled: number;
+        bySeverity: {
+          critical: number;
+          high: number;
+          medium: number;
+          low: number;
+        };
+      };
+    }>("/monitoring/alerts/rules");
   }
 
   /**
@@ -298,8 +322,15 @@ class MonitoringService {
     services: ServiceHealthMetrics[];
     metrics: any;
   }> {
-    const response = await api.get("/monitoring/health");
-    return response.data;
+    return api.get<{
+      status: "healthy" | "degraded" | "unhealthy";
+      timestamp: string;
+      uptime: number;
+      version: string;
+      environment: string;
+      services: ServiceHealthMetrics[];
+      metrics: any;
+    }>("/monitoring/health");
   }
 
   /**
@@ -315,8 +346,16 @@ class MonitoringService {
     metrics: any;
     circuitBreakers?: Record<string, any>;
   }> {
-    const response = await api.get("/monitoring/health/detailed");
-    return response.data;
+    return api.get<{
+      status: "healthy" | "degraded" | "unhealthy";
+      timestamp: string;
+      uptime: number;
+      version: string;
+      environment: string;
+      services: ServiceHealthMetrics[];
+      metrics: any;
+      circuitBreakers?: Record<string, any>;
+    }>("/monitoring/health/detailed");
   }
 
   /**
@@ -327,8 +366,11 @@ class MonitoringService {
     timestamp: string;
     services: ServiceHealthMetrics[];
   }> {
-    const response = await api.get("/monitoring/health/readiness");
-    return response.data;
+    return api.get<{
+      status: "ready" | "not_ready";
+      timestamp: string;
+      services: ServiceHealthMetrics[];
+    }>("/monitoring/health/readiness");
   }
 
   /**
@@ -344,8 +386,16 @@ class MonitoringService {
       heapTotal: number;
     };
   }> {
-    const response = await api.get("/monitoring/health/liveness");
-    return response.data;
+    return api.get<{
+      status: "alive" | "dead";
+      timestamp: string;
+      uptime: number;
+      memory: {
+        rss: number;
+        heapUsed: number;
+        heapTotal: number;
+      };
+    }>("/monitoring/health/liveness");
   }
 }
 

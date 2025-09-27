@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Cpu, 
-  MemoryStick, 
-  Database, 
-  Wifi, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Cpu,
+  MemoryStick,
+  Database,
+  Wifi,
   TrendingUp,
-  TrendingDown,
   RefreshCw,
-  Settings,
   Bell,
-  BarChart3,
-  LineChart,
-  PieChart
+  BarChart3
 } from 'lucide-react';
 import { monitoringService } from '../services/monitoring';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -107,14 +103,15 @@ interface CustomMetric {
   description: string;
 }
 
+const REFRESH_INTERVAL = 30000;
+
 export const Monitoring: React.FC = () => {
   const [dashboard, setDashboard] = useState<MonitoringDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
       const data = await monitoringService.getDashboard();
       setDashboard(data);
@@ -124,18 +121,18 @@ export const Monitoring: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [fetchDashboard]);
 
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const interval = setInterval(fetchDashboard, refreshInterval);
+    const interval = setInterval(fetchDashboard, REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, fetchDashboard]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -75,7 +75,7 @@ class AuthService {
     }>("/api/auth/status");
     return {
       success: response.isAuthenticated,
-      data: response.user,
+      data: response.user ?? undefined,
       error: response.isAuthenticated ? undefined : "Not authenticated",
     };
   }
