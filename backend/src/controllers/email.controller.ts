@@ -2,14 +2,11 @@ import { Request, Response } from "express";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
 import { logger } from "@/utils/logger";
 import { services } from "@/services";
-import { Controller, Post, Middleware, Get } from "@/utils/inject";
-import { requireValidOAuth } from "@/middleware/auth.middleware";
 
 /**
  * Email Controller
  * Handles email processing and monitoring endpoints
  */
-@Controller("/email")
 export class EmailController {
   private processedEmailRepository: ProcessedEmailRepository;
 
@@ -21,12 +18,7 @@ export class EmailController {
    * Trigger manual email processing
    * POST /api/email/process
    */
-  @Post("/process")
-  @Middleware(requireValidOAuth)
-  async triggerProcessing(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async triggerProcessing(req: Request, res: Response): Promise<void> {
     try {
       const { messageId, priority = 0 } = req.body;
 
@@ -76,12 +68,7 @@ export class EmailController {
    * Get email processing status and history
    * GET /api/email/status
    */
-  @Get("/status")
-  @Middleware(requireValidOAuth)
-  async getProcessingStatus(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async getProcessingStatus(req: Request, res: Response): Promise<void> {
     try {
       const { limit = 20, status } = req.query;
 
@@ -160,12 +147,7 @@ export class EmailController {
    * Get detailed email processing history
    * GET /api/email/history
    */
-  @Get("/history")
-  @Middleware(requireValidOAuth)
-  async getProcessingHistory(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async getProcessingHistory(req: Request, res: Response): Promise<void> {
     try {
       const {
         page = 1,
@@ -283,12 +265,7 @@ export class EmailController {
    * Retry failed email processing
    * POST /api/email/:emailId/retry
    */
-  @Post("/retry")
-  @Middleware(requireValidOAuth)
-  async retryProcessing(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async retryProcessing(req: Request, res: Response): Promise<void> {
     try {
       const { emailId } = req.body;
 
@@ -365,8 +342,6 @@ export class EmailController {
    * Get processing statistics
    * GET /api/email/statistics
    */
-  @Get("/statistics")
-  @Middleware(requireValidOAuth)
   async getStatistics(req: Request, res: Response): Promise<void> {
     try {
       const { period = "30d" } = req.query;
@@ -477,12 +452,7 @@ export class EmailController {
    * Enable/disable periodic email monitoring
    * POST /api/email/monitoring
    */
-  @Post("/monitoring")
-  @Middleware(requireValidOAuth)
-  async toggleMonitoring(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async toggleMonitoring(req: Request, res: Response): Promise<void> {
     try {
       const { enabled, intervalMinutes = 5 } = req.body;
 
@@ -554,12 +524,7 @@ export class EmailController {
    * Get email details by ID
    * GET /api/email/:emailId
    */
-  @Get("/details/:emailId")
-  @Middleware(requireValidOAuth)
-  async getEmailDetails(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async getEmailDetails(req: Request, res: Response): Promise<void> {
     try {
       const { emailId } = req.params;
 

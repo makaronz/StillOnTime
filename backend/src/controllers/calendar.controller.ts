@@ -3,14 +3,12 @@ import { services } from "@/services";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { UserConfigRepository } from "@/repositories/user-config.repository";
 import { logger } from "@/utils/logger";
-import { Controller, Get, Post, Put, Delete, Middleware } from "@/utils/inject";
 import { requireValidOAuth } from "@/middleware/oauth.middleware";
 
 /**
  * Calendar Controller
  * Handles Google Calendar integration and event management
  */
-@Controller("/calendar")
 export class CalendarController {
   private scheduleDataRepository: ScheduleDataRepository;
   private userConfigRepository: UserConfigRepository;
@@ -19,16 +17,12 @@ export class CalendarController {
     this.scheduleDataRepository = new ScheduleDataRepository();
     this.userConfigRepository = new UserConfigRepository();
   }
-  @Get("/events")
-  @Middleware(requireValidOAuth)
+
   /**
    * Get calendar events for user
    * GET /api/calendar/events
    */
-  async getCalendarEvents(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async getCalendarEvents(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -55,16 +49,11 @@ export class CalendarController {
     }
   }
 
-  @Post("/events")
-  @Middleware(requireValidOAuth)
   /**
    * Create calendar event for schedule
    * POST /api/calendar/events
    */
-  async createCalendarEvent(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async createCalendarEvent(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -112,16 +101,11 @@ export class CalendarController {
     }
   }
 
-  @Put("/events/:eventId")
-  @Middleware(requireValidOAuth)
   /**
    * Update calendar event
    * PUT /api/calendar/events/:eventId
    */
-  async updateCalendarEvent(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async updateCalendarEvent(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -171,16 +155,11 @@ export class CalendarController {
     }
   }
 
-  @Delete("/events/:eventId")
-  @Middleware(requireValidOAuth)
   /**
    * Delete calendar event
    * DELETE /api/calendar/events/:eventId
    */
-  async deleteCalendarEvent(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async deleteCalendarEvent(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -217,8 +196,6 @@ export class CalendarController {
     }
   }
 
-  @Get("/sync/status")
-  @Middleware(requireValidOAuth)
   /**
    * Get calendar sync status
    * GET /api/calendar/sync/status
@@ -277,16 +254,11 @@ export class CalendarController {
     }
   }
 
-  @Post("/sync")
-  @Middleware(requireValidOAuth)
   /**
    * Sync calendar events for schedules
    * POST /api/calendar/sync
    */
-  async syncCalendarEvents(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async syncCalendarEvents(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -399,16 +371,11 @@ export class CalendarController {
     }
   }
 
-  @Get("/settings")
-  @Middleware(requireValidOAuth)
   /**
    * Get calendar settings
    * GET /api/calendar/settings
    */
-  async getCalendarSettings(
-    req: Request,
-    res: Response
-  ): Promise<void> {
+  async getCalendarSettings(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });

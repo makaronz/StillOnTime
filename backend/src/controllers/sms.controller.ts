@@ -3,10 +3,7 @@ import { body, validationResult } from "express-validator";
 import { NotificationService } from "../services/notification.service";
 import { UserRepository } from "../repositories/user.repository";
 import { logger } from "@/utils/logger";
-import { Controller, Post, Middleware, Get } from "@/utils/inject";
-import { requireValidOAuth } from "@/middleware/auth.middleware";
 
-@Controller("/sms")
 export class SMSController {
   constructor(
     private notificationService: NotificationService,
@@ -28,12 +25,7 @@ export class SMSController {
   /**
    * Configure SMS settings for user
    */
-  @Post("/configure")
-  @Middleware(requireValidOAuth)
-  configureSMS = async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
+  configureSMS = async (req: Request, res: Response): Promise<void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -157,12 +149,7 @@ export class SMSController {
   /**
    * Verify SMS code
    */
-  @Post("/verify")
-  @Middleware(requireValidOAuth)
-  verifySMS = async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
+  verifySMS = async (req: Request, res: Response): Promise<void> => {
     try {
       const { code } = req.body;
       const userId = req.user.userId;
@@ -258,8 +245,6 @@ export class SMSController {
   /**
    * Resend verification code
    */
-  @Post("/resend")
-  @Middleware(requireValidOAuth)
   resendVerificationCode = async (
     req: Request,
     res: Response
@@ -314,12 +299,7 @@ export class SMSController {
   /**
    * Get SMS configuration status
    */
-  @Get("/status")
-  @Middleware(requireValidOAuth)
-  getSMSStatus = async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
+  getSMSStatus = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user.userId;
 
@@ -365,8 +345,6 @@ export class SMSController {
   /**
    * Test SMS delivery
    */
-  @Post("/test")
-  @Middleware(requireValidOAuth)
   testSMS = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user.userId;

@@ -6,7 +6,6 @@ import { logger } from "@/utils/logger";
  * Authentication Controller
  * Handles OAuth 2.0 authentication flow with Google
  */
-@Controller("/auth")
 export class AuthController {
   /**
    * Initiate OAuth 2.0 authentication flow
@@ -202,7 +201,6 @@ export class AuthController {
    * Logout user and revoke tokens
    * POST /auth/logout
    */
-  @Post("/logout")
   async logout(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
