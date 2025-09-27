@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useCallback } from "react";
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Activity,
@@ -12,96 +13,17 @@ import {
   TrendingUp,
   RefreshCw,
   Bell,
-  BarChart3
-} from 'lucide-react';
-import { monitoringService } from '../services/monitoring';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+  BarChart3,
+} from "lucide-react";
+import {
+  monitoringService,
+  type AlertSeverity,
+  type HealthStatus,
+  type MonitoringDashboard,
+} from "../services/monitoring";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 
-interface MonitoringDashboard {
-  systemOverview: {
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    uptime: number;
-    totalRequests: number;
-    errorRate: number;
-    averageResponseTime: number;
-  };
-  services: ServiceHealthMetrics[];
-  performance: PerformanceMetrics;
-  apmMetrics: APMMetrics;
-  alerts: Alert[];
-  circuitBreakers: Record<string, any>;
-  errorMetrics: Record<string, any>;
-  criticalFailures: any[];
-  customMetrics: CustomMetric[];
-}
-
-interface ServiceHealthMetrics {
-  name: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  responseTime?: number;
-  lastCheck: string;
-  error?: string;
-  details?: Record<string, any>;
-}
-
-interface PerformanceMetrics {
-  timestamp: Date;
-  requestCount: number;
-  averageResponseTime: number;
-  errorRate: number;
-  throughput: number;
-  memoryUsage: NodeJS.MemoryUsage;
-  cpuUsage: NodeJS.CpuUsage;
-  activeConnections: number;
-  queueSize: number;
-}
-
-interface APMMetrics {
-  applicationPerformance: {
-    throughput: number;
-    responseTimeP50: number;
-    responseTimeP95: number;
-    responseTimeP99: number;
-    errorRate: number;
-    apdex: number;
-  };
-  businessMetrics: {
-    emailsProcessedPerHour: number;
-    scheduleCreationSuccessRate: number;
-    calendarEventCreationRate: number;
-    notificationDeliveryRate: number;
-    oauthTokenRefreshRate: number;
-  };
-  resourceUtilization: {
-    cpuUsagePercent: number;
-    memoryUsagePercent: number;
-    diskUsagePercent: number;
-    networkIOBytes: number;
-    databaseConnectionsActive: number;
-    redisConnectionsActive: number;
-  };
-  customMetrics: Record<string, number>;
-}
-
-interface Alert {
-  id: string;
-  ruleId: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  message: string;
-  timestamp: Date;
-  resolved: boolean;
-  resolvedAt?: Date;
-  metadata: Record<string, any>;
-}
-
-interface CustomMetric {
-  name: string;
-  value: number;
-  unit: string;
-  timestamp: Date;
-  tags: Record<string, string>;
-  description: string;
-}
+const REFRESH_INTERVAL = 30000;
 
 const REFRESH_INTERVAL = 30000;
 
@@ -110,12 +32,8 @@ export const Monitoring: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
-    if (isRefreshing) return;
-    
-    setIsRefreshing(true);
     try {
       const data = await monitoringService.getDashboard();
       setDashboard(data);
@@ -126,7 +44,7 @@ export const Monitoring: React.FC = () => {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [isRefreshing]);
+  }, []);
 
   useEffect(() => {
     fetchDashboard();
@@ -135,18 +53,11 @@ export const Monitoring: React.FC = () => {
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const scheduleNext = async () => {
-      await fetchDashboard();
-      if (autoRefresh) {
-        setTimeout(scheduleNext, REFRESH_INTERVAL);
-      }
-    };
-
-    const timeoutId = setTimeout(scheduleNext, REFRESH_INTERVAL);
-    return () => clearTimeout(timeoutId);
+    const interval = setInterval(fetchDashboard, REFRESH_INTERVAL);
+    return () => clearInterval(interval);
   }, [autoRefresh, fetchDashboard]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: HealthStatus) => {
     switch (status) {
       case 'healthy': return 'text-green-600 bg-green-100';
       case 'degraded': return 'text-yellow-600 bg-yellow-100';
@@ -155,7 +66,7 @@ export const Monitoring: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: HealthStatus) => {
     switch (status) {
       case 'healthy': return <CheckCircle className="w-5 h-5" />;
       case 'degraded': return <AlertTriangle className="w-5 h-5" />;
@@ -164,7 +75,7 @@ export const Monitoring: React.FC = () => {
     }
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: AlertSeverity) => {
     switch (severity) {
       case 'critical': return 'text-red-800 bg-red-100 border-red-200';
       case 'high': return 'text-red-600 bg-red-50 border-red-200';
@@ -371,11 +282,28 @@ export const Monitoring: React.FC = () => {
                         <h3 className="text-sm font-medium text-gray-900 mt-2">
                           {alert.message}
                         </h3>
-                        {alert.metadata.currentValue && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            Current value: {alert.metadata.currentValue} (threshold: {alert.metadata.threshold})
-                          </p>
-                        )}
+                        {(() => {
+                          const metadata = alert.metadata as Record<
+                            string,
+                            unknown
+                          > & {
+                            currentValue?: unknown;
+                            threshold?: unknown;
+                          };
+                          const { currentValue, threshold } = metadata;
+                          const isRenderable = (value: unknown): value is
+                            | number
+                            | string =>
+                            typeof value === "number" ||
+                            typeof value === "string";
+
+                          return isRenderable(currentValue) &&
+                            isRenderable(threshold) ? (
+                            <p className="text-sm text-gray-600 mt-1">
+                              Current value: {currentValue} (threshold: {threshold})
+                            </p>
+                          ) : null;
+                        })()}
                       </div>
                       <button
                         onClick={() => resolveAlert(alert.id)}
@@ -559,10 +487,13 @@ export const Monitoring: React.FC = () => {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {dashboard.services.map((service) => (
-                <div key={service.name} className="border border-gray-200 rounded-lg p-4">
+                <div
+                  key={service.serviceName}
+                  className="border border-gray-200 rounded-lg p-4"
+                >
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-medium text-gray-900 capitalize">
-                      {service.name.replace('_', ' ')}
+                      {service.serviceName.replace('_', ' ')}
                     </h3>
                     <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(service.status)}`}>
                       {getStatusIcon(service.status)}
