@@ -124,8 +124,15 @@ export class WeatherJobProcessor extends BaseJobProcessor {
   /**
    * Retry failed weather job
    */
-  async retryFailedJob(jobId: string): Promise<void> {
-    return await super.retryFailedJob(this.weatherUpdateQueue, jobId);
+  async retryFailedJob(queue: Queue, jobId: string): Promise<void> {
+    return await super.retryFailedJob(queue, jobId);
+  }
+
+  /**
+   * Retry failed weather job (convenience method)
+   */
+  async retryFailedWeatherJob(jobId: string): Promise<void> {
+    return await this.retryFailedJob(this.weatherUpdateQueue, jobId);
   }
 
   /**

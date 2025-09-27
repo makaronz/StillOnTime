@@ -122,9 +122,9 @@ export class JobProcessorService {
   async retryFailedJob(queueName: string, jobId: string): Promise<void> {
     switch (queueName) {
       case "email-processing":
-        return await this.emailProcessor.retryFailedJob(jobId);
+        return await this.emailProcessor.retryFailedEmailJob(jobId);
       case "weather-update":
-        return await this.weatherProcessor.retryFailedJob(jobId);
+        return await this.weatherProcessor.retryFailedWeatherJob(jobId);
       default:
         throw new Error(`Unknown queue: ${queueName}`);
     }
