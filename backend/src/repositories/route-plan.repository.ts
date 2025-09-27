@@ -7,16 +7,17 @@ import {
   TimeBuffers,
 } from "@/types";
 import { AbstractBaseRepository } from "./base.repository";
+import { Prisma } from "@prisma/client";
 
 /**
  * RoutePlan Repository Interface
  */
 export interface IRoutePlanRepository {
-  // Base CRUD operations
-  create(data: CreateRoutePlanInput): Promise<RoutePlan>;
+  // Base CRUD operations using Prisma Args
+  create(args: Prisma.RoutePlanCreateArgs): Promise<RoutePlan>;
   findById(id: string): Promise<RoutePlan | null>;
-  update(id: string, data: UpdateRoutePlanInput): Promise<RoutePlan>;
-  delete(id: string): Promise<RoutePlan>;
+  update(args: Prisma.RoutePlanUpdateArgs): Promise<RoutePlan>;
+  delete(args: Prisma.RoutePlanDeleteArgs): Promise<RoutePlan>;
 
   // RoutePlan-specific operations
   findByScheduleId(scheduleId: string): Promise<RoutePlan | null>;
@@ -36,20 +37,58 @@ export interface IRoutePlanRepository {
     averageTravelTime: number;
     mostCommonDestination: string | null;
   }>;
+
+  // Custom update method
+  updateRouteCalculation(
+    scheduleId: string,
+    routeData: {
+      wakeUpTime: Date;
+      departureTime: Date;
+      arrivalTime: Date;
+      totalTravelMinutes: number;
+      routeSegments: RouteSegment[];
+      buffers: TimeBuffers;
+    }
+  ): Promise<RoutePlan>;
 }
 
 /**
  * RoutePlan Repository Implementation
  */
 export class RoutePlanRepository
-  extends AbstractBaseRepository<
-    RoutePlan,
-    CreateRoutePlanInput,
-    UpdateRoutePlanInput
-  >
+  extends AbstractBaseRepository<Prisma.RoutePlanDelegate<Prisma.DefaultArgs>>
   implements IRoutePlanRepository
 {
   protected model = prisma.routePlan;
+
+  // Explicit method types for better IDE support
+  create(args: Prisma.RoutePlanCreateArgs) {
+    return this.model.create(args);
+  }
+
+  createMany(args: Prisma.RoutePlanCreateManyArgs) {
+    return this.model.createMany(args);
+  }
+
+  update(args: Prisma.RoutePlanUpdateArgs) {
+    return this.model.update(args);
+  }
+
+  findUnique(args: Prisma.RoutePlanFindUniqueArgs) {
+    return this.model.findUnique(args);
+  }
+
+  findMany(args?: Prisma.RoutePlanFindManyArgs) {
+    return this.model.findMany(args);
+  }
+
+  delete(args: Prisma.RoutePlanDeleteArgs) {
+    return this.model.delete(args);
+  }
+
+  deleteMany(args: Prisma.RoutePlanDeleteManyArgs) {
+    return this.model.deleteMany(args);
+  }
 
   /**
    * Find route plan by schedule ID
@@ -242,7 +281,13 @@ export class RoutePlanRepository
     return await this.model.update({
       where: { scheduleId },
       data: {
-        ...routeData,
+        wakeUpTime: routeData.wakeUpTime,
+        departureTime: routeData.departureTime,
+        arrivalTime: routeData.arrivalTime,
+        totalTravelMinutes: routeData.totalTravelMinutes,
+        routeSegments:
+          routeData.routeSegments as unknown as Prisma.InputJsonValue,
+        buffers: routeData.buffers as unknown as Prisma.InputJsonValue,
         calculatedAt: new Date(),
       },
     });
@@ -284,3 +329,9 @@ export class RoutePlanRepository
     });
   }
 }
+
+// Export a ready-to-use singleton instance
+export const routePlanRepository = new RoutePlanRepository();
+
+// Also export as default for flexibility
+export default RoutePlanRepository;
