@@ -245,18 +245,18 @@
 - [ ] 12. Complete notification service integrations
 - [ ] 12.1 Implement SMS notification provider integration
 
-  - Integrate with SMS provider (Twilio, AWS SNS, or similar)
-  - Add SMS configuration and validation in user settings
-  - Implement SMS delivery tracking and error handling
-  - Write tests for SMS notification functionality
+  - Complete Twilio SMS service configuration and initialization
+  - Implement SMS delivery status tracking and webhook handling
+  - Add SMS phone number validation and formatting
+  - Write comprehensive tests for SMS notification functionality
   - _Requirements: 6.1, 6.2, 6.6_
 
 - [ ] 12.2 Implement push notification service integration
 
-  - Integrate with push notification service (FCM, APNs, or similar)
-  - Add push token management and device registration
-  - Implement push notification delivery tracking
-  - Write tests for push notification functionality
+  - Complete Firebase Cloud Messaging (FCM) service setup
+  - Implement device token registration and management
+  - Add push notification delivery tracking and analytics
+  - Write comprehensive tests for push notification functionality
   - _Requirements: 6.1, 6.2, 6.6_
 
 - [x] 13. Enhance error handling and resilience
