@@ -2,58 +2,9 @@ import {
   ScheduleDataWithRelations,
   TimelineEntry,
   ContactInfo,
+  safeGetContactInfoArray,
 } from "../../types";
 import { PolishTemplates, EnglishTemplates } from "./language-templates";
-
-/**
- * Type guard to validate ContactInfo array
- */
-function isContactInfoArray(data: unknown): data is ContactInfo[] {
-  if (!Array.isArray(data)) {
-    return false;
-  }
-
-  return data.every((item): item is ContactInfo => {
-    return (
-      typeof item === "object" &&
-      item !== null &&
-      typeof item.name === "string" &&
-      (item.role === undefined || typeof item.role === "string") &&
-      (item.phone === undefined || typeof item.phone === "string") &&
-      (item.email === undefined || typeof item.email === "string")
-    );
-  });
-}
-
-/**
- * Safely extract ContactInfo array from JSON data
- */
-function safeGetContactInfo(data: unknown): ContactInfo[] {
-  if (isContactInfoArray(data)) {
-    return data;
-  }
-
-  // Fallback: try to extract valid contacts from malformed data
-  if (Array.isArray(data)) {
-    return data
-      .filter((item): item is ContactInfo => {
-        return (
-          typeof item === "object" &&
-          item !== null &&
-          typeof item.name === "string"
-        );
-      })
-      .map((item) => ({
-        name: item.name,
-        role: typeof item.role === "string" ? item.role : undefined,
-        phone: typeof item.phone === "string" ? item.phone : undefined,
-        email: typeof item.email === "string" ? item.email : undefined,
-      }));
-  }
-
-  // Return empty array as safe fallback
-  return [];
-}
 
 /**
  * Text Content Generator
@@ -150,7 +101,7 @@ export class TextContentGenerator {
 
     // Contacts
     if (options.includeContacts && scheduleData.contacts) {
-      const contacts = safeGetContactInfo(scheduleData.contacts);
+      const contacts = safeGetContactInfoArray(scheduleData.contacts);
       if (contacts.length > 0) {
         content += `${templates.sections.contacts}\n`;
         contacts.forEach((contact: ContactInfo) => {
@@ -352,7 +303,7 @@ export class HtmlContentGenerator {
 
     // Contacts
     if (options.includeContacts && scheduleData.contacts) {
-      const contacts = safeGetContactInfo(scheduleData.contacts);
+      const contacts = safeGetContactInfoArray(scheduleData.contacts);
       if (contacts.length > 0) {
         html += `
           <div class="summary-contacts">
