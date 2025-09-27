@@ -4,7 +4,7 @@
   "description": "StillOnTime Film Schedule Automation System - Backend API",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
+    "dev": "nodemon",
     "dev:simple": "ts-node src/simple-server.ts",
     "build": "tsc",
     "start": "node dist/index.js",
