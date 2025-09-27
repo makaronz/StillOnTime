@@ -1,6 +1,6 @@
 import axios, {
   AxiosInstance,
-  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
   AxiosResponse,
   AxiosError,
 } from "axios";
@@ -152,7 +152,7 @@ export class WeatherService {
 
     // Add request interceptor for logging
     this.client.interceptors.request.use(
-      (config: AxiosRequestConfig) => {
+      (config: InternalAxiosRequestConfig) => {
         logger.debug("Weather API request", {
           url: config.url,
           params: config.params,
@@ -227,7 +227,7 @@ export class WeatherService {
         location,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      throw this.handleWeatherAPIError(error, location);
+      throw this.handleWeatherAPIError(error as AxiosError, location);
     }
   }
 
@@ -288,7 +288,7 @@ export class WeatherService {
         return staleData;
       }
 
-      throw this.handleWeatherAPIError(error, location, date);
+      throw this.handleWeatherAPIError(error as AxiosError, location, date);
     }
   }
 
@@ -456,7 +456,9 @@ export class WeatherService {
         schedule: { connect: { id: scheduleId } },
       };
 
-      const storedWeather = await this.weatherRepository.create(weatherInput);
+      const storedWeather = await this.weatherRepository.create(
+        weatherInput
+      );
 
       logger.info("Weather data stored in database", {
         scheduleId,
@@ -483,14 +485,17 @@ export class WeatherService {
     weatherData: WeatherCacheData
   ): Promise<WeatherData> {
     try {
-      const updatedWeather = await this.weatherRepository.update(weatherId, {
-        temperature: weatherData.temperature,
-        description: weatherData.description,
-        windSpeed: weatherData.windSpeed,
-        precipitation: weatherData.precipitation,
-        humidity: weatherData.humidity,
-        warnings: weatherData.warnings,
-      });
+      const updatedWeather = await this.weatherRepository.update(
+        weatherId,
+        {
+          temperature: weatherData.temperature,
+          description: weatherData.description,
+          windSpeed: weatherData.windSpeed,
+          precipitation: weatherData.precipitation,
+          humidity: weatherData.humidity,
+          warnings: weatherData.warnings,
+        }
+      );
 
       logger.info("Weather data updated", { weatherId });
       return updatedWeather;
@@ -514,7 +519,7 @@ export class WeatherService {
   ): Error {
     if (error && error.response) {
       const status = error.response?.status;
-      const message = error.response?.data?.message || error.message;
+      const message = (error.response?.data as any)?.message || error.message;
 
       switch (status) {
         case 401:

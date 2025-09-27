@@ -1,4 +1,5 @@
-import { prisma } from "@/config/database";
+import { prisma } from "@/prisma";
+import { Prisma } from "@prisma/client";
 import {
   ProcessedEmail,
   CreateProcessedEmailInput,
@@ -238,8 +239,12 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
     const [total, processed, pending, failed] = await Promise.all([
       prisma.processedEmail.count({ where: { userId } }),
       prisma.processedEmail.count({ where: { userId, processed: true } }),
-      prisma.processedEmail.count({ where: { userId, processingStatus: "pending" } }),
-      prisma.processedEmail.count({ where: { userId, processingStatus: "failed" } }),
+      prisma.processedEmail.count({
+        where: { userId, processingStatus: "pending" },
+      }),
+      prisma.processedEmail.count({
+        where: { userId, processingStatus: "failed" },
+      }),
     ]);
 
     return { total, processed, pending, failed };
@@ -330,3 +335,9 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
     });
   }
 }
+
+// Export a ready-to-use singleton instance
+export const processedEmailRepository = new ProcessedEmailRepository();
+
+// Also export as default for flexibility
+export default ProcessedEmailRepository;

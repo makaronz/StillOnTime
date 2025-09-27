@@ -333,15 +333,17 @@ export class NotificationService {
     );
 
     return this.notificationRepository.create({
-      user: { connect: { id: userId } },
-      channel,
-      template,
-      subject,
-      message,
-      data: data as any,
-      scheduledFor,
-      status: "pending",
-      retryCount: 0,
+      data: {
+        user: { connect: { id: userId } },
+        channel,
+        template,
+        subject,
+        message,
+        data: data as any,
+        scheduledFor,
+        status: "pending",
+        retryCount: 0,
+      },
     });
   }
 

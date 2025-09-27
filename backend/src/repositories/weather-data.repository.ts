@@ -1,4 +1,4 @@
-import { prisma } from "@/config/database";
+import { prisma } from "@/prisma";
 import { Prisma } from "@prisma/client";
 import {
   WeatherData,
@@ -50,27 +50,33 @@ export class WeatherDataRepository
 {
   protected model = prisma.weatherData;
 
-  // Override createMany to handle Prisma's CreateManyInput type
-  async createMany(data: CreateWeatherDataInput[]): Promise<{ count: number }> {
-    // Convert CreateWeatherDataInput to CreateManyInput by extracting only the direct fields
-    const createManyData = data.map((item) => {
-      // Extract only the fields that belong to WeatherDataCreateManyInput
-      const { user, schedule, ...directFields } = item as any;
-      return {
-        userId: directFields.userId || user?.connect?.id || "",
-        scheduleId: directFields.scheduleId || schedule?.connect?.id || "",
-        forecastDate: directFields.forecastDate || new Date(),
-        temperature: directFields.temperature,
-        description: directFields.description,
-        windSpeed: directFields.windSpeed,
-        precipitation: directFields.precipitation,
-        humidity: directFields.humidity,
-        warnings: directFields.warnings,
-        fetchedAt: directFields.fetchedAt || new Date(),
-      };
-    });
+  // Prisma-specific methods for advanced usage
+  createPrisma(args: Prisma.WeatherDataCreateArgs) {
+    return this.model.create(args);
+  }
 
-    return await this.model.createMany({ data: createManyData });
+  createManyPrisma(args: Prisma.WeatherDataCreateManyArgs) {
+    return this.model.createMany(args);
+  }
+
+  updatePrisma(args: Prisma.WeatherDataUpdateArgs) {
+    return this.model.update(args);
+  }
+
+  findUnique(args: Prisma.WeatherDataFindUniqueArgs) {
+    return this.model.findUnique(args);
+  }
+
+  findMany(args?: Prisma.WeatherDataFindManyArgs) {
+    return this.model.findMany(args);
+  }
+
+  deletePrisma(args: Prisma.WeatherDataDeleteArgs) {
+    return this.model.delete(args);
+  }
+
+  deleteManyPrisma(args: Prisma.WeatherDataDeleteManyArgs) {
+    return this.model.deleteMany(args);
   }
 
   /**
@@ -344,3 +350,9 @@ export class WeatherDataRepository
     });
   }
 }
+
+// Export a ready-to-use singleton instance
+export const weatherDataRepository = new WeatherDataRepository();
+
+// Also export as default for flexibility
+export default WeatherDataRepository;

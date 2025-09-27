@@ -1,4 +1,4 @@
-import { BaseRepository } from "./base.repository";
+import { prisma } from "@/prisma";
 import {
   Notification,
   CreateNotificationInput,
@@ -7,22 +7,96 @@ import {
   NotificationTemplate,
 } from "../types";
 import { Prisma } from "@prisma/client";
+import { AbstractBaseRepository } from "./base.repository";
 
-export class NotificationRepository extends BaseRepository {
-  /**
-   * Create a new notification
-   */
-  async create(data: CreateNotificationInput): Promise<Notification> {
-    return this.prisma.notification.create({
-      data,
-    });
+/**
+ * Notification Repository Interface
+ */
+export interface INotificationRepository {
+  // Base CRUD operations
+  create(data: CreateNotificationInput): Promise<Notification>;
+  findById(id: string): Promise<Notification | null>;
+  update(id: string, data: UpdateNotificationInput): Promise<Notification>;
+  delete(id: string): Promise<Notification>;
+
+  // Notification-specific operations
+  findByMessageId(messageId: string): Promise<Notification | null>;
+  findByUserId(
+    userId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+      channel?: NotificationChannel;
+    }
+  ): Promise<Notification[]>;
+  findPendingScheduled(beforeDate?: Date): Promise<Notification[]>;
+  findRetryable(maxRetries?: number): Promise<Notification[]>;
+  updateById(id: string, data: UpdateNotificationInput): Promise<Notification>;
+  markAsSent(id: string, messageId?: string): Promise<Notification>;
+  markAsFailed(id: string, error: string): Promise<Notification>;
+  cancel(id: string): Promise<Notification>;
+  deleteOlderThan(date: Date): Promise<number>;
+  getStatistics(
+    userId: string,
+    fromDate?: Date,
+    toDate?: Date
+  ): Promise<{
+    total: number;
+    sent: number;
+    failed: number;
+    pending: number;
+    byChannel: Record<string, number>;
+    byTemplate: Record<string, number>;
+  }>;
+}
+
+/**
+ * Notification Repository Implementation
+ */
+export class NotificationRepository
+  extends AbstractBaseRepository<
+    Notification,
+    CreateNotificationInput,
+    UpdateNotificationInput
+  >
+  implements INotificationRepository
+{
+  protected model = prisma.notification;
+
+  // Prisma-specific methods for advanced usage
+  createPrisma(args: Prisma.NotificationCreateArgs) {
+    return this.model.create(args);
   }
 
+  createManyPrisma(args: Prisma.NotificationCreateManyArgs) {
+    return this.model.createMany(args);
+  }
+
+  updatePrisma(args: Prisma.NotificationUpdateArgs) {
+    return this.model.update(args);
+  }
+
+  findUnique(args: Prisma.NotificationFindUniqueArgs) {
+    return this.model.findUnique(args);
+  }
+
+  findMany(args?: Prisma.NotificationFindManyArgs) {
+    return this.model.findMany(args);
+  }
+
+  deletePrisma(args: Prisma.NotificationDeleteArgs) {
+    return this.model.delete(args);
+  }
+
+  deleteManyPrisma(args: Prisma.NotificationDeleteManyArgs) {
+    return this.model.deleteMany(args);
+  }
   /**
    * Find notification by ID
    */
   async findById(id: string): Promise<Notification | null> {
-    return this.prisma.notification.findUnique({
+    return this.model.findUnique({
       where: { id },
     });
   }
@@ -31,7 +105,7 @@ export class NotificationRepository extends BaseRepository {
    * Find notification by external message ID (e.g., Twilio message SID)
    */
   async findByMessageId(messageId: string): Promise<Notification | null> {
-    return this.prisma.notification.findFirst({
+    return this.model.findFirst({
       where: {
         data: {
           path: ["messageId"],
@@ -63,7 +137,7 @@ export class NotificationRepository extends BaseRepository {
       where.channel = options.channel;
     }
 
-    return this.prisma.notification.findMany({
+    return this.model.findMany({
       where,
       orderBy: { createdAt: "desc" },
       take: options?.limit,
@@ -82,7 +156,7 @@ export class NotificationRepository extends BaseRepository {
       },
     };
 
-    return this.prisma.notification.findMany({
+    return this.model.findMany({
       where,
       orderBy: { scheduledFor: "asc" },
     });
@@ -92,7 +166,7 @@ export class NotificationRepository extends BaseRepository {
    * Find failed notifications that can be retried
    */
   async findRetryable(maxRetries: number = 3): Promise<Notification[]> {
-    return this.prisma.notification.findMany({
+    return this.model.findMany({
       where: {
         status: "failed",
         retryCount: {
@@ -106,11 +180,11 @@ export class NotificationRepository extends BaseRepository {
   /**
    * Update notification
    */
-  async update(
+  async updateById(
     id: string,
     data: UpdateNotificationInput
   ): Promise<Notification> {
-    return this.prisma.notification.update({
+    return this.model.update({
       where: { id },
       data,
     });
@@ -120,7 +194,7 @@ export class NotificationRepository extends BaseRepository {
    * Mark notification as sent
    */
   async markAsSent(id: string, messageId?: string): Promise<Notification> {
-    return this.update(id, {
+    return this.updateById(id, {
       status: "sent",
       sentAt: new Date(),
       data: messageId ? { messageId } : undefined,
@@ -131,7 +205,7 @@ export class NotificationRepository extends BaseRepository {
    * Mark notification as failed
    */
   async markAsFailed(id: string, error: string): Promise<Notification> {
-    return this.prisma.notification.update({
+    return this.model.update({
       where: { id },
       data: {
         status: "failed",
@@ -148,7 +222,7 @@ export class NotificationRepository extends BaseRepository {
    * Cancel notification
    */
   async cancel(id: string): Promise<Notification> {
-    return this.update(id, {
+    return this.updateById(id, {
       status: "cancelled",
     });
   }
@@ -157,7 +231,7 @@ export class NotificationRepository extends BaseRepository {
    * Delete old notifications
    */
   async deleteOlderThan(date: Date): Promise<number> {
-    const result = await this.prisma.notification.deleteMany({
+    const result = await this.model.deleteMany({
       where: {
         createdAt: {
           lt: date,
@@ -196,20 +270,20 @@ export class NotificationRepository extends BaseRepository {
 
     const [total, sent, failed, pending, byChannel, byTemplate] =
       await Promise.all([
-        this.prisma.notification.count({ where }),
-        this.prisma.notification.count({ where: { ...where, status: "sent" } }),
-        this.prisma.notification.count({
+        this.model.count({ where }),
+        this.model.count({ where: { ...where, status: "sent" } }),
+        this.model.count({
           where: { ...where, status: "failed" },
         }),
-        this.prisma.notification.count({
+        this.model.count({
           where: { ...where, status: "pending" },
         }),
-        this.prisma.notification.groupBy({
+        this.model.groupBy({
           by: ["channel"],
           where,
           _count: { channel: true },
         }),
-        this.prisma.notification.groupBy({
+        this.model.groupBy({
           by: ["template"],
           where,
           _count: { template: true },
@@ -232,3 +306,9 @@ export class NotificationRepository extends BaseRepository {
     };
   }
 }
+
+// Export a ready-to-use singleton instance
+export const notificationRepository = new NotificationRepository();
+
+// Also export as default for flexibility
+export default NotificationRepository;

@@ -1,5 +1,5 @@
 import { AbstractBaseRepository } from "./base.repository";
-import { prisma } from "../config/database";
+import { prisma } from "@/prisma";
 import {
   Summary,
   CreateSummaryInput,
@@ -7,38 +7,100 @@ import {
   WhereCondition,
   ScheduleDataWithRelations,
 } from "../types";
+import { Prisma } from "@prisma/client";
 
-export class SummaryRepository extends AbstractBaseRepository<
-  Summary,
-  CreateSummaryInput,
-  UpdateSummaryInput
-> {
+/**
+ * Summary Repository Interface
+ */
+export interface ISummaryRepository {
+  // Base CRUD operations
+  create(data: CreateSummaryInput): Promise<Summary>;
+  findById(id: string): Promise<Summary | null>;
+  update(id: string, data: UpdateSummaryInput): Promise<Summary>;
+  delete(id: string): Promise<Summary>;
+
+  // Summary-specific operations
+  findByScheduleId(scheduleId: string): Promise<Summary | null>;
+  findByUserId(
+    userId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      language?: string;
+    }
+  ): Promise<Summary[]>;
+  findWithSchedule(
+    userId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      fromDate?: Date;
+      toDate?: Date;
+    }
+  ): Promise<Array<Summary & { schedule: ScheduleDataWithRelations }>>;
+  upsertByScheduleId(
+    scheduleId: string,
+    createData: CreateSummaryInput,
+    updateData: UpdateSummaryInput
+  ): Promise<Summary>;
+  deleteOlderThan(date: Date): Promise<number>;
+  getStatistics(
+    userId: string,
+    fromDate?: Date,
+    toDate?: Date
+  ): Promise<{
+    total: number;
+    byLanguage: Record<string, number>;
+    recentCount: number;
+  }>;
+}
+
+/**
+ * Summary Repository Implementation
+ */
+export class SummaryRepository
+  extends AbstractBaseRepository<Summary, CreateSummaryInput, UpdateSummaryInput>
+  implements ISummaryRepository
+{
   protected model = prisma.summary;
 
-  // Override createMany to handle Prisma's CreateManyInput type
-  async createMany(data: CreateSummaryInput[]): Promise<{ count: number }> {
-    // Convert CreateSummaryInput to CreateManyInput by extracting only the direct fields
-    const createManyData = data.map((item) => {
-      // Extract only the fields that belong to SummaryCreateManyInput
-      const { user, schedule, ...directFields } = item as any;
-      return {
-        userId: directFields.userId || user?.connect?.id || "",
-        scheduleId: directFields.scheduleId || schedule?.connect?.id || "",
-        language: directFields.language || "en",
-        content: directFields.content || "",
-        htmlContent: directFields.htmlContent || "",
-        timeline: directFields.timeline || {},
-        weatherSummary: directFields.weatherSummary,
-        warnings: directFields.warnings,
-      };
-    });
-
-    return await this.model.createMany({ data: createManyData });
+  // Prisma-specific methods for advanced usage
+  createPrisma(args: Prisma.SummaryCreateArgs) {
+    return this.model.create(args);
   }
 
-  // Inherits create from AbstractBaseRepository
+  createManyPrisma(args: Prisma.SummaryCreateManyArgs) {
+    return this.model.createMany(args);
+  }
 
-  // Inherits findById from AbstractBaseRepository
+  updatePrisma(args: Prisma.SummaryUpdateArgs) {
+    return this.model.update(args);
+  }
+
+  findUnique(args: Prisma.SummaryFindUniqueArgs) {
+    return this.model.findUnique(args);
+  }
+
+  findMany(args?: Prisma.SummaryFindManyArgs) {
+    return this.model.findMany(args);
+  }
+
+  deletePrisma(args: Prisma.SummaryDeleteArgs) {
+    return this.model.delete(args);
+  }
+
+  deleteManyPrisma(args: Prisma.SummaryDeleteManyArgs) {
+    return this.model.deleteMany(args);
+  }
+
+  /**
+   * Find summary by ID
+   */
+  async findById(id: string): Promise<Summary | null> {
+    return await this.model.findUnique({
+      where: { id },
+    });
+  }
 
   /**
    * Find summary by schedule ID
@@ -121,8 +183,6 @@ export class SummaryRepository extends AbstractBaseRepository<
     });
   }
 
-  // Inherits update from AbstractBaseRepository
-
   /**
    * Update or create summary by schedule ID
    */
@@ -137,8 +197,6 @@ export class SummaryRepository extends AbstractBaseRepository<
       update: updateData,
     });
   }
-
-  // Inherits delete from AbstractBaseRepository
 
   /**
    * Delete summaries older than specified date
@@ -208,3 +266,9 @@ export class SummaryRepository extends AbstractBaseRepository<
     };
   }
 }
+
+// Export a ready-to-use singleton instance
+export const summaryRepository = new SummaryRepository();
+
+// Also export as default for flexibility
+export default SummaryRepository;

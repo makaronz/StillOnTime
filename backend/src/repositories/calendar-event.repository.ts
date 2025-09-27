@@ -1,4 +1,5 @@
-import { prisma } from "@/config/database";
+import { prisma } from "@/prisma";
+import { Prisma } from "@prisma/client";
 import {
   CalendarEvent,
   CreateCalendarEventInput,
@@ -50,6 +51,44 @@ export class CalendarEventRepository
   implements ICalendarEventRepository
 {
   protected model = prisma.calendarEvent;
+
+  // Prisma-specific methods for advanced usage
+  createPrisma(args: Prisma.CalendarEventCreateArgs) {
+    return this.model.create(args);
+  }
+
+  createManyPrisma(args: Prisma.CalendarEventCreateManyArgs) {
+    return this.model.createMany(args);
+  }
+
+  updatePrisma(args: Prisma.CalendarEventUpdateArgs) {
+    return this.model.update(args);
+  }
+
+  findUnique(args: Prisma.CalendarEventFindUniqueArgs) {
+    return this.model.findUnique(args);
+  }
+
+  findMany(args?: Prisma.CalendarEventFindManyArgs) {
+    return this.model.findMany(args);
+  }
+
+  deletePrisma(args: Prisma.CalendarEventDeleteArgs) {
+    return this.model.delete(args);
+  }
+
+  deleteManyPrisma(args: Prisma.CalendarEventDeleteManyArgs) {
+    return this.model.deleteMany(args);
+  }
+
+  /**
+   * Find calendar event by ID
+   */
+  async findById(id: string): Promise<CalendarEvent | null> {
+    return await this.model.findUnique({
+      where: { id },
+    });
+  }
 
   /**
    * Find calendar event by schedule ID
@@ -347,3 +386,9 @@ export class CalendarEventRepository
     });
   }
 }
+
+// Export a ready-to-use singleton instance
+export const calendarEventRepository = new CalendarEventRepository();
+
+// Also export as default for flexibility
+export default CalendarEventRepository;

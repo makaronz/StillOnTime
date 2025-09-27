@@ -372,7 +372,7 @@ export class TimeCalculationService {
     }
 
     // Weather-based recommendations
-    if (options.weatherConditions?.length > 0) {
+    if (options.weatherConditions && options.weatherConditions.length > 0) {
       recommendations.push({
         type: "preparation",
         priority: "medium",

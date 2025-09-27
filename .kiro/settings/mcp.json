@@ -2,28 +2,43 @@
   "mcpServers": {
     "mcp-everything-search": {
       "command": "uvx",
-      "args": ["mcp-server-everything-search"],
+      "args": [
+        "mcp-server-everything-search"
+      ],
       "disabled": false,
-      "autoApprove": ["search"],
+      "autoApprove": [
+        "search"
+      ],
       "disabledTools": []
     },
     "mcp-fetch": {
       "command": "uvx",
-      "args": ["mcp-server-fetch"],
+      "args": [
+        "mcp-server-fetch"
+      ],
       "disabled": false,
       "autoApprove": [],
       "disabledTools": []
     },
     "mcp-todo": {
       "command": "uvx",
-      "args": ["mcp-server-todo"],
-      "disabled": false,
-      "autoApprove": ["list_todos", "get_todo"],
+      "args": [
+        "mcp-server-todo"
+      ],
+      "disabled": true,
+      "autoApprove": [
+        "list_todos",
+        "get_todo"
+      ],
       "disabledTools": []
     },
     "mcp-router": {
       "command": "npx",
-      "args": ["-y", "mcpr-cli@latest", "connect"],
+      "args": [
+        "-y",
+        "mcpr-cli@latest",
+        "connect"
+      ],
       "env": {
         "MCPR_TOKEN": "mcpr_KDbOhUVD5D4-Qe3PaWq5rVm6TWFjovhZ"
       },
@@ -31,7 +46,10 @@
     },
     "taskmaster-ai": {
       "command": "npx",
-      "args": ["-y", "task-master-ai"],
+      "args": [
+        "-y",
+        "task-master-ai"
+      ],
       "env": {
         "ANTHROPIC_API_KEY": "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",
         "PERPLEXITY_API_KEY": "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",

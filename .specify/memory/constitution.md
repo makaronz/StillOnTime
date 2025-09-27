@@ -1,3 +1,16 @@
+<!--
+Sync Impact Report:
+Version change: 1.0.0 → 1.0.1
+Modified principles: IV. Film Industry Domain Expertise (expanded scope)
+Added sections: None
+Removed sections: None
+Templates requiring updates:
+✅ Updated: .specify/templates/plan-template.md (version reference)
+✅ Verified: .specify/templates/spec-template.md (constitution compliance section)
+✅ Verified: .specify/templates/tasks-template.md (film industry domain tasks)
+Follow-up TODOs: None
+-->
+
 # StillOnTime Film Schedule Automation System Constitution
 
 ## Core Principles
@@ -12,7 +25,7 @@ All external integrations MUST use OAuth 2.0 with PKCE for authentication. API k
 Email processing MUST complete within 2 minutes of email receipt. PDF parsing MUST complete within 30 seconds for standard documents. Route calculation MUST complete within 15 seconds including API calls. Calendar event creation MUST complete within 10 seconds. System MUST maintain 99% uptime during business hours (6:00-22:00 CET).
 
 ### IV. Film Industry Domain Expertise
-System MUST understand film production terminology and workflows. Email filtering MUST identify MP2 production emails using industry-specific keywords. Route planning MUST account for film industry time buffers (car change, parking, entry, traffic, morning routine). Weather monitoring MUST provide equipment recommendations based on shooting conditions.
+System MUST understand film production terminology and workflows including call sheets, shooting schedules, and production logistics. Email filtering MUST identify MP2 production emails using industry-specific keywords and patterns. Route planning MUST account for film industry time buffers (car change, parking, entry, traffic, morning routine, equipment loading). Weather monitoring MUST provide equipment recommendations based on shooting conditions and outdoor production requirements. System MUST handle multiple location shoots and complex scheduling scenarios common in film production.
 
 ### V. User-Centric Polish
 All user interfaces MUST be responsive and accessible (WCAG 2.1 AA compliance). System MUST provide comprehensive error handling with clear user guidance. Manual override capabilities MUST be available for all automated processes. User feedback MUST be incorporated into continuous improvement cycles.
@@ -67,4 +80,4 @@ All pull requests must verify compliance with constitution principles. Code revi
 ### Version Control
 Constitution versioning follows semantic versioning: MAJOR for breaking changes, MINOR for new principles, PATCH for clarifications. All changes must be documented with clear migration paths.
 
-**Version**: 1.0.0 | **Ratified**: 2025-01-09 | **Last Amended**: 2025-01-09
+**Version**: 1.0.1 | **Ratified**: 2025-01-09 | **Last Amended**: 2025-01-28

@@ -1,4 +1,5 @@
-import { prisma } from "@/config/database";
+import { prisma } from "@/prisma";
+import { Prisma } from "@prisma/client";
 import {
   ScheduleData,
   CreateScheduleDataInput,
@@ -71,6 +72,44 @@ export class ScheduleDataRepository
   implements IScheduleDataRepository
 {
   protected model = prisma.scheduleData;
+
+  // Prisma-specific methods for advanced usage
+  createPrisma(args: Prisma.ScheduleDataCreateArgs) {
+    return this.model.create(args);
+  }
+
+  createManyPrisma(args: Prisma.ScheduleDataCreateManyArgs) {
+    return this.model.createMany(args);
+  }
+
+  updatePrisma(args: Prisma.ScheduleDataUpdateArgs) {
+    return this.model.update(args);
+  }
+
+  findUnique(args: Prisma.ScheduleDataFindUniqueArgs) {
+    return this.model.findUnique(args);
+  }
+
+  findMany(args?: Prisma.ScheduleDataFindManyArgs) {
+    return this.model.findMany(args);
+  }
+
+  deletePrisma(args: Prisma.ScheduleDataDeleteArgs) {
+    return this.model.delete(args);
+  }
+
+  deleteManyPrisma(args: Prisma.ScheduleDataDeleteManyArgs) {
+    return this.model.deleteMany(args);
+  }
+
+  /**
+   * Find schedule by ID
+   */
+  async findById(id: string): Promise<ScheduleData | null> {
+    return await this.model.findUnique({
+      where: { id },
+    });
+  }
 
   /**
    * Find schedule with all related data
@@ -343,7 +382,7 @@ export class ScheduleDataRepository
       throw new Error("Scene type must be either INT or EXT");
     }
 
-    return await this.create(data);
+    return await this.createPrisma({ data });
   }
 
   /**
@@ -424,3 +463,9 @@ export class ScheduleDataRepository
     });
   }
 }
+
+// Export a ready-to-use singleton instance
+export const scheduleDataRepository = new ScheduleDataRepository();
+
+// Also export as default for flexibility
+export default ScheduleDataRepository;

@@ -187,7 +187,9 @@ export class WeatherJobProcessor extends BaseJobProcessor {
       await job.progress(10);
 
       // Get schedule data
-      const schedule = await this.scheduleDataRepository.findById(scheduleId);
+      const schedule = await this.scheduleDataRepository.findUnique({
+        where: { id: scheduleId },
+      });
       if (!schedule) {
         throw new Error(`Schedule ${scheduleId} not found`);
       }
@@ -237,7 +239,9 @@ export class WeatherJobProcessor extends BaseJobProcessor {
       await job.progress(10);
 
       // Get schedule data
-      const schedule = await this.scheduleDataRepository.findById(scheduleId);
+      const schedule = await this.scheduleDataRepository.findUnique({
+        where: { id: scheduleId },
+      });
       if (!schedule) {
         throw new Error(`Schedule ${scheduleId} not found`);
       }

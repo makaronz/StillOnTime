@@ -1,21 +1,21 @@
 import { Request, Response } from "express";
 import { services } from "@/services";
-import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
-import { UserConfigRepository } from "@/repositories/user-config.repository";
+import { scheduleDataRepository } from "@/repositories/schedule-data.repository";
+import { userConfigRepository } from "@/repositories/user-config.repository";
 import { logger } from "@/utils/logger";
-import { requireValidOAuth } from "@/middleware/oauth.middleware";
+import { requireValidOAuth } from "@/middleware/auth.middleware";
 
 /**
  * Calendar Controller
  * Handles Google Calendar integration and event management
  */
 export class CalendarController {
-  private scheduleDataRepository: ScheduleDataRepository;
-  private userConfigRepository: UserConfigRepository;
+  private scheduleDataRepository: typeof scheduleDataRepository;
+  private userConfigRepository: typeof userConfigRepository;
 
   constructor() {
-    this.scheduleDataRepository = new ScheduleDataRepository();
-    this.userConfigRepository = new UserConfigRepository();
+    this.scheduleDataRepository = scheduleDataRepository;
+    this.userConfigRepository = userConfigRepository;
   }
 
   /**

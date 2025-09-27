@@ -13,11 +13,11 @@ import { Prisma } from "@prisma/client";
  * RoutePlan Repository Interface
  */
 export interface IRoutePlanRepository {
-  // Base CRUD operations using Prisma Args
-  create(args: Prisma.RoutePlanCreateArgs): Promise<RoutePlan>;
+  // Base CRUD operations
+  create(data: CreateRoutePlanInput): Promise<RoutePlan>;
   findById(id: string): Promise<RoutePlan | null>;
-  update(args: Prisma.RoutePlanUpdateArgs): Promise<RoutePlan>;
-  delete(args: Prisma.RoutePlanDeleteArgs): Promise<RoutePlan>;
+  update(id: string, data: UpdateRoutePlanInput): Promise<RoutePlan>;
+  delete(id: string): Promise<RoutePlan>;
 
   // RoutePlan-specific operations
   findByScheduleId(scheduleId: string): Promise<RoutePlan | null>;
@@ -56,39 +56,14 @@ export interface IRoutePlanRepository {
  * RoutePlan Repository Implementation
  */
 export class RoutePlanRepository
-  extends AbstractBaseRepository<Prisma.RoutePlanDelegate<Prisma.DefaultArgs>>
+  extends AbstractBaseRepository<
+    RoutePlan,
+    CreateRoutePlanInput,
+    UpdateRoutePlanInput
+  >
   implements IRoutePlanRepository
 {
   protected model = prisma.routePlan;
-
-  // Explicit method types for better IDE support
-  create(args: Prisma.RoutePlanCreateArgs) {
-    return this.model.create(args);
-  }
-
-  createMany(args: Prisma.RoutePlanCreateManyArgs) {
-    return this.model.createMany(args);
-  }
-
-  update(args: Prisma.RoutePlanUpdateArgs) {
-    return this.model.update(args);
-  }
-
-  findUnique(args: Prisma.RoutePlanFindUniqueArgs) {
-    return this.model.findUnique(args);
-  }
-
-  findMany(args?: Prisma.RoutePlanFindManyArgs) {
-    return this.model.findMany(args);
-  }
-
-  delete(args: Prisma.RoutePlanDeleteArgs) {
-    return this.model.delete(args);
-  }
-
-  deleteMany(args: Prisma.RoutePlanDeleteManyArgs) {
-    return this.model.deleteMany(args);
-  }
 
   /**
    * Find route plan by schedule ID

@@ -559,8 +559,8 @@ export class WeatherMonitoringService {
       notification;
 
     try {
-      // Get the schedule to find the user
-      const schedule = await this.scheduleRepository.findById(scheduleId);
+      // Get the schedule with relations to find the user
+      const schedule = await this.scheduleRepository.findWithRelations(scheduleId);
       if (!schedule) {
         logger.error("Schedule not found for weather notification", {
           scheduleId,
@@ -571,12 +571,7 @@ export class WeatherMonitoringService {
       // Create notification template data
       const templateData = {
         scheduleData: schedule,
-        weatherData: {
-          warnings: significantChanges.map((change) => change.description),
-          location,
-          date,
-          impactAnalysis,
-        },
+        weatherData: schedule.weatherData || undefined,
         location,
         date,
         warnings: significantChanges
@@ -593,13 +588,9 @@ export class WeatherMonitoringService {
         "../repositories/user.repository"
       );
 
-      // Create notification service instance
-      const notificationRepository = new NotificationRepository();
-      const userRepository = new UserRepository();
-      const notificationService = new NotificationService(
-        notificationRepository,
-        userRepository
-      );
+      // Use singleton instances
+      const { services } = await import("@/services");
+      const notificationService = services.notification;
 
       // Send weather warning notification
       await notificationService.sendNotification(

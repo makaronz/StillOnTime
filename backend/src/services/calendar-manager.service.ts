@@ -356,10 +356,10 @@ export class CalendarManagerService {
       }
 
       // Update the event
-      const updatedEvent = await this.calendarEventRepository.update(
-        eventId,
-        updateData
-      );
+      const updatedEvent = await this.calendarEventRepository.update({
+        where: { id: eventId },
+        data: updateData,
+      });
 
       // Sync with Google Calendar if needed
       if (
@@ -531,7 +531,7 @@ export class CalendarManagerService {
     return this.calendarService.createCalendarEvent(
       scheduleData,
       routePlan!,
-      weather,
+      weather!,
       userId!
     );
   }
@@ -549,12 +549,12 @@ export class CalendarManagerService {
     return {
       id: eventId,
       summary: updateData.title || "Updated Event",
-      description: updateData.description,
-      location: updateData.location,
+      description: updateData.description || null,
+      location: updateData.location || null,
       start: { dateTime: updateData.startTime?.toISOString() },
       end: { dateTime: updateData.endTime?.toISOString() },
       updated: new Date().toISOString(),
-    };
+    } as any;
   }
 
   /**
@@ -687,11 +687,14 @@ export class CalendarManagerService {
     switch (resolution.strategy) {
       case "reschedule":
         if (resolution.newStartTime) {
-          await this.calendarEventRepository.update(eventId, {
-            startTime: resolution.newStartTime,
-            endTime:
-              resolution.newEndTime ||
-              new Date(resolution.newStartTime.getTime() + 2 * 60 * 60 * 1000),
+          await this.calendarEventRepository.update({
+            where: { id: eventId },
+            data: {
+              startTime: resolution.newStartTime,
+              endTime:
+                resolution.newEndTime ||
+                new Date(resolution.newStartTime.getTime() + 2 * 60 * 60 * 1000),
+            },
           });
         }
         break;

@@ -47,29 +47,7 @@
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Security & Compliance Gates
-- [ ] All external integrations use OAuth 2.0 with PKCE
-- [ ] API keys are encrypted and stored securely
-- [ ] Data processing follows GDPR requirements
-- [ ] No sensitive data stored persistently
-
-### Performance Gates
-- [ ] Processing times meet constitution requirements
-- [ ] System maintains 99% uptime target
-- [ ] Real-time processing capabilities verified
-- [ ] Fallback mechanisms for external service failures
-
-### Code Quality Gates
-- [ ] TDD methodology planned for all features
-- [ ] Test coverage target >80% for critical paths
-- [ ] TypeScript strict mode enabled
-- [ ] Comprehensive error handling planned
-
-### Film Industry Domain Gates
-- [ ] Film production terminology understood
-- [ ] Industry-specific time buffers accounted for
-- [ ] Weather-based equipment recommendations included
-- [ ] Manual override capabilities planned
+[Gates determined based on constitution file]
 
 ## Project Structure
 
@@ -174,7 +152,7 @@ directories captured above]
    - Quickstart test = story validation steps
 
 5. **Update agent file incrementally** (O(1) operation):
-   - Run `.specify/scripts/bash/update-agent-context.sh cursor`
+   - Run `.specify/scripts/bash/update-agent-context.sh kilocode`
      **IMPORTANT**: Execute it exactly as specified above. Do not add or remove any arguments.
    - If exists: Add only NEW tech from current plan
    - Preserve manual additions between markers
@@ -238,4 +216,4 @@ directories captured above]
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v1.0.1 - See `/memory/constitution.md`*
+*Based on Constitution v2.1.1 - See `/memory/constitution.md`*

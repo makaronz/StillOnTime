@@ -14,13 +14,13 @@ import { Prisma } from "@prisma/client";
  * Extends base repository with user-specific operations
  */
 export interface IUserRepository {
-  // Base CRUD operations using Prisma Args
-  create(args: Prisma.UserCreateArgs): Promise<User>;
+  // Base CRUD operations
+  create(data: CreateUserInput): Promise<User>;
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   findByGoogleId(googleId: string): Promise<User | null>;
-  update(args: Prisma.UserUpdateArgs): Promise<User>;
-  delete(args: Prisma.UserDeleteArgs): Promise<User>;
+  update(id: string, data: UpdateUserInput): Promise<User>;
+  delete(id: string): Promise<User>;
 
   // User-specific operations
   findWithRelations(id: string): Promise<UserWithRelations | null>;
@@ -48,39 +48,10 @@ export interface IUserRepository {
  * User Repository Implementation
  */
 export class UserRepository
-  extends AbstractBaseRepository<Prisma.UserDelegate<Prisma.DefaultArgs>>
+  extends AbstractBaseRepository<User, CreateUserInput, UpdateUserInput>
   implements IUserRepository
 {
   protected model = prisma.user;
-
-  // Explicit method types for better IDE support
-  create(args: Prisma.UserCreateArgs) {
-    return this.model.create(args);
-  }
-
-  createMany(args: Prisma.UserCreateManyArgs) {
-    return this.model.createMany(args);
-  }
-
-  update(args: Prisma.UserUpdateArgs) {
-    return this.model.update(args);
-  }
-
-  findUnique(args: Prisma.UserFindUniqueArgs) {
-    return this.model.findUnique(args);
-  }
-
-  findMany(args?: Prisma.UserFindManyArgs) {
-    return this.model.findMany(args);
-  }
-
-  delete(args: Prisma.UserDeleteArgs) {
-    return this.model.delete(args);
-  }
-
-  deleteMany(args: Prisma.UserDeleteManyArgs) {
-    return this.model.deleteMany(args);
-  }
 
   /**
    * Find user by email address
@@ -241,6 +212,15 @@ export class UserRepository
         },
       });
     }
+  }
+
+  /**
+   * Find user by ID
+   */
+  async findById(id: string): Promise<User | null> {
+    return await this.model.findUnique({
+      where: { id },
+    });
   }
 
   /**
