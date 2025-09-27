@@ -1,34 +1,31 @@
 import { WhereCondition, OrderByCondition, FindManyOptions } from "../types";
+import type { Prisma } from "@prisma/client";
 
 // Re-export types for use by other repositories
 export { FindManyOptions, WhereCondition, OrderByCondition };
 
 /**
  * Base Repository Interface
- * Defines common CRUD operations for all repositories
+ * Defines common CRUD operations for all repositories using Prisma Args types
  */
-
-export interface BaseRepository<T, CreateInput, UpdateInput> {
+export interface BaseRepository<TDelegate> {
   // Create operations
-  create(data: CreateInput): Promise<T>;
-  createMany(data: CreateInput[]): Promise<{ count: number }>;
+  create<TArgs>(args: TArgs): Promise<any>;
+  createMany<TArgs>(args: TArgs): Promise<Prisma.BatchPayload>;
 
   // Read operations
-  findById(id: string): Promise<T | null>;
-  findMany(options?: FindManyOptions): Promise<T[]>;
-  findFirst(where: WhereCondition): Promise<T | null>;
-  count(where?: WhereCondition): Promise<number>;
+  findById(id: string): Promise<any>;
+  findMany<TArgs>(args?: TArgs): Promise<any[]>;
+  findFirst<TArgs>(args: TArgs): Promise<any>;
+  count<TArgs>(args?: TArgs): Promise<number>;
 
   // Update operations
-  update(id: string, data: UpdateInput): Promise<T>;
-  updateMany(
-    where: WhereCondition,
-    data: UpdateInput
-  ): Promise<{ count: number }>;
+  update<TArgs>(args: TArgs): Promise<any>;
+  updateMany<TArgs>(args: TArgs): Promise<Prisma.BatchPayload>;
 
   // Delete operations
-  delete(id: string): Promise<T>;
-  deleteMany(where: WhereCondition): Promise<{ count: number }>;
+  delete<TArgs>(args: TArgs): Promise<any>;
+  deleteMany<TArgs>(args: TArgs): Promise<Prisma.BatchPayload>;
 
   // Utility operations
   exists(where: WhereCondition): Promise<boolean>;
@@ -51,74 +48,76 @@ export interface PaginatedResult<T> {
 
 /**
  * Abstract Base Repository Implementation
- * Provides common functionality for all repositories
+ * Provides common functionality for all repositories using Prisma delegates
  */
-export abstract class AbstractBaseRepository<T, CreateInput, UpdateInput>
-  implements BaseRepository<T, CreateInput, UpdateInput>
+export abstract class AbstractBaseRepository<
+  TDelegate extends {
+    create: (args: any) => Promise<any>;
+    createMany: (args: any) => Promise<Prisma.BatchPayload>;
+    update: (args: any) => Promise<any>;
+    findUnique: (args: any) => Promise<any>;
+    findMany: (args: any) => Promise<any[]>;
+    findFirst: (args: any) => Promise<any>;
+    count: (args: any) => Promise<number>;
+    delete: (args: any) => Promise<any>;
+    deleteMany: (args: any) => Promise<Prisma.BatchPayload>;
+  }
+> implements BaseRepository<TDelegate>
 {
-  protected abstract model: {
-    create: (args: { data: CreateInput }) => Promise<T>;
-    createMany: (args: { data: CreateInput[] }) => Promise<{ count: number }>;
-    findUnique: (args: { where: { id: string } }) => Promise<T | null>;
-    findMany: (args?: FindManyOptions) => Promise<T[]>;
-    findFirst: (args: { where: WhereCondition }) => Promise<T | null>;
-    count: (args?: { where?: WhereCondition }) => Promise<number>;
-    update: (args: { where: { id: string }; data: UpdateInput }) => Promise<T>;
-    updateMany: (args: {
-      where: WhereCondition;
-      data: UpdateInput;
-    }) => Promise<{ count: number }>;
-    delete: (args: { where: { id: string } }) => Promise<T>;
-    deleteMany: (args: { where: WhereCondition }) => Promise<{ count: number }>;
-  };
+  protected abstract model: TDelegate;
 
-  async create(data: CreateInput): Promise<T> {
-    return await this.model.create({ data });
+  create<TArgs>(args: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.create(args);
   }
 
-  async createMany(data: CreateInput[]): Promise<{ count: number }> {
-    return await this.model.createMany({ data });
+  createMany<TArgs>(args: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.createMany(args);
   }
 
-  async findById(id: string): Promise<T | null> {
-    return await this.model.findUnique({ where: { id } });
+  findById(id: string) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.findUnique({ where: { id } });
   }
 
-  async findMany(options: FindManyOptions = {}): Promise<T[]> {
-    return await this.model.findMany(options);
+  findMany<TArgs>(args?: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.findMany(args);
   }
 
-  async findFirst(where: WhereCondition): Promise<T | null> {
-    return await this.model.findFirst({ where });
+  findFirst<TArgs>(args: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.findFirst(args);
   }
 
-  async count(where?: WhereCondition): Promise<number> {
-    return await this.model.count({ where });
+  count<TArgs>(args?: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.count(args);
   }
 
-  async update(id: string, data: UpdateInput): Promise<T> {
-    return await this.model.update({
-      where: { id },
-      data,
-    });
+  update<TArgs>(args: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.update(args);
   }
 
-  async updateMany(
-    where: WhereCondition,
-    data: UpdateInput
-  ): Promise<{ count: number }> {
-    return await this.model.updateMany({ where, data });
+  updateMany<TArgs>(args: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.updateMany(args);
   }
 
-  async delete(id: string): Promise<T> {
-    return await this.model.delete({ where: { id } });
+  delete<TArgs>(args: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.delete(args);
   }
 
-  async deleteMany(where: WhereCondition): Promise<{ count: number }> {
-    return await this.model.deleteMany({ where });
+  deleteMany<TArgs>(args: TArgs) {
+    // @ts-expect-error - Let delegate drive the type
+    return this.model.deleteMany(args);
   }
 
   async exists(where: WhereCondition): Promise<boolean> {
+    // @ts-expect-error - Let delegate drive the type
     const count = await this.model.count({ where });
     return count > 0;
   }
@@ -128,16 +127,18 @@ export abstract class AbstractBaseRepository<T, CreateInput, UpdateInput>
    */
   async findManyPaginated(
     options: FindManyOptions & PaginationOptions
-  ): Promise<PaginatedResult<T>> {
+  ): Promise<PaginatedResult<any>> {
     const { page, limit, ...findOptions } = options;
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
+      // @ts-expect-error - Let delegate drive the type
       this.model.findMany({
         ...findOptions,
         skip,
         take: limit,
       }),
+      // @ts-expect-error - Let delegate drive the type
       this.model.count({ where: findOptions.where }),
     ]);
 
