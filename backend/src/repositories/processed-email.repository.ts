@@ -7,7 +7,6 @@ import {
   WhereCondition,
   FindManyOptions,
 } from "@/types";
-import { AbstractBaseRepository } from "./base.repository";
 import crypto from "crypto";
 
 /**
@@ -49,21 +48,40 @@ export interface IProcessedEmailRepository {
 /**
  * ProcessedEmail Repository Implementation
  */
-export class ProcessedEmailRepository
-  extends AbstractBaseRepository<
-    ProcessedEmail,
-    CreateProcessedEmailInput,
-    UpdateProcessedEmailInput
-  >
-  implements IProcessedEmailRepository
-{
-  protected model = prisma.processedEmail;
+export class ProcessedEmailRepository implements IProcessedEmailRepository {
+  // Basic CRUD operations using Prisma directly
+  async create(data: CreateProcessedEmailInput): Promise<ProcessedEmail> {
+    return await prisma.processedEmail.create({ data });
+  }
+
+  async findById(id: string): Promise<ProcessedEmail | null> {
+    return await prisma.processedEmail.findUnique({ where: { id } });
+  }
+
+  async findMany(options: any = {}): Promise<ProcessedEmail[]> {
+    return await prisma.processedEmail.findMany(options);
+  }
+
+  async update(
+    id: string,
+    data: UpdateProcessedEmailInput
+  ): Promise<ProcessedEmail> {
+    return await prisma.processedEmail.update({ where: { id }, data });
+  }
+
+  async delete(id: string): Promise<ProcessedEmail> {
+    return await prisma.processedEmail.delete({ where: { id } });
+  }
+
+  async count(options: any = {}): Promise<number> {
+    return await prisma.processedEmail.count(options);
+  }
 
   /**
    * Find email by Gmail message ID
    */
   async findByMessageId(messageId: string): Promise<ProcessedEmail | null> {
-    return await this.model.findUnique({
+    return await prisma.processedEmail.findUnique({
       where: { messageId },
     });
   }
@@ -72,7 +90,7 @@ export class ProcessedEmailRepository
    * Find email by PDF hash (for duplicate detection)
    */
   async findByPdfHash(pdfHash: string): Promise<ProcessedEmail | null> {
-    return await this.model.findFirst({
+    return await prisma.processedEmail.findFirst({
       where: { pdfHash },
     });
   }
@@ -83,7 +101,7 @@ export class ProcessedEmailRepository
   async findWithSchedule(
     id: string
   ): Promise<ProcessedEmailWithSchedule | null> {
-    return await this.model.findUnique({
+    return await prisma.processedEmail.findUnique({
       where: { id },
       include: {
         user: true,
@@ -105,7 +123,7 @@ export class ProcessedEmailRepository
     userId: string,
     limit: number = 20
   ): Promise<ProcessedEmailWithSchedule[]> {
-    return await this.model.findMany({
+    return await prisma.processedEmail.findMany({
       where: { userId },
       include: {
         user: true,
@@ -126,7 +144,7 @@ export class ProcessedEmailRepository
    * Find emails that are pending processing
    */
   async findPendingEmails(userId: string): Promise<ProcessedEmail[]> {
-    return await this.model.findMany({
+    return await prisma.processedEmail.findMany({
       where: {
         userId,
         processed: false,
@@ -140,7 +158,7 @@ export class ProcessedEmailRepository
    * Find emails that failed processing
    */
   async findFailedEmails(userId: string): Promise<ProcessedEmail[]> {
-    return await this.model.findMany({
+    return await prisma.processedEmail.findMany({
       where: {
         userId,
         processed: false,
@@ -160,7 +178,7 @@ export class ProcessedEmailRepository
       whereConditions.push({ pdfHash });
     }
 
-    const existingEmail = await this.model.findFirst({
+    const existingEmail = await prisma.processedEmail.findFirst({
       where: {
         OR: whereConditions,
       },
@@ -176,7 +194,7 @@ export class ProcessedEmailRepository
     id: string,
     scheduleId?: string
   ): Promise<ProcessedEmail> {
-    return await this.model.update({
+    return await prisma.processedEmail.update({
       where: { id },
       data: {
         processed: true,
@@ -190,7 +208,7 @@ export class ProcessedEmailRepository
    * Mark email as failed with error message
    */
   async markAsFailed(id: string, error: string): Promise<ProcessedEmail> {
-    return await this.model.update({
+    return await prisma.processedEmail.update({
       where: { id },
       data: {
         processed: false,
@@ -218,10 +236,10 @@ export class ProcessedEmailRepository
     failed: number;
   }> {
     const [total, processed, pending, failed] = await Promise.all([
-      this.model.count({ where: { userId } }),
-      this.model.count({ where: { userId, processed: true } }),
-      this.model.count({ where: { userId, processingStatus: "pending" } }),
-      this.model.count({ where: { userId, processingStatus: "failed" } }),
+      prisma.processedEmail.count({ where: { userId } }),
+      prisma.processedEmail.count({ where: { userId, processed: true } }),
+      prisma.processedEmail.count({ where: { userId, processingStatus: "pending" } }),
+      prisma.processedEmail.count({ where: { userId, processingStatus: "failed" } }),
     ]);
 
     return { total, processed, pending, failed };
@@ -264,7 +282,7 @@ export class ProcessedEmailRepository
    * Retry failed email processing
    */
   async retryProcessing(id: string): Promise<ProcessedEmail> {
-    return await this.model.update({
+    return await prisma.processedEmail.update({
       where: { id },
       data: {
         processingStatus: "pending",
@@ -280,7 +298,7 @@ export class ProcessedEmailRepository
   async findManyWithSchedule(
     options: FindManyOptions
   ): Promise<ProcessedEmailWithSchedule[]> {
-    return await this.model.findMany({
+    return await prisma.processedEmail.findMany({
       ...options,
       include: {
         user: true,
@@ -302,7 +320,7 @@ export class ProcessedEmailRepository
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-    return await this.model.deleteMany({
+    return await prisma.processedEmail.deleteMany({
       where: {
         createdAt: {
           lt: cutoffDate,
