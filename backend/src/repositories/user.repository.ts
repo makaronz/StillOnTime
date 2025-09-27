@@ -98,6 +98,14 @@ export class UserRepository
         calendarEvents: {
           orderBy: { createdAt: "desc" },
         },
+        notifications: {
+          orderBy: { createdAt: "desc" },
+          take: 20, // Limit to recent notifications
+        },
+        summaries: {
+          orderBy: { createdAt: "desc" },
+          take: 10, // Limit to recent summaries
+        },
         userConfig: true,
       },
     });

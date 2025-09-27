@@ -9,6 +9,7 @@ import {
   WeatherData,
   CreateCalendarEventInput,
   UpdateCalendarEventInput,
+  CalendarConflict,
 } from "@/types";
 
 export interface CalendarEventData {
@@ -29,12 +30,6 @@ export interface CalendarAlarm {
 export interface CalendarReminder {
   method: "popup" | "email";
   minutes: number;
-}
-
-export interface CalendarConflict {
-  conflictingEvent: CalendarEvent;
-  overlapType: "partial" | "complete" | "encompasses";
-  overlapDuration: number; // in minutes
 }
 
 export interface BatchCalendarOperation {
@@ -371,6 +366,25 @@ export class CalendarService {
           conflictingEvent: event,
           overlapType,
           overlapDuration,
+          type: "time_overlap",
+          conflictingData: {
+            originalStartTime: startTime,
+            originalEndTime: endTime,
+            conflictStartTime: event.startTime,
+            conflictEndTime: event.endTime,
+          },
+          severity:
+            overlapDuration > 60
+              ? "high"
+              : overlapDuration > 30
+              ? "medium"
+              : "low",
+          suggestedResolution:
+            overlapType === "encompasses"
+              ? "Consider rescheduling the new event to avoid complete overlap"
+              : overlapType === "complete"
+              ? "The conflicting event is completely within the new event timeframe"
+              : "Partial overlap detected - consider adjusting start or end times",
         };
       });
     } catch (error) {

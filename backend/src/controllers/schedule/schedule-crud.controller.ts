@@ -1,5 +1,4 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
+import { Request, Response } from "express";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
@@ -14,7 +13,7 @@ export class ScheduleCrudController extends BaseScheduleController {
    * PUT /api/schedule/:scheduleId
    */
   async updateSchedule(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -91,7 +90,7 @@ export class ScheduleCrudController extends BaseScheduleController {
    * DELETE /api/schedule/:scheduleId
    */
   async deleteSchedule(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {

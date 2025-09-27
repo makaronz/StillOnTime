@@ -1,13 +1,15 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
+import { Request, Response } from "express";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
 import { logger } from "@/utils/logger";
 import { services } from "@/services";
+import { Controller, Post, Middleware, Get } from "@/utils/inject";
+import { requireValidOAuth } from "@/middleware/auth.middleware";
 
 /**
  * Email Controller
  * Handles email processing and monitoring endpoints
  */
+@Controller("/email")
 export class EmailController {
   private processedEmailRepository: ProcessedEmailRepository;
 
@@ -19,8 +21,10 @@ export class EmailController {
    * Trigger manual email processing
    * POST /api/email/process
    */
+  @Post("/process")
+  @Middleware(requireValidOAuth)
   async triggerProcessing(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -72,8 +76,10 @@ export class EmailController {
    * Get email processing status and history
    * GET /api/email/status
    */
+  @Get("/status")
+  @Middleware(requireValidOAuth)
   async getProcessingStatus(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -154,8 +160,10 @@ export class EmailController {
    * Get detailed email processing history
    * GET /api/email/history
    */
+  @Get("/history")
+  @Middleware(requireValidOAuth)
   async getProcessingHistory(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -275,12 +283,14 @@ export class EmailController {
    * Retry failed email processing
    * POST /api/email/:emailId/retry
    */
+  @Post("/retry")
+  @Middleware(requireValidOAuth)
   async retryProcessing(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
-      const { emailId } = req.params;
+      const { emailId } = req.body;
 
       // Get email to verify ownership
       const email = await this.processedEmailRepository.findById(emailId);
@@ -355,7 +365,9 @@ export class EmailController {
    * Get processing statistics
    * GET /api/email/statistics
    */
-  async getStatistics(req: AuthenticatedRequest, res: Response): Promise<void> {
+  @Get("/statistics")
+  @Middleware(requireValidOAuth)
+  async getStatistics(req: Request, res: Response): Promise<void> {
     try {
       const { period = "30d" } = req.query;
 
@@ -465,8 +477,10 @@ export class EmailController {
    * Enable/disable periodic email monitoring
    * POST /api/email/monitoring
    */
+  @Post("/monitoring")
+  @Middleware(requireValidOAuth)
   async toggleMonitoring(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -540,8 +554,10 @@ export class EmailController {
    * Get email details by ID
    * GET /api/email/:emailId
    */
+  @Get("/details/:emailId")
+  @Middleware(requireValidOAuth)
   async getEmailDetails(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {

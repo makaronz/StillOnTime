@@ -11,6 +11,12 @@ import {
   Summary as PrismaSummary,
   Prisma,
 } from "@prisma/client";
+import {
+  CalendarConflict,
+  AlertRule,
+  Alert,
+  TimeRecommendation,
+} from "./domain";
 
 // Re-export Prisma types for consistency
 export type User = PrismaUser;
@@ -289,12 +295,16 @@ export interface CalendarOverride {
   timestamp: Date;
   reason: string;
   appliedBy: string;
+  appliedAt: Date;
 }
 
 // Calendar update data
 export interface CalendarUpdateData {
   summary?: string;
+  title?: string;
   description?: string;
+  startTime?: Date;
+  endTime?: Date;
   start?: {
     dateTime: string;
     timeZone: string;
@@ -314,26 +324,10 @@ export interface CalendarUpdateData {
 }
 
 // Conflict resolution types
-export interface CalendarConflict {
-  type: "time_overlap" | "duplicate_event" | "invalid_time";
-  existingEvent?: CalendarEvent;
-  conflictingData: ScheduleData;
-  severity: "low" | "medium" | "high";
-  suggestedResolution: string;
-}
+export type { CalendarConflict };
 
-// Error handling types
-export interface ErrorContext {
-  operation: string;
-  userId?: string;
-  scheduleId?: string;
-  messageId?: string;
-  additionalData?: Record<string, unknown>;
-}
-
-export interface FallbackData {
-  [key: string]: unknown;
-}
+// Error handling types - ErrorContext and FallbackData are now exported from utils/errors.ts
+export type { ErrorContext, FallbackData } from "../utils/errors";
 
 // Weather monitoring types
 export interface WeatherChange {
@@ -344,6 +338,8 @@ export interface WeatherChange {
   timestamp: Date;
   changeAmount?: number;
   changePercentage?: number;
+  description: string;
+  significance: "low" | "medium" | "high";
 }
 
 // Time calculation types
@@ -353,24 +349,44 @@ export interface TimeCalculationOptions {
   customBuffers?: Partial<TimeBuffers>;
   minimumWakeUpTime?: Date;
   maximumWakeUpTime?: Date;
+  weatherConditions?: string[];
+  location?: string;
+  sceneType?: "INT" | "EXT";
 }
 
-export interface TimeRecommendation {
-  type: "buffer_adjustment" | "route_alternative" | "schedule_change";
-  description: string;
-  impact: "positive" | "negative" | "neutral";
-  timeSaving?: number;
-  confidence: number;
-}
+export type { TimeRecommendation };
 
 // Monitoring and metrics types
 export interface MetricsData {
   timestamp: Date;
+  requestCount: number;
+  averageResponseTime: number;
   errorRate: number;
   responseTime: number;
   throughput: number;
+  memoryUsage: NodeJS.MemoryUsage;
+  cpuUsage: NodeJS.CpuUsage;
+  activeConnections: number;
+  queueSize: number;
+  services: Array<{
+    serviceName: string;
+    status: "healthy" | "degraded" | "unhealthy";
+    responseTime: number;
+    errorCount: number;
+    successCount: number;
+    availability: number;
+    lastCheck: Date;
+    circuitBreakerState?: string;
+  }>;
   circuitBreakers: Record<string, CircuitBreakerState>;
-  [key: string]: unknown;
+  errorMetrics: Record<
+    string,
+    {
+      errorCount: number;
+      lastError?: Date;
+      errorRate: number;
+    }
+  >;
 }
 
 export interface CircuitBreakerState {
@@ -380,24 +396,7 @@ export interface CircuitBreakerState {
   nextAttemptTime?: Date;
 }
 
-export interface AlertRule {
-  id: string;
-  name: string;
-  condition: string;
-  threshold: number;
-  severity: "low" | "medium" | "high" | "critical";
-  enabled: boolean;
-}
-
-export interface Alert {
-  id: string;
-  ruleId: string;
-  severity: "low" | "medium" | "high" | "critical";
-  message: string;
-  timestamp: Date;
-  resolved: boolean;
-  resolvedAt?: Date;
-}
+export type { AlertRule, Alert };
 
 // SMS service types
 export interface SMSDeliveryStatus {
@@ -433,3 +432,71 @@ export type NestedValue<T, K extends string> = K extends keyof T
     ? NestedValue<T[K1], K2>
     : never
   : never;
+
+// JSON type safety utilities
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+export interface JsonArray extends Array<JsonValue> {}
+
+/**
+ * Type guard to validate ContactInfo object
+ */
+export function isContactInfo(data: unknown): data is ContactInfo {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    typeof (data as any).name === "string" &&
+    ((data as any).role === undefined ||
+      typeof (data as any).role === "string") &&
+    ((data as any).phone === undefined ||
+      typeof (data as any).phone === "string") &&
+    ((data as any).email === undefined ||
+      typeof (data as any).email === "string")
+  );
+}
+
+/**
+ * Type guard to validate ContactInfo array
+ */
+export function isContactInfoArray(data: unknown): data is ContactInfo[] {
+  return Array.isArray(data) && data.every(isContactInfo);
+}
+
+/**
+ * Safely parse JSON with type validation
+ */
+export function safeJsonParse<T>(
+  json: string,
+  validator: (data: unknown) => data is T
+): T | null {
+  try {
+    const parsed = JSON.parse(json);
+    return validator(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Safely extract ContactInfo array from unknown data
+ */
+export function safeGetContactInfoArray(data: unknown): ContactInfo[] {
+  if (isContactInfoArray(data)) {
+    return data;
+  }
+
+  // Try to extract valid contacts from malformed data
+  if (Array.isArray(data)) {
+    return data.filter(isContactInfo).map((item) => ({
+      name: item.name,
+      role: item.role,
+      phone: item.phone,
+      email: item.email,
+    }));
+  }
+
+  return [];
+}

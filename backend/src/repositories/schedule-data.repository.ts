@@ -86,6 +86,7 @@ export class ScheduleDataRepository
         routePlan: true,
         weatherData: true,
         calendarEvent: true,
+        summary: true,
       },
     });
   }
@@ -119,6 +120,7 @@ export class ScheduleDataRepository
         routePlan: true,
         weatherData: true,
         calendarEvent: true,
+        summary: true,
       },
       orderBy: { shootingDate: "asc" },
       take: limit,
@@ -145,6 +147,7 @@ export class ScheduleDataRepository
         routePlan: true,
         weatherData: true,
         calendarEvent: true,
+        summary: true,
       },
       orderBy: { shootingDate: "desc" },
       take: limit,
@@ -173,6 +176,7 @@ export class ScheduleDataRepository
         routePlan: true,
         weatherData: true,
         calendarEvent: true,
+        summary: true,
       },
       orderBy: { shootingDate: "asc" },
     });
@@ -199,6 +203,7 @@ export class ScheduleDataRepository
         routePlan: true,
         weatherData: true,
         calendarEvent: true,
+        summary: true,
       },
       orderBy: { shootingDate: "desc" },
     });
@@ -305,6 +310,7 @@ export class ScheduleDataRepository
         routePlan: true,
         weatherData: true,
         calendarEvent: true,
+        summary: true,
       },
     });
 
@@ -412,6 +418,7 @@ export class ScheduleDataRepository
         routePlan: true,
         weatherData: true,
         calendarEvent: true,
+        summary: true,
       },
       orderBy: { shootingDate: "asc" },
     });

@@ -1,5 +1,8 @@
 import { WhereCondition, OrderByCondition, FindManyOptions } from "../types";
 
+// Re-export types for use by other repositories
+export { FindManyOptions, WhereCondition, OrderByCondition };
+
 /**
  * Base Repository Interface
  * Defines common CRUD operations for all repositories

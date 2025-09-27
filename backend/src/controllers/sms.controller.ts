@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
-import { AuthenticatedRequest } from "../middleware/auth.middleware";
 import { NotificationService } from "../services/notification.service";
 import { UserRepository } from "../repositories/user.repository";
-import { logger } from "../utils/logger";
+import { logger } from "@/utils/logger";
+import { Controller, Post, Middleware, Get } from "@/utils/inject";
+import { requireValidOAuth } from "@/middleware/auth.middleware";
 
+@Controller("/sms")
 export class SMSController {
   constructor(
     private notificationService: NotificationService,
@@ -26,8 +28,10 @@ export class SMSController {
   /**
    * Configure SMS settings for user
    */
+  @Post("/configure")
+  @Middleware(requireValidOAuth)
   configureSMS = async (
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> => {
     try {
@@ -153,8 +157,10 @@ export class SMSController {
   /**
    * Verify SMS code
    */
+  @Post("/verify")
+  @Middleware(requireValidOAuth)
   verifySMS = async (
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> => {
     try {
@@ -252,8 +258,10 @@ export class SMSController {
   /**
    * Resend verification code
    */
+  @Post("/resend")
+  @Middleware(requireValidOAuth)
   resendVerificationCode = async (
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> => {
     try {
@@ -306,8 +314,10 @@ export class SMSController {
   /**
    * Get SMS configuration status
    */
+  @Get("/status")
+  @Middleware(requireValidOAuth)
   getSMSStatus = async (
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> => {
     try {
@@ -355,9 +365,15 @@ export class SMSController {
   /**
    * Test SMS delivery
    */
-  testSMS = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  @Post("/test")
+  @Middleware(requireValidOAuth)
+  testSMS = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user.userId;
+
+      if (!req.user) {
+        throw new Error("User not found");
+      }
 
       const validation =
         await this.notificationService.validateSMSConfiguration(userId);

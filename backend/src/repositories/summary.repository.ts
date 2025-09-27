@@ -14,6 +14,28 @@ export class SummaryRepository extends AbstractBaseRepository<
   UpdateSummaryInput
 > {
   protected model = prisma.summary;
+
+  // Override createMany to handle Prisma's CreateManyInput type
+  async createMany(data: CreateSummaryInput[]): Promise<{ count: number }> {
+    // Convert CreateSummaryInput to CreateManyInput by extracting only the direct fields
+    const createManyData = data.map((item) => {
+      // Extract only the fields that belong to SummaryCreateManyInput
+      const { user, schedule, ...directFields } = item as any;
+      return {
+        userId: directFields.userId || user?.connect?.id || "",
+        scheduleId: directFields.scheduleId || schedule?.connect?.id || "",
+        language: directFields.language || "en",
+        content: directFields.content || "",
+        htmlContent: directFields.htmlContent || "",
+        timeline: directFields.timeline || {},
+        weatherSummary: directFields.weatherSummary,
+        warnings: directFields.warnings,
+      };
+    });
+
+    return await this.model.createMany({ data: createManyData });
+  }
+
   // Inherits create from AbstractBaseRepository
 
   // Inherits findById from AbstractBaseRepository
@@ -84,9 +106,12 @@ export class SummaryRepository extends AbstractBaseRepository<
       include: {
         schedule: {
           include: {
+            user: true,
+            email: true,
             routePlan: true,
             weatherData: true,
             calendarEvent: true,
+            summary: true,
           },
         },
       },

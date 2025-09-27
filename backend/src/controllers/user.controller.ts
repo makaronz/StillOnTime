@@ -1,5 +1,4 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
+import { Request, Response } from "express";
 import { UserRepository } from "@/repositories/user.repository";
 import { UserConfigRepository } from "@/repositories/user-config.repository";
 import { logger } from "@/utils/logger";
@@ -21,9 +20,15 @@ export class UserController {
   /**
    * Get user profile with statistics
    * GET /api/user/profile
+   * @param req Express Request object
+   * @param res Express Response object
    */
-  async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getProfile(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
       const user = await this.userRepository.findWithRelations(req.user.userId);
 
       if (!user) {
@@ -75,7 +80,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to get user profile", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -91,9 +96,16 @@ export class UserController {
   /**
    * Update user profile information
    * PUT /api/user/profile
+   * @param req Express Request object
+   * @param res Express Response object
    */
-  async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateProfile(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { name } = req.body;
 
       if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -129,7 +141,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to update user profile", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -145,12 +157,19 @@ export class UserController {
   /**
    * Get user configuration
    * GET /api/user/config
+   * @param req Express Request object
+   * @param res Express Response object
    */
   async getConfiguration(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const config = await this.userConfigRepository.getConfigWithDefaults(
         req.user.userId
       );
@@ -162,7 +181,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to get user configuration", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -178,12 +197,19 @@ export class UserController {
   /**
    * Update user configuration
    * PUT /api/user/config
+   * @param req Express Request object
+   * @param res Express Response object
    */
   async updateConfiguration(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const configData = req.body;
 
       // Validate configuration
@@ -201,10 +227,7 @@ export class UserController {
       }
 
       const updatedConfig =
-        await this.userConfigRepository.createOrUpdateForUser(
-          req.user.userId,
-          configData
-        );
+        await this.userConfigRepository.upsert(req.user.userId, configData);
 
       logger.info("User configuration updated", {
         userId: req.user.userId,
@@ -220,7 +243,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to update user configuration", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -236,12 +259,19 @@ export class UserController {
   /**
    * Update user addresses
    * PUT /api/user/config/addresses
+   * @param req Express Request object
+   * @param res Express Response object
    */
   async updateAddresses(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { homeAddress, panavisionAddress } = req.body;
 
       const addresses: any = {};
@@ -310,7 +340,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to update user addresses", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -326,10 +356,18 @@ export class UserController {
   /**
    * Update time buffers
    * PUT /api/user/config/buffers
+   * @param req Express Request object
+   * @param res Express Response object
    */
-  async updateBuffers(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateBuffers(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const {
+        preparationTime,
         bufferCarChange,
         bufferParking,
         bufferEntry,
@@ -376,7 +414,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to update user buffers", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -392,12 +430,19 @@ export class UserController {
   /**
    * Update notification preferences
    * PUT /api/user/config/notifications
+   * @param req Express Request object
+   * @param res Express Response object
    */
   async updateNotificationPreferences(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { notificationEmail, notificationSMS, notificationPush } = req.body;
 
       const preferences: any = {};
@@ -439,7 +484,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to update notification preferences", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -455,19 +500,26 @@ export class UserController {
   /**
    * Reset configuration to defaults
    * POST /api/user/config/reset
+   * @param req Express Request object
+   * @param res Express Response object
    */
   async resetConfiguration(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const defaultConfig = await this.userConfigRepository.resetToDefaults(
         req.user.userId
       );
 
       logger.info("User configuration reset to defaults", {
         userId: req.user.userId,
-        email: req.user.email,
+        email:	req.user.email,
       });
 
       res.json({
@@ -478,7 +530,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to reset user configuration", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({
@@ -494,9 +546,16 @@ export class UserController {
   /**
    * Delete user account and all associated data
    * DELETE /api/user/account
+   * @param req Express Request object
+   * @param res Express Response object
    */
-  async deleteAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async deleteAccount(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { confirmEmail } = req.body;
 
       if (confirmEmail !== req.user.email) {
@@ -535,7 +594,7 @@ export class UserController {
     } catch (error) {
       logger.error("Failed to delete user account", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user ? req.user.userId : undefined,
       });
 
       res.status(500).json({

@@ -42,6 +42,36 @@ export class UserConfigRepository
 {
   protected model = prisma.userConfig;
 
+  // Override createMany to handle Prisma's CreateManyInput type
+  async createMany(data: CreateUserConfigInput[]): Promise<{ count: number }> {
+    // Convert CreateUserConfigInput to CreateManyInput by extracting only the direct fields
+    const createManyData = data.map((item) => {
+      // Extract only the fields that belong to UserConfigCreateManyInput
+      const { user, ...directFields } = item as any;
+      return {
+        userId: directFields.userId || user?.connect?.id || "",
+        homeAddress: directFields.homeAddress || "",
+        panavisionAddress: directFields.panavisionAddress || "",
+        bufferCarChange: directFields.bufferCarChange || 15,
+        bufferParking: directFields.bufferParking || 10,
+        bufferEntry: directFields.bufferEntry || 10,
+        bufferTraffic: directFields.bufferTraffic || 20,
+        bufferMorningRoutine: directFields.bufferMorningRoutine || 45,
+        notificationEmail: directFields.notificationEmail ?? true,
+        notificationSMS: directFields.notificationSMS ?? false,
+        notificationPush: directFields.notificationPush ?? true,
+        smsNumber: directFields.smsNumber,
+        smsVerified: directFields.smsVerified ?? false,
+        smsVerificationCode: directFields.smsVerificationCode,
+        smsVerificationExpiry: directFields.smsVerificationExpiry,
+        pushToken: directFields.pushToken,
+        pushTokenVerified: directFields.pushTokenVerified ?? false,
+      };
+    });
+
+    return await this.model.createMany({ data: createManyData });
+  }
+
   /**
    * Find user configuration by user ID
    */

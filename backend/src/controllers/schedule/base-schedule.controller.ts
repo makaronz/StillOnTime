@@ -1,5 +1,4 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
+import { Request, Response } from "express";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { logger } from "@/utils/logger";
 
@@ -18,7 +17,7 @@ export class BaseScheduleController {
    * Get all schedules for user with filtering and pagination
    * GET /api/schedule
    */
-  async getSchedules(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getSchedules(req: Request, res: Response): Promise<void> {
     try {
       const {
         page = 1,
@@ -141,7 +140,7 @@ export class BaseScheduleController {
    * GET /api/schedule/:scheduleId
    */
   async getScheduleById(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {

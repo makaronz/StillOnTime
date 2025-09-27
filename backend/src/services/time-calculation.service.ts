@@ -25,17 +25,6 @@ export interface BufferBreakdown {
   total: number;
 }
 
-export interface TimeRecommendation {
-  type: "buffer_adjustment" | "departure_time" | "preparation";
-  priority: "low" | "medium" | "high";
-  message: string;
-  suggestedChange?: {
-    field: keyof TimeBuffers;
-    currentValue: number;
-    suggestedValue: number;
-  };
-}
-
 export interface TimeValidationResult {
   isValid: boolean;
   issues: TimeIssue[];
@@ -331,12 +320,19 @@ export class TimeCalculationService {
         priority: "high",
         message:
           "Przygotuj wszystko wieczorem przed - ubrania, sprzęt, dokumenty",
+        description:
+          "Bardzo wczesny czas pobudki wymaga przygotowania poprzedniego wieczoru",
+        impact: "Zmniejszy stres i czas potrzebny rano",
+        confidence: 95,
       });
 
       recommendations.push({
         type: "departure_time",
         priority: "medium",
         message: "Rozważ wyjazd wieczorem i nocleg w pobliżu lokacji",
+        description: "Nocleg w pobliżu lokacji może być bardziej praktyczny",
+        impact: "Znacznie zmniejszy czas podróży i stres rano",
+        confidence: 85,
       });
     }
 
@@ -346,6 +342,10 @@ export class TimeCalculationService {
         type: "buffer_adjustment",
         priority: "medium",
         message: "Zwiększ bufor na korki dla bezpieczeństwa",
+        description:
+          "Obecny bufor ruchu może być niewystarczający dla długiej trasy",
+        impact: "Zmniejszy ryzyko spóźnienia z powodu korków",
+        confidence: 80,
         suggestedChange: {
           field: "traffic",
           currentValue: bufferBreakdown.traffic,
@@ -360,6 +360,9 @@ export class TimeCalculationService {
         type: "buffer_adjustment",
         priority: "low",
         message: "Rozważ zwiększenie czasu na poranną rutynę",
+        description: "Dodatkowy czas na poranną rutynę może zmniejszyć stres",
+        impact: "Pozwoli na spokojniejsze przygotowanie się rano",
+        confidence: 70,
         suggestedChange: {
           field: "morningRoutine",
           currentValue: bufferBreakdown.morningRoutine,
@@ -374,6 +377,9 @@ export class TimeCalculationService {
         type: "preparation",
         priority: "medium",
         message: "Sprawdź prognozę pogody rano i dostosuj czas wyjazdu",
+        description: "Warunki pogodowe mogą wpłynąć na czas podróży",
+        impact: "Pozwoli na dostosowanie planu do aktualnych warunków",
+        confidence: 75,
       });
     }
 

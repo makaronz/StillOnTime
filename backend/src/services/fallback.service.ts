@@ -743,11 +743,11 @@ export class FallbackService {
       await this.notificationService.sendSystemAlert({
         type: "service_degradation",
         serviceName,
-        degradationLevel,
-        operation,
-        message: `Service ${serviceName} is running in ${degradationLevel} degraded mode`,
+        errorCode: ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        impact: degradationLevel === "full" ? "high" : "medium",
+        affectedOperations: [operation],
+        estimatedRecoveryTime: degradationLevel === "full" ? 1800 : 600, // 30 min or 10 min
         timestamp: new Date(),
-        severity: degradationLevel === "full" ? "high" : "medium",
       });
     } catch (error) {
       structuredLogger.error("Failed to send degradation notification", {

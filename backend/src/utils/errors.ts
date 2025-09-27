@@ -174,3 +174,16 @@ export class SystemError extends BaseError {
     this.retryable = retryable;
   }
 }
+
+// Additional interfaces for error handling
+export interface ErrorContext {
+  operation: string;
+  userId?: string;
+  scheduleId?: string;
+  messageId?: string;
+  additionalData?: Record<string, unknown>;
+}
+
+export interface FallbackData {
+  [key: string]: unknown;
+}

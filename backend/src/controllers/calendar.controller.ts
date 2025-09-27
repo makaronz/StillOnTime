@@ -1,14 +1,16 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
-import { logger } from "@/utils/logger";
+import { Request, Response } from "express";
 import { services } from "@/services";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { UserConfigRepository } from "@/repositories/user-config.repository";
+import { logger } from "@/utils/logger";
+import { Controller, Get, Post, Put, Delete, Middleware } from "@/utils/inject";
+import { requireValidOAuth } from "@/middleware/oauth.middleware";
 
 /**
  * Calendar Controller
  * Handles Google Calendar integration and event management
  */
+@Controller("/calendar")
 export class CalendarController {
   private scheduleDataRepository: ScheduleDataRepository;
   private userConfigRepository: UserConfigRepository;
@@ -17,46 +19,26 @@ export class CalendarController {
     this.scheduleDataRepository = new ScheduleDataRepository();
     this.userConfigRepository = new UserConfigRepository();
   }
+  @Get("/events")
+  @Middleware(requireValidOAuth)
   /**
    * Get calendar events for user
    * GET /api/calendar/events
    */
   async getCalendarEvents(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
-      const { startDate, endDate, maxResults = 50 } = req.query;
-
-      // Get calendar events from Google Calendar
-      const events = await services.calendarManager.getCalendarEvents(
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      const events = await services.calendarManager.getEvents(
         req.user.userId,
-        {
-          timeMin: startDate ? new Date(startDate as string) : undefined,
-          timeMax: endDate ? new Date(endDate as string) : undefined,
-          maxResults: parseInt(maxResults as string),
-        }
+        req.query
       );
-
-      res.json({
-        success: true,
-        events: events.map((event) => ({
-          id: event.id,
-          title: event.summary,
-          description: event.description,
-          location: event.location,
-          startTime: event.start?.dateTime || event.start?.date,
-          endTime: event.end?.dateTime || event.end?.date,
-          attendees: event.attendees?.map((attendee: any) => ({
-            email: attendee.email,
-            displayName: attendee.displayName,
-            responseStatus: attendee.responseStatus,
-          })),
-          reminders: event.reminders,
-          created: event.created,
-          updated: event.updated,
-        })),
-      });
+      res.json({ success: true, events });
     } catch (error) {
       logger.error("Failed to get calendar events", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -73,79 +55,44 @@ export class CalendarController {
     }
   }
 
+  @Post("/events")
+  @Middleware(requireValidOAuth)
   /**
    * Create calendar event for schedule
    * POST /api/calendar/events
    */
   async createCalendarEvent(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
-      const { scheduleId } = req.body;
-
-      if (!scheduleId) {
-        res.status(400).json({
-          error: "Bad Request",
-          message: "Schedule ID is required",
-          code: "MISSING_SCHEDULE_ID",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
         return;
       }
-
-      // Get schedule data
-      const schedule = await this.scheduleDataRepository.findWithRelations(
-        scheduleId
-      );
-
-      if (!schedule) {
-        res.status(404).json({
-          error: "Not Found",
-          message: "Schedule not found",
-          code: "SCHEDULE_NOT_FOUND",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
-        return;
-      }
-
-      if (schedule.userId !== req.user.userId) {
-        res.status(403).json({
-          error: "Forbidden",
-          message: "Access denied to this schedule",
-          code: "ACCESS_DENIED",
-          timestamp: new Date().toISOString(),
-          path: req.path,
-        });
-        return;
-      }
-
-      // Create calendar event
-      const calendarEvent = await services.calendarManager.createCalendarEvent(
-        schedule,
-        schedule.routePlan || undefined,
-        schedule.weatherData || undefined,
+      const { scheduleId, ...eventData } = req.body;
+      const newEvent = await services.calendarManager.createEvent(
+        scheduleId,
+        eventData,
         req.user.userId
       );
 
       logger.info("Calendar event created successfully", {
         userId: req.user.userId,
         scheduleId,
-        eventId: calendarEvent.calendarEventId,
+        eventId: newEvent.calendarEventId,
       });
 
       res.json({
         success: true,
         calendarEvent: {
-          id: calendarEvent.id,
-          calendarEventId: calendarEvent.calendarEventId,
-          title: calendarEvent.title,
-          startTime: calendarEvent.startTime,
-          endTime: calendarEvent.endTime,
-          description: calendarEvent.description,
-          location: calendarEvent.location,
+          id: newEvent.id,
+          calendarEventId: newEvent.calendarEventId,
+          title: newEvent.title,
+          startTime: newEvent.startTime,
+          endTime: newEvent.endTime,
+          description: newEvent.description,
+          location: newEvent.location,
         },
         message: "Calendar event created successfully",
       });
@@ -165,23 +112,28 @@ export class CalendarController {
     }
   }
 
+  @Put("/events/:eventId")
+  @Middleware(requireValidOAuth)
   /**
    * Update calendar event
    * PUT /api/calendar/events/:eventId
    */
   async updateCalendarEvent(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
       const { eventId } = req.params;
-      const updateData = req.body;
+      const updatedEventData = req.body;
 
       // Update calendar event in Google Calendar
-      const updatedEvent = await services.calendarManager.updateCalendarEvent(
+      const updatedEvent = await services.calendarManager.updateEvent(
         eventId,
-        updateData,
-        req.user.userId
+        updatedEventData
       );
 
       logger.info("Calendar event updated successfully", {
@@ -193,12 +145,12 @@ export class CalendarController {
         success: true,
         event: {
           id: updatedEvent.id,
-          title: updatedEvent.summary,
+          title: updatedEvent.title,
           description: updatedEvent.description,
           location: updatedEvent.location,
-          startTime: updatedEvent.start?.dateTime || updatedEvent.start?.date,
-          endTime: updatedEvent.end?.dateTime || updatedEvent.end?.date,
-          updated: updatedEvent.updated,
+          startTime: updatedEvent.startTime,
+          endTime: updatedEvent.endTime,
+          updated: new Date().toISOString(),
         },
         message: "Calendar event updated successfully",
       });
@@ -219,22 +171,25 @@ export class CalendarController {
     }
   }
 
+  @Delete("/events/:eventId")
+  @Middleware(requireValidOAuth)
   /**
    * Delete calendar event
    * DELETE /api/calendar/events/:eventId
    */
   async deleteCalendarEvent(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
       const { eventId } = req.params;
 
       // Delete calendar event from Google Calendar
-      await services.calendarManager.deleteCalendarEvent(
-        eventId,
-        req.user.userId
-      );
+      await services.calendarManager.deleteEvent(eventId, req.user.userId);
 
       logger.info("Calendar event deleted successfully", {
         userId: req.user.userId,
@@ -262,12 +217,18 @@ export class CalendarController {
     }
   }
 
+  @Get("/sync/status")
+  @Middleware(requireValidOAuth)
   /**
    * Get calendar sync status
    * GET /api/calendar/sync/status
    */
-  async getSyncStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getSyncStatus(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
       // Get OAuth status to check calendar access
       const oauthStatus = await services.oauth2.getOAuthStatus(req.user.userId);
 
@@ -316,15 +277,21 @@ export class CalendarController {
     }
   }
 
+  @Post("/sync")
+  @Middleware(requireValidOAuth)
   /**
    * Sync calendar events for schedules
    * POST /api/calendar/sync
    */
   async syncCalendarEvents(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
       const { scheduleIds } = req.body;
 
       if (!scheduleIds || !Array.isArray(scheduleIds)) {
@@ -432,48 +399,25 @@ export class CalendarController {
     }
   }
 
+  @Get("/settings")
+  @Middleware(requireValidOAuth)
   /**
    * Get calendar settings
    * GET /api/calendar/settings
    */
   async getCalendarSettings(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
-      // Get user's calendar settings from user config
-      const userConfig = await this.userConfigRepository.getConfigWithDefaults(
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      const settings = await services.calendarManager.getCalendarSettings(
         req.user.userId
       );
-
-      // Get available calendars from Google Calendar
-      const calendars = await services.calendarManager.getCalendarList(
-        req.user.userId
-      );
-
-      res.json({
-        success: true,
-        settings: {
-          defaultCalendarId: "primary", // Default to primary calendar
-          reminderSettings: {
-            wakeUpReminders: [-10, 0, 5], // minutes before wake up time
-            departureReminders: [-60, -15, 0], // minutes before departure
-            eventReminders: [-720, -180, -60, 0], // 12h, 3h, 1h, at time
-          },
-          eventDefaults: {
-            duration: 10 * 60, // 10 hours in minutes
-            visibility: "private",
-            guestsCanModify: false,
-          },
-        },
-        availableCalendars: calendars.map((cal) => ({
-          id: cal.id,
-          summary: cal.summary,
-          description: cal.description,
-          primary: cal.primary,
-          accessRole: cal.accessRole,
-        })),
-      });
+      res.json({ success: true, settings });
     } catch (error) {
       logger.error("Failed to get calendar settings", {
         error: error instanceof Error ? error.message : "Unknown error",

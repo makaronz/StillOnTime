@@ -1,5 +1,4 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
+import { Request, Response } from "express";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
 import { services } from "@/services";
@@ -22,7 +21,7 @@ export class ScheduleWeatherController extends BaseScheduleController {
    * GET /api/schedule/:scheduleId/weather
    */
   async getWeatherData(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -80,7 +79,7 @@ export class ScheduleWeatherController extends BaseScheduleController {
    * POST /api/schedule/:scheduleId/weather/update
    */
   async updateWeatherData(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -136,7 +135,7 @@ export class ScheduleWeatherController extends BaseScheduleController {
    * GET /api/schedule/weather/warnings
    */
   async getWeatherWarnings(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -186,7 +185,7 @@ export class ScheduleWeatherController extends BaseScheduleController {
    * GET /api/schedule/weather/forecast
    */
   async getWeatherForecast(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {

@@ -1,5 +1,4 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
+import { Request, Response } from "express";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { RoutePlanRepository } from "@/repositories/route-plan.repository";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
@@ -23,7 +22,7 @@ export class ScheduleStatisticsController extends BaseScheduleController {
    * Get schedule statistics
    * GET /api/schedule/statistics
    */
-  async getStatistics(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getStatistics(req: Request, res: Response): Promise<void> {
     try {
       const scheduleStats = await this.scheduleDataRepository.getScheduleStats(
         req.user.userId

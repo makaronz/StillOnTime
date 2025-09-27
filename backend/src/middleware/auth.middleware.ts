@@ -2,25 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
 
-// Extend Express Request interface to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        userId: string;
-        email: string;
-      };
-    }
-  }
-}
-
-export interface AuthenticatedRequest extends Request {
-  user: {
-    userId: string;
-    email: string;
-  };
-}
-
 /**
  * Authentication middleware that verifies JWT tokens
  * and attaches user information to the request
@@ -49,7 +30,7 @@ export const authenticateToken = async (
     const decoded = services.oauth2.verifyJWT(token);
 
     // Attach user info to request
-    req.user = {
+    req["user"] = {
       userId: decoded.userId,
       email: decoded.email,
     };
@@ -123,7 +104,7 @@ export const optionalAuth = async (
  * This checks the database for valid Google OAuth tokens
  */
 export const requireValidOAuth = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -140,7 +121,9 @@ export const requireValidOAuth = async (
     }
 
     // Check OAuth status
-    const oauthStatus = await services.oauth2.getOAuthStatus(req.user.userId);
+    const oauthStatus = await services.oauth2.getOAuthStatus(
+      (req as any).user.userId
+    );
 
     if (!oauthStatus.isAuthenticated) {
       res.status(403).json({
@@ -170,7 +153,7 @@ export const requireValidOAuth = async (
   } catch (error) {
     logger.error("OAuth validation failed", {
       error: error instanceof Error ? error.message : "Unknown error",
-      userId: req.user?.userId,
+      userId: (req as any).user?.userId,
       path: req.path,
     });
 
@@ -384,3 +367,8 @@ export const authErrorHandler = (
     path: req.path,
   });
 };
+
+/**
+ * Alias for authenticateToken to match expected import name
+ */
+export const authMiddleware = authenticateToken;

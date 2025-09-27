@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
 
 /**
  * Authentication Controller
  * Handles OAuth 2.0 authentication flow with Google
  */
+@Controller("/auth")
 export class AuthController {
   /**
    * Initiate OAuth 2.0 authentication flow
@@ -202,9 +202,17 @@ export class AuthController {
    * Logout user and revoke tokens
    * POST /auth/logout
    */
+  @Post("/logout")
   async logout(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      // In a real-world scenario, you would invalidate the token and HttpOnly cookie
+      const userId = (req.user as any)?.userId;
+
+      if (!userId) {
         res.status(401).json({
           error: "Unauthorized",
           message: "Authentication required",
@@ -215,12 +223,11 @@ export class AuthController {
         return;
       }
 
-      // Revoke OAuth tokens
-      await services.oauth2.revokeTokens(req.user.userId);
+      await services.oauth2.revokeTokens(userId);
 
       logger.info("User logged out successfully", {
-        userId: req.user.userId,
-        email: req.user.email,
+        userId,
+        // email: req.user.email,
       });
 
       res.json({
@@ -228,9 +235,10 @@ export class AuthController {
         message: "Logged out successfully",
       });
     } catch (error) {
+      const userId = (req.user as any)?.userId;
       logger.error("Logout failed", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user?.userId,
+        userId,
       });
 
       res.status(500).json({
@@ -263,13 +271,17 @@ export class AuthController {
       }
 
       // Get OAuth status
-      const oauthStatus = await services.oauth2.getOAuthStatus(req.user.userId);
+      const oauthStatus = await services.oauth2.getOAuthStatus(
+        (req.user as any).userId
+      );
 
       // Get user details
       const userRepository = new (
         await import("@/repositories/user.repository")
       ).UserRepository();
-      const user = await userRepository.findById(req.user.userId);
+      const user = await userRepository.findById(
+        (req.user as any).userId
+      );
 
       res.json({
         isAuthenticated: true,
@@ -284,9 +296,10 @@ export class AuthController {
         oauth: oauthStatus,
       });
     } catch (error) {
+      const userId = (req.user as any)?.userId;
       logger.error("Failed to get auth status", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user?.userId,
+        userId,
       });
 
       res.status(500).json({
@@ -320,8 +333,8 @@ export class AuthController {
       const authUrl = await services.oauth2.getAuthUrl();
 
       logger.info("OAuth re-authentication initiated", {
-        userId: req.user.userId,
-        email: req.user.email,
+        userId: (req.user as any).userId,
+        // email: req.user.email,
       });
 
       res.json({
@@ -330,9 +343,10 @@ export class AuthController {
         message: "Re-authentication URL generated",
       });
     } catch (error) {
+      const userId = (req.user as any)?.userId;
       logger.error("Re-authentication failed", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user?.userId,
+        userId,
       });
 
       res.status(500).json({
@@ -365,7 +379,9 @@ export class AuthController {
       const userRepository = new (
         await import("@/repositories/user.repository")
       ).UserRepository();
-      const user = await userRepository.findWithRelations(req.user.userId);
+      const user = await userRepository.findWithRelations(
+        (req.user as any).userId
+      );
 
       if (!user) {
         res.status(404).json({
@@ -379,7 +395,9 @@ export class AuthController {
       }
 
       // Get user statistics
-      const stats = await userRepository.getUserStats(req.user.userId);
+      const stats = await userRepository.getUserStats(
+        (req.user as any).userId
+      );
 
       res.json({
         success: true,
@@ -398,9 +416,10 @@ export class AuthController {
         configuration: user.userConfig,
       });
     } catch (error) {
+      const userId = (req.user as any)?.userId;
       logger.error("Failed to get user profile", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user?.userId,
+        userId,
       });
 
       res.status(500).json({

@@ -533,7 +533,11 @@
   - Test: Verify metrics collection includes all required properties
   - _Files: src/types/index.ts, src/services/monitoring.service.ts_
 
+<<<<<<< Updated upstream
 - [-] 19.7 **PHASE 7: JSON Type Safety** - Fix JSON Casting and Validation (1h)
+=======
+- [x] 19.7 **PHASE 7: JSON Type Safety** - Fix JSON Casting and Validation (1h)
+>>>>>>> Stashed changes
 - [x] 19.7.1 Fix ContactInfo JSON casting in content generators
 
   - Add type guard function for ContactInfo array validation

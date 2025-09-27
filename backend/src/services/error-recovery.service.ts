@@ -501,7 +501,13 @@ export class ErrorRecoveryService {
    */
   private calculateRetryDelay(
     attempt: number,
-    config: { baseDelay?: number; maxDelay?: number; jitter?: boolean }
+    config: {
+      baseDelay?: number;
+      maxDelay?: number;
+      backoffMultiplier?: number;
+      jitterFactor?: number;
+      jitter?: boolean;
+    }
   ): number {
     const baseDelay = config.baseDelay || 1000;
     const maxDelay = config.maxDelay || 30000;
@@ -554,17 +560,11 @@ export class ErrorRecoveryService {
       await this.notificationService.sendSystemAlert({
         type: "operation_failure",
         serviceName: context.serviceName,
-        operation: context.operation,
         errorCode: error.code,
-        message: `Operation ${context.operation} failed after ${attempts} attempts`,
-        userId: context.userId,
+        impact: "high",
+        affectedOperations: [context.operation],
+        estimatedRecoveryTime: 0,
         timestamp: new Date(),
-        severity: "high",
-        metadata: {
-          requestId: context.requestId,
-          attempts,
-          errorMessage: error.message,
-        },
       });
     } catch (notificationError) {
       structuredLogger.error("Failed to send operation failure notification", {
@@ -589,15 +589,11 @@ export class ErrorRecoveryService {
       await this.notificationService.sendSystemAlert({
         type: "service_degraded",
         serviceName: context.serviceName,
-        operation: context.operation,
-        message: `Service ${context.serviceName} is running in degraded mode using ${strategy} strategy`,
-        userId: context.userId,
+        errorCode: ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        impact: "medium",
+        affectedOperations: [context.operation],
+        estimatedRecoveryTime: 300, // 5 minutes
         timestamp: new Date(),
-        severity: "medium",
-        metadata: {
-          requestId: context.requestId,
-          fallbackStrategy: strategy,
-        },
       });
     } catch (notificationError) {
       structuredLogger.error(

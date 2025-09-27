@@ -72,19 +72,20 @@ export const errorHandler = (
 
     // Log with appropriate level based on error type
     if (error.isOperational) {
-      structuredLogger.warn(
-        "Operational error occurred",
-        {
-          userId,
-          path: req.path,
-          method: req.method,
-          statusCode,
-          code,
-          isOperational: true,
-          errorType: error.constructor.name,
+      structuredLogger.warn("Operational error occurred", {
+        userId,
+        path: req.path,
+        method: req.method,
+        statusCode,
+        code,
+        isOperational: true,
+        errorType: error.constructor.name,
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
         },
-        error
-      );
+      });
     } else {
       structuredLogger.error(
         "System error occurred",
@@ -106,18 +107,19 @@ export const errorHandler = (
     code = error.code;
     message = error.message;
 
-    structuredLogger.warn(
-      "Legacy app error occurred",
-      {
-        userId,
-        path: req.path,
-        method: req.method,
-        statusCode,
-        code,
-        errorType: "AppError",
+    structuredLogger.warn("Legacy app error occurred", {
+      userId,
+      path: req.path,
+      method: req.method,
+      statusCode,
+      code,
+      errorType: "AppError",
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
       },
-      error
-    );
+    });
   } else {
     // Handle unexpected errors
     structuredLogger.error(

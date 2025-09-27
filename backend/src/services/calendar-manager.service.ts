@@ -324,20 +324,26 @@ export class CalendarManagerService {
 
       switch (override.overrideType) {
         case "time":
-          if (override.overrideValue.startTime) {
-            updateData.startTime = new Date(override.overrideValue.startTime);
-          }
-          if (override.overrideValue.endTime) {
-            updateData.endTime = new Date(override.overrideValue.endTime);
+          if (
+            typeof override.overrideValue === "object" &&
+            override.overrideValue !== null
+          ) {
+            const timeOverride = override.overrideValue as any;
+            if (timeOverride.startTime) {
+              updateData.startTime = new Date(timeOverride.startTime);
+            }
+            if (timeOverride.endTime) {
+              updateData.endTime = new Date(timeOverride.endTime);
+            }
           }
           break;
 
         case "location":
-          updateData.location = override.overrideValue;
+          updateData.location = String(override.overrideValue);
           break;
 
         case "description":
-          updateData.description = override.overrideValue;
+          updateData.description = String(override.overrideValue);
           break;
 
         case "alarms":

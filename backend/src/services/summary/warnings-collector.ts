@@ -28,7 +28,9 @@ export class WarningsCollector {
     // Weather warnings
     if (scheduleData.weatherData?.warnings) {
       const weatherWarnings = Array.isArray(scheduleData.weatherData.warnings)
-        ? (scheduleData.weatherData.warnings as string[])
+        ? scheduleData.weatherData.warnings.filter(
+            (warning): warning is string => typeof warning === "string"
+          )
         : [];
       warnings.push(...weatherWarnings);
     }

@@ -50,6 +50,29 @@ export class WeatherDataRepository
 {
   protected model = prisma.weatherData;
 
+  // Override createMany to handle Prisma's CreateManyInput type
+  async createMany(data: CreateWeatherDataInput[]): Promise<{ count: number }> {
+    // Convert CreateWeatherDataInput to CreateManyInput by extracting only the direct fields
+    const createManyData = data.map((item) => {
+      // Extract only the fields that belong to WeatherDataCreateManyInput
+      const { user, schedule, ...directFields } = item as any;
+      return {
+        userId: directFields.userId || user?.connect?.id || "",
+        scheduleId: directFields.scheduleId || schedule?.connect?.id || "",
+        forecastDate: directFields.forecastDate || new Date(),
+        temperature: directFields.temperature,
+        description: directFields.description,
+        windSpeed: directFields.windSpeed,
+        precipitation: directFields.precipitation,
+        humidity: directFields.humidity,
+        warnings: directFields.warnings,
+        fetchedAt: directFields.fetchedAt || new Date(),
+      };
+    });
+
+    return await this.model.createMany({ data: createManyData });
+  }
+
   /**
    * Find weather data by schedule ID
    */

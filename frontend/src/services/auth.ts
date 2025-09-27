@@ -17,7 +17,14 @@ class AuthService {
    * Get Google OAuth 2.0 authorization URL
    */
   async getGoogleAuthUrl(): Promise<OAuthUrlResponse> {
-    return apiService.get<OAuthUrlResponse>("/api/auth/google/url");
+    const response = await apiService.get<{
+      success: boolean;
+      authUrl: string;
+    }>("/api/auth/login");
+    return {
+      authUrl: response.authUrl,
+      state: "", // State is handled by backend
+    };
   }
 
   /**
@@ -27,42 +34,77 @@ class AuthService {
     code: string,
     state: string
   ): Promise<AuthResponse> {
-    return apiService.post<AuthResponse>("/api/auth/google/callback", {
+    const response = await apiService.post<{
+      success: boolean;
+      user: User;
+      token: string;
+    }>("/api/auth/callback", {
       code,
       state,
     });
+    return {
+      token: response.token,
+      user: response.user,
+      expiresIn: 3600, // Default 1 hour
+    };
   }
 
   /**
    * Refresh access token
    */
   async refreshToken(): Promise<AuthResponse> {
-    return apiService.post<AuthResponse>("/api/auth/refresh");
+    const response = await apiService.post<{
+      success: boolean;
+      user: User;
+      token: string;
+    }>("/api/auth/refresh");
+    return {
+      token: response.token,
+      user: response.user,
+      expiresIn: 3600, // Default 1 hour
+    };
   }
 
   /**
    * Validate current token
    */
   async validateToken(): Promise<ApiResponse<User>> {
-    return apiService.get<ApiResponse<User>>("/api/auth/me");
+    const response = await apiService.get<{
+      isAuthenticated: boolean;
+      user: User | null;
+    }>("/api/auth/status");
+    return {
+      success: response.isAuthenticated,
+      data: response.user,
+      error: response.isAuthenticated ? undefined : "Not authenticated",
+    };
   }
 
   /**
    * Logout and revoke tokens
    */
   async logout(): Promise<ApiResponse> {
-    return apiService.post<ApiResponse>("/api/auth/logout");
+    const response = await apiService.post<{
+      success: boolean;
+      message: string;
+    }>("/api/auth/logout");
+    return {
+      success: response.success,
+      message: response.message,
+    };
   }
 
   /**
    * Get user profile
    */
   async getUserProfile(): Promise<User> {
-    const response = await apiService.get<ApiResponse<User>>("/api/auth/me");
-    if (!response.success || !response.data) {
-      throw new Error(response.error || "Failed to get user profile");
+    const response = await apiService.get<{ success: boolean; profile: User }>(
+      "/api/auth/profile"
+    );
+    if (!response.success || !response.profile) {
+      throw new Error("Failed to get user profile");
     }
-    return response.data;
+    return response.profile;
   }
 }
 

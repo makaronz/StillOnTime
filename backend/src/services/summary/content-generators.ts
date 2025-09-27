@@ -6,6 +6,56 @@ import {
 import { PolishTemplates, EnglishTemplates } from "./language-templates";
 
 /**
+ * Type guard to validate ContactInfo array
+ */
+function isContactInfoArray(data: unknown): data is ContactInfo[] {
+  if (!Array.isArray(data)) {
+    return false;
+  }
+
+  return data.every((item): item is ContactInfo => {
+    return (
+      typeof item === "object" &&
+      item !== null &&
+      typeof item.name === "string" &&
+      (item.role === undefined || typeof item.role === "string") &&
+      (item.phone === undefined || typeof item.phone === "string") &&
+      (item.email === undefined || typeof item.email === "string")
+    );
+  });
+}
+
+/**
+ * Safely extract ContactInfo array from JSON data
+ */
+function safeGetContactInfo(data: unknown): ContactInfo[] {
+  if (isContactInfoArray(data)) {
+    return data;
+  }
+
+  // Fallback: try to extract valid contacts from malformed data
+  if (Array.isArray(data)) {
+    return data
+      .filter((item): item is ContactInfo => {
+        return (
+          typeof item === "object" &&
+          item !== null &&
+          typeof item.name === "string"
+        );
+      })
+      .map((item) => ({
+        name: item.name,
+        role: typeof item.role === "string" ? item.role : undefined,
+        phone: typeof item.phone === "string" ? item.phone : undefined,
+        email: typeof item.email === "string" ? item.email : undefined,
+      }));
+  }
+
+  // Return empty array as safe fallback
+  return [];
+}
+
+/**
  * Text Content Generator
  * Handles generation of plain text content
  */
@@ -99,21 +149,18 @@ export class TextContentGenerator {
     }
 
     // Contacts
-    if (
-      options.includeContacts &&
-      scheduleData.contacts &&
-      Array.isArray(scheduleData.contacts)
-    ) {
-      content += `${templates.sections.contacts}\n`;
-      (scheduleData.contacts as ContactInfo[]).forEach(
-        (contact: ContactInfo) => {
+    if (options.includeContacts && scheduleData.contacts) {
+      const contacts = safeGetContactInfo(scheduleData.contacts);
+      if (contacts.length > 0) {
+        content += `${templates.sections.contacts}\n`;
+        contacts.forEach((contact: ContactInfo) => {
           content += `• ${contact.name}`;
           if (contact.role) content += ` (${contact.role})`;
           if (contact.phone) content += ` - ${contact.phone}`;
           content += "\n";
-        }
-      );
-      content += "\n";
+        });
+        content += "\n";
+      }
     }
 
     // Safety notes
@@ -304,39 +351,36 @@ export class HtmlContentGenerator {
     }
 
     // Contacts
-    if (
-      options.includeContacts &&
-      scheduleData.contacts &&
-      Array.isArray(scheduleData.contacts)
-    ) {
-      html += `
-        <div class="summary-contacts">
-          <h2>${templates.sections.contacts}</h2>
-          <ul class="contacts-list">
-      `;
-      (scheduleData.contacts as ContactInfo[]).forEach(
-        (contact: ContactInfo) => {
-          html += `
-          <li class="contact-item">
-            <strong>${contact.name}</strong>
-            ${
-              contact.role
-                ? `<span class="contact-role">(${contact.role})</span>`
-                : ""
-            }
-            ${
-              contact.phone
-                ? `<span class="contact-phone"> - ${contact.phone}</span>`
-                : ""
-            }
-          </li>
+    if (options.includeContacts && scheduleData.contacts) {
+      const contacts = safeGetContactInfo(scheduleData.contacts);
+      if (contacts.length > 0) {
+        html += `
+          <div class="summary-contacts">
+            <h2>${templates.sections.contacts}</h2>
+            <ul class="contacts-list">
         `;
-        }
-      );
-      html += `
-          </ul>
-        </div>
-      `;
+        contacts.forEach((contact: ContactInfo) => {
+          html += `
+            <li class="contact-item">
+              <strong>${contact.name}</strong>
+              ${
+                contact.role
+                  ? `<span class="contact-role">(${contact.role})</span>`
+                  : ""
+              }
+              ${
+                contact.phone
+                  ? `<span class="contact-phone"> - ${contact.phone}</span>`
+                  : ""
+              }
+            </li>
+          `;
+        });
+        html += `
+            </ul>
+          </div>
+        `;
+      }
     }
 
     // Safety notes

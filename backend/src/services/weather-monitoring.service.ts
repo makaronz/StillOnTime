@@ -134,7 +134,11 @@ export class WeatherMonitoringService {
           windSpeed: existingWeather.windSpeed || 0,
           precipitation: existingWeather.precipitation || 0,
           humidity: existingWeather.humidity || 0,
-          warnings: (existingWeather.warnings as string[]) || [],
+          warnings: Array.isArray(existingWeather.warnings)
+            ? existingWeather.warnings.filter(
+                (w): w is string => typeof w === "string"
+              )
+            : [],
           fetchedAt: existingWeather.fetchedAt,
           location,
           date: dateStr,
@@ -214,6 +218,7 @@ export class WeatherMonitoringService {
         previousValue: previous.temperature,
         currentValue: current.temperature,
         changeAmount: tempDiff,
+        timestamp: new Date(),
         significance: Math.abs(tempDiff) >= 10 ? "high" : "medium",
         description: `Temperature ${
           tempDiff > 0 ? "increased" : "decreased"
@@ -230,6 +235,7 @@ export class WeatherMonitoringService {
         previousValue: previous.precipitation,
         currentValue: current.precipitation,
         changeAmount: precipDiff,
+        timestamp: new Date(),
         significance: Math.abs(precipDiff) >= 5 ? "high" : "medium",
         description: `Precipitation ${
           precipDiff > 0 ? "increased" : "decreased"
@@ -246,6 +252,7 @@ export class WeatherMonitoringService {
         previousValue: previous.windSpeed,
         currentValue: current.windSpeed,
         changeAmount: windDiff,
+        timestamp: new Date(),
         significance: Math.abs(windDiff) >= 7 ? "high" : "medium",
         description: `Wind speed ${
           windDiff > 0 ? "increased" : "decreased"
@@ -260,6 +267,7 @@ export class WeatherMonitoringService {
         field: "description",
         previousValue: previous.description,
         currentValue: current.description,
+        timestamp: new Date(),
         significance: "medium",
         description: `Weather conditions changed from "${previous.description}" to "${current.description}"`,
       });

@@ -6,13 +6,39 @@ import { Router } from "express";
 import { HealthController } from "../controllers/health.controller";
 import { CacheService } from "../services/cache.service";
 import { OAuth2Service } from "../services/oauth2.service";
+import { MonitoringService } from "../services/monitoring.service";
+import { ErrorHandlerService } from "../services/error-handler.service";
+import { NotificationService } from "../services/notification.service";
+import { UserRepository } from "../repositories/user.repository";
+import { NotificationRepository } from "../repositories/notification.repository";
 
 const router = Router();
 
-// Initialize dependencies
+// Initialize dependencies in correct order
 const cacheService = new CacheService();
-const oauth2Service = new OAuth2Service();
-const healthController = new HealthController(cacheService, oauth2Service);
+const userRepository = new UserRepository();
+const oauth2Service = new OAuth2Service(userRepository);
+const notificationRepository = new NotificationRepository();
+const notificationService = new NotificationService(
+  notificationRepository,
+  userRepository
+);
+const errorHandlerService = new ErrorHandlerService(
+  oauth2Service,
+  cacheService,
+  notificationService
+);
+const monitoringService = new MonitoringService(
+  errorHandlerService,
+  cacheService,
+  notificationService
+);
+const healthController = new HealthController(
+  cacheService,
+  oauth2Service,
+  monitoringService,
+  errorHandlerService
+);
 
 /**
  * @route GET /health

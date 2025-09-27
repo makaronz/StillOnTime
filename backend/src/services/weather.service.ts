@@ -1,4 +1,9 @@
-import axios from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  AxiosError,
+} from "axios";
 import { config } from "@/config/config";
 import { WeatherData, CreateWeatherDataInput, WeatherForecast } from "@/types";
 import { weatherCacheService, WeatherCacheData } from "./weather-cache.service";
@@ -122,7 +127,7 @@ export interface WeatherWarning {
 }
 
 export class WeatherService {
-  private client: typeof axios;
+  private client: AxiosInstance;
   private weatherRepository: WeatherDataRepository;
   private readonly baseUrl = "https://api.openweathermap.org/data/2.5";
   private readonly apiKey: string;
@@ -147,14 +152,14 @@ export class WeatherService {
 
     // Add request interceptor for logging
     this.client.interceptors.request.use(
-      (config: axios.AxiosRequestConfig) => {
+      (config: AxiosRequestConfig) => {
         logger.debug("Weather API request", {
           url: config.url,
           params: config.params,
         });
         return config;
       },
-      (error: axios.AxiosError) => {
+      (error: AxiosError) => {
         logger.error("Weather API request error", { error: error.message });
         return Promise.reject(error);
       }
@@ -162,14 +167,14 @@ export class WeatherService {
 
     // Add response interceptor for error handling
     this.client.interceptors.response.use(
-      (response: axios.AxiosResponse) => {
+      (response: AxiosResponse) => {
         logger.debug("Weather API response", {
           status: response.status,
           data: response.data,
         });
         return response;
       },
-      (error: axios.AxiosError) => {
+      (error: AxiosError) => {
         logger.error("Weather API response error", {
           status: error.response?.status,
           message: error.message,
@@ -503,7 +508,7 @@ export class WeatherService {
    * Requirement 5.5: Handle weather API failures with cached data
    */
   private handleWeatherAPIError(
-    error: axios.AxiosError,
+    error: AxiosError,
     location: string,
     date?: string
   ): Error {

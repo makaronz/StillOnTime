@@ -455,7 +455,7 @@ export class ErrorHandlerService {
       if (defaultData) {
         return {
           success: true,
-          data: defaultData,
+          data: defaultData as T,
           fallbackUsed: true,
           recoveryAction: "default_values_used",
         };
@@ -465,7 +465,7 @@ export class ErrorHandlerService {
     if (options.skipOperation) {
       return {
         success: true,
-        data: null,
+        data: undefined,
         fallbackUsed: true,
         recoveryAction: "operation_skipped",
       };
@@ -485,10 +485,37 @@ export class ErrorHandlerService {
     return null;
   }
 
-  private getDefaultFallbackData(error: BaseError): FallbackData {
+  private getDefaultFallbackData(error: BaseError): FallbackData | null {
     // Implementation depends on error type
-    // This is a placeholder for default values
-    return null;
+    // Return appropriate default values based on error type
+    switch (error.code) {
+      case ErrorCode.WEATHER_API_ERROR:
+      case ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE:
+        return {
+          temperature: 15,
+          description: "Weather data unavailable - using default conditions",
+          warnings: ["Weather service temporarily unavailable"],
+          fallback: true,
+        };
+
+      case ErrorCode.MAPS_API_ERROR:
+        return {
+          duration: 3600, // 1 hour default
+          distance: 30000, // 30km default
+          route: "Route calculation unavailable - using estimated times",
+          fallback: true,
+        };
+
+      case ErrorCode.GMAIL_API_ERROR:
+        return {
+          emails: [],
+          message: "Email service temporarily unavailable",
+          fallback: true,
+        };
+
+      default:
+        return null;
+    }
   }
 
   private getRetryConfigForAPI(apiName: string) {
@@ -944,7 +971,7 @@ export class ErrorHandlerService {
 
       return {
         success: true,
-        data: options.fallbackData,
+        data: options.fallbackData as T,
         fallbackUsed: true,
         recoveryAction: "provided_fallback_data_used",
       };
@@ -1010,7 +1037,7 @@ export class ErrorHandlerService {
 
       return {
         success: true,
-        data: null,
+        data: undefined,
         fallbackUsed: true,
         recoveryAction: "operation_skipped",
       };
@@ -1080,7 +1107,7 @@ export class ErrorHandlerService {
   ): Promise<T | null> {
     const degradationStrategies: Record<
       string,
-      Record<ErrorCode, () => Promise<any>>
+      Partial<Record<ErrorCode, () => Promise<any>>>
     > = {
       weather_api: {
         [ErrorCode.WEATHER_API_ERROR]: async () => ({
@@ -1150,26 +1177,6 @@ export class ErrorHandlerService {
     });
 
     return null;
-  }
-
-  /**
-   * Get comprehensive error metrics for monitoring
-   */
-  public getErrorMetrics(): Record<string, ErrorMetrics> {
-    const metrics: Record<string, ErrorMetrics> = {};
-
-    for (const [key, value] of this.errorMetrics.entries()) {
-      metrics[key] = { ...value };
-    }
-
-    return metrics;
-  }
-
-  /**
-   * Get current critical failures
-   */
-  public getCriticalFailures(): CriticalServiceFailure[] {
-    return [...this.criticalFailures];
   }
 
   /**

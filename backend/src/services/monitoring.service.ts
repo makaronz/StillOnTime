@@ -13,7 +13,11 @@ import {
   ErrorMetrics,
   CriticalServiceFailure,
 } from "./error-handler.service";
-import { MetricsData, AlertRule, Alert, CircuitBreakerState } from "../types";
+import { MetricsData, CircuitBreakerState } from "../types";
+import {
+  AlertRule as DomainAlertRule,
+  Alert as DomainAlert,
+} from "../types/domain";
 import { CacheService } from "./cache.service";
 import { NotificationService } from "./notification.service";
 import { prisma } from "../config/database";
@@ -141,9 +145,9 @@ export class MonitoringService {
   private performanceHistory: PerformanceMetrics[] = [];
   private apmMetricsHistory: APMMetrics[] = [];
   private serviceHealthHistory: Map<string, ServiceHealthMetrics[]> = new Map();
-  private alertRules: Map<string, AlertRule> = new Map();
+  private alertRules: Map<string, DomainAlertRule> = new Map();
   private alertingRules: Map<string, AlertingRule> = new Map();
-  private activeAlerts: Map<string, Alert> = new Map();
+  private activeAlerts: Map<string, DomainAlert> = new Map();
   private requestMetrics: Map<
     string,
     {
@@ -191,7 +195,7 @@ export class MonitoringService {
    * Initialize basic alert rules (existing functionality)
    */
   private initializeBasicAlertRules(): void {
-    const defaultRules: AlertRule[] = [
+    const defaultRules: DomainAlertRule[] = [
       {
         id: "high_error_rate",
         name: "High Error Rate",
@@ -669,7 +673,7 @@ export class MonitoringService {
    * Evaluate individual alert condition
    */
   private async evaluateAlertCondition(
-    rule: AlertRule,
+    rule: DomainAlertRule,
     metrics: MetricsData
   ): Promise<boolean> {
     switch (rule.id) {
@@ -686,22 +690,19 @@ export class MonitoringService {
 
       case "database_connection_failure":
         const dbHealth = metrics.services.find(
-          (s: ServiceHealthMetrics) => s.serviceName === "database"
+          (s) => s.serviceName === "database"
         );
         return dbHealth?.status === "unhealthy";
 
       case "circuit_breaker_open":
         return Object.values(metrics.circuitBreakers).some(
-          (cb: CircuitBreakerState) => cb.state === "OPEN"
+          (cb) => cb.state === "OPEN"
         );
 
       case "oauth_failure_rate":
         const oauthErrors = Object.entries(metrics.errorMetrics)
           .filter(([key]) => key.includes("oauth"))
-          .reduce(
-            (sum, [, metric]: [string, any]) => sum + metric.errorCount,
-            0
-          );
+          .reduce((sum, [, metric]) => sum + (metric?.errorCount || 0), 0);
         const oauthTotal = oauthErrors + 100; // Simplified calculation
         return (
           oauthTotal > 0 && (oauthErrors / oauthTotal) * 100 > rule.threshold
@@ -716,11 +717,11 @@ export class MonitoringService {
    * Trigger an alert
    */
   private async triggerAlert(
-    rule: AlertRule,
+    rule: DomainAlertRule,
     metrics: MetricsData
   ): Promise<void> {
     const alertId = `${rule.id}_${Date.now()}`;
-    const alert: Alert = {
+    const alert: DomainAlert = {
       id: alertId,
       ruleId: rule.id,
       severity: rule.severity,
@@ -771,7 +772,7 @@ export class MonitoringService {
    * Get current value for alert rule evaluation
    */
   private getCurrentValueForRule(
-    rule: AlertRule,
+    rule: DomainAlertRule,
     metrics: MetricsData
   ): number {
     switch (rule.id) {
@@ -784,7 +785,7 @@ export class MonitoringService {
           (metrics.memoryUsage.heapUsed / metrics.memoryUsage.heapTotal) * 100
         );
       default:
-        return "unknown";
+        return 0; // Return 0 instead of "unknown" to maintain number type
     }
   }
 
@@ -802,8 +803,30 @@ export class MonitoringService {
       }
     }
 
+    // Provide default values if no performance history exists
+    const defaultMetrics: MetricsData = {
+      timestamp: new Date(),
+      requestCount: 0,
+      averageResponseTime: 0,
+      errorRate: 0,
+      responseTime: 0,
+      throughput: 0,
+      memoryUsage: process.memoryUsage(),
+      cpuUsage: process.cpuUsage(),
+      activeConnections: 0,
+      queueSize: 0,
+      services,
+      circuitBreakers: this.circuitBreakerRegistry.getAllStats(),
+      errorMetrics: this.errorHandlerService.getErrorMetrics(),
+    };
+
+    if (!latestPerformance) {
+      return defaultMetrics;
+    }
+
     return {
       ...latestPerformance,
+      responseTime: latestPerformance.averageResponseTime, // Map averageResponseTime to responseTime for compatibility
       services,
       circuitBreakers: this.circuitBreakerRegistry.getAllStats(),
       errorMetrics: this.errorHandlerService.getErrorMetrics(),
@@ -1147,7 +1170,7 @@ export class MonitoringService {
   /**
    * Add custom alert rule
    */
-  public addAlertRule(rule: AlertRule): void {
+  public addAlertRule(rule: DomainAlertRule): void {
     this.alertRules.set(rule.id, rule);
     structuredLogger.info("Alert rule added", {
       ruleId: rule.id,
@@ -1159,7 +1182,10 @@ export class MonitoringService {
   /**
    * Update alert rule
    */
-  public updateAlertRule(ruleId: string, updates: Partial<AlertRule>): boolean {
+  public updateAlertRule(
+    ruleId: string,
+    updates: Partial<DomainAlertRule>
+  ): boolean {
     const existing = this.alertRules.get(ruleId);
     if (!existing) return false;
 
@@ -1178,7 +1204,7 @@ export class MonitoringService {
    * Resolve an alert
    */
   public resolveAlert(alertId: string): boolean {
-    const alert = this.activeAlerts.get(alertId);
+    const alert = this.activeAlerts.get(alertId) as DomainAlert | undefined;
     if (!alert) return false;
 
     alert.resolved = true;
@@ -1392,7 +1418,7 @@ export class MonitoringService {
     const alertId = `${rule.id}_${Date.now()}`;
     const currentValue = this.getCurrentValueForAdvancedRule(rule, metrics);
 
-    const alert: Alert = {
+    const alert: DomainAlert = {
       id: alertId,
       ruleId: rule.id,
       severity: rule.severity,
@@ -1469,7 +1495,7 @@ export class MonitoringService {
       case "notification_delivery_failure":
         return metrics.businessMetrics.notificationDeliveryRate;
       default:
-        return "unknown";
+        return 0; // Return 0 instead of "unknown" to maintain number type
     }
   }
 

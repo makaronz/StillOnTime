@@ -1,5 +1,4 @@
-import { Response } from "express";
-import { AuthenticatedRequest } from "@/middleware/auth.middleware";
+import { Request, Response } from "express";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { RoutePlanRepository } from "@/repositories/route-plan.repository";
 import { services } from "@/services";
@@ -21,7 +20,7 @@ export class ScheduleRouteController extends BaseScheduleController {
    * Get route plan for schedule
    * GET /api/schedule/:scheduleId/route
    */
-  async getRoutePlan(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getRoutePlan(req: Request, res: Response): Promise<void> {
     try {
       const { scheduleId } = req.params;
 
@@ -77,7 +76,7 @@ export class ScheduleRouteController extends BaseScheduleController {
    * PUT /api/schedule/:scheduleId/route
    */
   async updateRoutePlan(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
@@ -151,7 +150,7 @@ export class ScheduleRouteController extends BaseScheduleController {
    * POST /api/schedule/:scheduleId/route/recalculate
    */
   async recalculateRoute(
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response
   ): Promise<void> {
     try {
