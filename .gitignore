@@ -115,6 +115,9 @@ prisma/migrations/
 # Redis dump
 dump.rdb
 
+# Qdrant vector database storage
+qdrant_storage/
+
 # Test files
 test-results/
 playwright-report/
