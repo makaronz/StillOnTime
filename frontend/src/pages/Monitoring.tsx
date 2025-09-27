@@ -110,8 +110,12 @@ export const Monitoring: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
     try {
       const data = await monitoringService.getDashboard();
       setDashboard(data);
@@ -120,8 +124,9 @@ export const Monitoring: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to fetch monitoring data');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, []);
+  }, [isRefreshing]);
 
   useEffect(() => {
     fetchDashboard();
@@ -130,8 +135,15 @@ export const Monitoring: React.FC = () => {
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const interval = setInterval(fetchDashboard, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
+    const scheduleNext = async () => {
+      await fetchDashboard();
+      if (autoRefresh) {
+        setTimeout(scheduleNext, REFRESH_INTERVAL);
+      }
+    };
+
+    const timeoutId = setTimeout(scheduleNext, REFRESH_INTERVAL);
+    return () => clearTimeout(timeoutId);
   }, [autoRefresh, fetchDashboard]);
 
   const getStatusColor = (status: string) => {
