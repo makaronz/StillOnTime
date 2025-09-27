@@ -147,9 +147,7 @@ export class AuthController {
       }
 
       // Get user from database to generate new JWT
-      const userRepository = new (
-        await import("@/repositories/user.repository")
-      ).UserRepository();
+      const { userRepository } = await import("@/repositories/user.repository");
       const user = await userRepository.findById(req.user.userId);
 
       if (!user) {
@@ -274,12 +272,8 @@ export class AuthController {
       );
 
       // Get user details
-      const userRepository = new (
-        await import("@/repositories/user.repository")
-      ).UserRepository();
-      const user = await userRepository.findById(
-        (req.user as any).userId
-      );
+      const { userRepository } = await import("@/repositories/user.repository");
+      const user = await userRepository.findById((req.user as any).userId);
 
       res.json({
         isAuthenticated: true,
@@ -374,9 +368,7 @@ export class AuthController {
         return;
       }
 
-      const userRepository = new (
-        await import("@/repositories/user.repository")
-      ).UserRepository();
+      const { userRepository } = await import("@/repositories/user.repository");
       const user = await userRepository.findWithRelations(
         (req.user as any).userId
       );
@@ -393,9 +385,7 @@ export class AuthController {
       }
 
       // Get user statistics
-      const stats = await userRepository.getUserStats(
-        (req.user as any).userId
-      );
+      const stats = await userRepository.getUserStats((req.user as any).userId);
 
       res.json({
         success: true,
