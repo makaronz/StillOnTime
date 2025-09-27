@@ -4,7 +4,6 @@ import {
   CreateUserConfigInput,
   UpdateUserConfigInput,
 } from "@/types";
-import { AbstractBaseRepository } from "./base.repository";
 
 /**
  * UserConfig Repository Interface
@@ -32,51 +31,29 @@ export interface IUserConfigRepository {
 /**
  * UserConfig Repository Implementation
  */
-export class UserConfigRepository
-  extends AbstractBaseRepository<
-    UserConfig,
-    CreateUserConfigInput,
-    UpdateUserConfigInput
-  >
-  implements IUserConfigRepository
-{
-  protected model = prisma.userConfig;
+export class UserConfigRepository implements IUserConfigRepository {
+  // Basic CRUD operations using Prisma directly
+  async create(data: CreateUserConfigInput): Promise<UserConfig> {
+    return await prisma.userConfig.create({ data });
+  }
 
-  // Override createMany to handle Prisma's CreateManyInput type
-  async createMany(data: CreateUserConfigInput[]): Promise<{ count: number }> {
-    // Convert CreateUserConfigInput to CreateManyInput by extracting only the direct fields
-    const createManyData = data.map((item) => {
-      // Extract only the fields that belong to UserConfigCreateManyInput
-      const { user, ...directFields } = item as any;
-      return {
-        userId: directFields.userId || user?.connect?.id || "",
-        homeAddress: directFields.homeAddress || "",
-        panavisionAddress: directFields.panavisionAddress || "",
-        bufferCarChange: directFields.bufferCarChange || 15,
-        bufferParking: directFields.bufferParking || 10,
-        bufferEntry: directFields.bufferEntry || 10,
-        bufferTraffic: directFields.bufferTraffic || 20,
-        bufferMorningRoutine: directFields.bufferMorningRoutine || 45,
-        notificationEmail: directFields.notificationEmail ?? true,
-        notificationSMS: directFields.notificationSMS ?? false,
-        notificationPush: directFields.notificationPush ?? true,
-        smsNumber: directFields.smsNumber,
-        smsVerified: directFields.smsVerified ?? false,
-        smsVerificationCode: directFields.smsVerificationCode,
-        smsVerificationExpiry: directFields.smsVerificationExpiry,
-        pushToken: directFields.pushToken,
-        pushTokenVerified: directFields.pushTokenVerified ?? false,
-      };
-    });
+  async findById(id: string): Promise<UserConfig | null> {
+    return await prisma.userConfig.findUnique({ where: { id } });
+  }
 
-    return await this.model.createMany({ data: createManyData });
+  async update(id: string, data: UpdateUserConfigInput): Promise<UserConfig> {
+    return await prisma.userConfig.update({ where: { id }, data });
+  }
+
+  async delete(id: string): Promise<UserConfig> {
+    return await prisma.userConfig.delete({ where: { id } });
   }
 
   /**
    * Find user configuration by user ID
    */
   async findByUserId(userId: string): Promise<UserConfig | null> {
-    return await this.model.findUnique({
+    return await prisma.userConfig.findUnique({
       where: { userId },
     });
   }
@@ -91,12 +68,12 @@ export class UserConfigRepository
     const existingConfig = await this.findByUserId(userId);
 
     if (existingConfig) {
-      return await this.model.update({
+      return await prisma.userConfig.update({
         where: { userId },
         data: configData,
       });
     } else {
-      return await this.model.create({
+      return await prisma.userConfig.create({
         data: {
           ...this.getDefaultConfigData(),
           ...configData,
@@ -324,12 +301,12 @@ export class UserConfigRepository
     const existingConfig = await this.findByUserId(userId);
 
     if (existingConfig) {
-      return await this.model.update({
+      return await prisma.userConfig.update({
         where: { userId },
         data: this.getDefaultConfigData(),
       });
     } else {
-      return await this.model.create({
+      return await prisma.userConfig.create({
         data: {
           ...this.getDefaultConfigData(),
           user: { connect: { id: userId } },
