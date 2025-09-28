@@ -27,6 +27,11 @@ export class SMSController {
    */
   configureSMS = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         res.status(400).json({
@@ -74,7 +79,7 @@ export class SMSController {
         } catch (error) {
           logger.error("Failed to send SMS verification code", {
             userId,
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
             functionName: "SMSController.configureSMS",
           });
         }
@@ -97,8 +102,8 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to configure SMS", {
-        userId: req.user.userId,
-        error: error.message,
+        userId: req.user?.userId,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSController.configureSMS",
       });
 
@@ -151,6 +156,11 @@ export class SMSController {
    */
   verifySMS = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { code } = req.body;
       const userId = req.user.userId;
 
@@ -227,8 +237,8 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to verify SMS", {
-        userId: req.user.userId,
-        error: error.message,
+        userId: req.user?.userId,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSController.verifySMS",
       });
 
@@ -250,6 +260,11 @@ export class SMSController {
     res: Response
   ): Promise<void> => {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const userId = req.user.userId;
 
       const userWithConfig = await this.userRepository.findByIdWithConfig(
@@ -281,8 +296,8 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to resend verification code", {
-        userId: req.user.userId,
-        error: error.message,
+        userId: req.user?.userId,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSController.resendVerificationCode",
       });
 
@@ -301,6 +316,11 @@ export class SMSController {
    */
   getSMSStatus = async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const userId = req.user.userId;
 
       const [validation, serviceTest, userWithConfig] = await Promise.all([
@@ -327,8 +347,8 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to get SMS status", {
-        userId: req.user.userId,
-        error: error.message,
+        userId: req.user?.userId,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSController.getSMSStatus",
       });
 
@@ -347,11 +367,12 @@ export class SMSController {
    */
   testSMS = async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = req.user.userId;
-
       if (!req.user) {
-        throw new Error("User not found");
+        res.status(401).json({ error: "Unauthorized" });
+        return;
       }
+
+      const userId = req.user.userId;
 
       const validation =
         await this.notificationService.validateSMSConfiguration(userId);
@@ -389,8 +410,8 @@ export class SMSController {
       });
     } catch (error) {
       logger.error("Failed to send test SMS", {
-        userId: req.user.userId,
-        error: error.message,
+        userId: req.user?.userId,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSController.testSMS",
       });
 
@@ -421,7 +442,7 @@ export class SMSController {
 
       // Find notification by message ID
       const notification =
-        await this.notificationService.notificationRepository.findByMessageId(
+        await this.notificationService.findNotificationByMessageId(
           MessageSid
         );
 
@@ -460,13 +481,13 @@ export class SMSController {
       res.status(200).json({ success: true });
     } catch (error) {
       logger.error("Failed to handle SMS webhook", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         functionName: "SMSController.handleWebhook",
       });
 
       res.status(500).json({
         error: "Webhook processing failed",
-        message: error.message,
+        message: error instanceof Error ? error.message : String(error),
       });
     }
   };

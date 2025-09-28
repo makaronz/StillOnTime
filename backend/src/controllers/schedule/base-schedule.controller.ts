@@ -18,6 +18,11 @@ export class BaseScheduleController {
    * GET /api/schedule
    */
   async getSchedules(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
     try {
       const {
         page = 1,
@@ -143,6 +148,11 @@ export class BaseScheduleController {
     req: Request,
     res: Response
   ): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
     try {
       const { scheduleId } = req.params;
 

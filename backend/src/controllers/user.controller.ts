@@ -227,7 +227,7 @@ export class UserController {
       }
 
       const updatedConfig =
-        await this.userConfigRepository.upsert(req.user.userId, configData);
+        await this.userConfigRepository.createOrUpdateForUser(req.user.userId, configData);
 
       logger.info("User configuration updated", {
         userId: req.user.userId,
@@ -293,7 +293,7 @@ export class UserController {
       // Validate addresses using Google Maps if available
       if (homeAddress && services.googleMaps) {
         try {
-          await services.googleMaps.geocodeAddress(homeAddress);
+          await services.googleMaps.validateAddress(homeAddress);
         } catch (error) {
           res.status(400).json({
             error: "Bad Request",
@@ -308,7 +308,7 @@ export class UserController {
 
       if (panavisionAddress && services.googleMaps) {
         try {
-          await services.googleMaps.geocodeAddress(panavisionAddress);
+          await services.googleMaps.validateAddress(panavisionAddress);
         } catch (error) {
           res.status(400).json({
             error: "Bad Request",

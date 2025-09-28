@@ -20,6 +20,11 @@ export class EmailController {
    */
   async triggerProcessing(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { messageId, priority = 0 } = req.body;
 
       // Add email processing job to queue
@@ -51,7 +56,7 @@ export class EmailController {
     } catch (error) {
       logger.error("Failed to trigger email processing", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user?.userId,
       });
 
       res.status(500).json({
@@ -70,6 +75,11 @@ export class EmailController {
    */
   async getProcessingStatus(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { limit = 20, status } = req.query;
 
       // Get email statistics
@@ -130,7 +140,7 @@ export class EmailController {
     } catch (error) {
       logger.error("Failed to get email processing status", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user?.userId,
       });
 
       res.status(500).json({
@@ -149,6 +159,11 @@ export class EmailController {
    */
   async getProcessingHistory(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const {
         page = 1,
         limit = 20,
@@ -248,7 +263,7 @@ export class EmailController {
     } catch (error) {
       logger.error("Failed to get email processing history", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user?.userId,
       });
 
       res.status(500).json({
@@ -267,6 +282,11 @@ export class EmailController {
    */
   async retryProcessing(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { emailId } = req.body;
 
       // Get email to verify ownership
@@ -324,7 +344,7 @@ export class EmailController {
     } catch (error) {
       logger.error("Failed to retry email processing", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user?.userId,
         emailId: req.params.emailId,
       });
 
@@ -344,6 +364,11 @@ export class EmailController {
    */
   async getStatistics(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { period = "30d" } = req.query;
 
       // Calculate date range based on period
@@ -435,7 +460,7 @@ export class EmailController {
     } catch (error) {
       logger.error("Failed to get email statistics", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user?.userId,
       });
 
       res.status(500).json({
@@ -454,6 +479,11 @@ export class EmailController {
    */
   async toggleMonitoring(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { enabled, intervalMinutes = 5 } = req.body;
 
       if (typeof enabled !== "boolean") {
@@ -507,7 +537,7 @@ export class EmailController {
     } catch (error) {
       logger.error("Failed to toggle email monitoring", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user?.userId,
       });
 
       res.status(500).json({
@@ -526,6 +556,11 @@ export class EmailController {
    */
   async getEmailDetails(req: Request, res: Response): Promise<void> {
     try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
       const { emailId } = req.params;
 
       const email = await this.processedEmailRepository.findWithSchedule(
@@ -592,7 +627,7 @@ export class EmailController {
     } catch (error) {
       logger.error("Failed to get email details", {
         error: error instanceof Error ? error.message : "Unknown error",
-        userId: req.user.userId,
+        userId: req.user?.userId,
         emailId: req.params.emailId,
       });
 

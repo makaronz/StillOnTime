@@ -26,51 +26,41 @@ export class ScheduleController {
   private weatherController: ScheduleWeatherController;
   private statisticsController: ScheduleStatisticsController;
 
+  // Method declarations
+  getSchedules!: typeof BaseScheduleController.prototype.getSchedules;
+  getScheduleById!: typeof BaseScheduleController.prototype.getScheduleById;
+  updateSchedule!: typeof ScheduleCrudController.prototype.updateSchedule;
+  deleteSchedule!: typeof ScheduleCrudController.prototype.deleteSchedule;
+  getRoutePlan!: typeof ScheduleRouteController.prototype.getRoutePlan;
+  updateRoutePlan!: typeof ScheduleRouteController.prototype.updateRoutePlan;
+  recalculateRoute!: typeof ScheduleRouteController.prototype.recalculateRoute;
+  getWeatherData!: typeof ScheduleWeatherController.prototype.getWeatherData;
+  updateWeatherData!: typeof ScheduleWeatherController.prototype.updateWeatherData;
+  getWeatherWarnings!: typeof ScheduleWeatherController.prototype.getWeatherWarnings;
+  getWeatherForecast!: typeof ScheduleWeatherController.prototype.getWeatherForecast;
+  getStatistics!: typeof ScheduleStatisticsController.prototype.getStatistics;
+
   constructor() {
     this.baseController = new BaseScheduleController();
     this.crudController = new ScheduleCrudController();
     this.routeController = new ScheduleRouteController();
     this.weatherController = new ScheduleWeatherController();
     this.statisticsController = new ScheduleStatisticsController();
+
+    // Bind methods after controllers are initialized
+    this.getSchedules = this.baseController.getSchedules.bind(this.baseController);
+    this.getScheduleById = this.baseController.getScheduleById.bind(this.baseController);
+    this.updateSchedule = this.crudController.updateSchedule.bind(this.crudController);
+    this.deleteSchedule = this.crudController.deleteSchedule.bind(this.crudController);
+    this.getRoutePlan = this.routeController.getRoutePlan.bind(this.routeController);
+    this.updateRoutePlan = this.routeController.updateRoutePlan.bind(this.routeController);
+    this.recalculateRoute = this.routeController.recalculateRoute.bind(this.routeController);
+    this.getWeatherData = this.weatherController.getWeatherData.bind(this.weatherController);
+    this.updateWeatherData = this.weatherController.updateWeatherData.bind(this.weatherController);
+    this.getWeatherWarnings = this.weatherController.getWeatherWarnings.bind(this.weatherController);
+    this.getWeatherForecast = this.weatherController.getWeatherForecast.bind(this.weatherController);
+    this.getStatistics = this.statisticsController.getStatistics.bind(this.statisticsController);
   }
-
-  // Base operations
-  getSchedules = this.baseController.getSchedules.bind(this.baseController);
-  getScheduleById = this.baseController.getScheduleById.bind(
-    this.baseController
-  );
-
-  // CRUD operations
-  updateSchedule = this.crudController.updateSchedule.bind(this.crudController);
-  deleteSchedule = this.crudController.deleteSchedule.bind(this.crudController);
-
-  // Route operations
-  getRoutePlan = this.routeController.getRoutePlan.bind(this.routeController);
-  updateRoutePlan = this.routeController.updateRoutePlan.bind(
-    this.routeController
-  );
-  recalculateRoute = this.routeController.recalculateRoute.bind(
-    this.routeController
-  );
-
-  // Weather operations
-  getWeatherData = this.weatherController.getWeatherData.bind(
-    this.weatherController
-  );
-  updateWeatherData = this.weatherController.updateWeatherData.bind(
-    this.weatherController
-  );
-  getWeatherWarnings = this.weatherController.getWeatherWarnings.bind(
-    this.weatherController
-  );
-  getWeatherForecast = this.weatherController.getWeatherForecast.bind(
-    this.weatherController
-  );
-
-  // Statistics operations
-  getStatistics = this.statisticsController.getStatistics.bind(
-    this.statisticsController
-  );
 }
 
 // Export singleton instance

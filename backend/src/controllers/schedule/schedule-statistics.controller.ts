@@ -23,6 +23,11 @@ export class ScheduleStatisticsController extends BaseScheduleController {
    * GET /api/schedule/statistics
    */
   async getStatistics(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
     try {
       const scheduleStats = await this.scheduleDataRepository.getScheduleStats(
         req.user.userId

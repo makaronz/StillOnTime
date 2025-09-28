@@ -94,7 +94,7 @@ export class HealthController {
 
       structuredLogger.error("Health check failed", {
         responseTime,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
 
       res.status(503).json({
@@ -130,7 +130,7 @@ export class HealthController {
 
       structuredLogger.error("Detailed health check failed", {
         responseTime,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
 
       res.status(503).json({
@@ -167,13 +167,13 @@ export class HealthController {
       }
     } catch (error) {
       structuredLogger.error("Readiness check failed", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
 
       res.status(503).json({
         status: "not_ready",
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -198,12 +198,12 @@ export class HealthController {
         },
       });
     } catch (error) {
-      structuredLogger.error("Liveness check failed", { error: error.message });
+      structuredLogger.error("Liveness check failed", { error: error instanceof Error ? error.message : String(error) });
 
       res.status(503).json({
         status: "dead",
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -297,7 +297,7 @@ export class HealthController {
         status: "unhealthy",
         responseTime,
         lastCheck: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         details: {
           type: "postgresql",
           connectionFailed: true,
@@ -313,7 +313,7 @@ export class HealthController {
       const testKey = "health_check_test";
       const testValue = Date.now().toString();
 
-      await this.cacheService.set(testKey, testValue, 10);
+      await this.cacheService.set(testKey, testValue, { ttl: 10 });
       const retrievedValue = await this.cacheService.get(testKey);
       await this.cacheService.delete(testKey);
 
@@ -339,7 +339,7 @@ export class HealthController {
         status: "unhealthy",
         responseTime,
         lastCheck: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         details: {
           type: "redis",
           connectionFailed: true,
@@ -385,7 +385,7 @@ export class HealthController {
         status: "unhealthy",
         responseTime,
         lastCheck: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -426,7 +426,7 @@ export class HealthController {
         status: "unhealthy",
         responseTime,
         lastCheck: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -544,10 +544,11 @@ export class HealthController {
       const hours = parseInt(req.query.hours as string) || 24;
 
       if (!serviceName) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "Service name is required",
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       const history = this.monitoringService.getServiceHealthHistory(
@@ -669,10 +670,11 @@ export class HealthController {
       if (serviceName) {
         const circuitBreaker = this.circuitBreakerRegistry.get(serviceName);
         if (!circuitBreaker) {
-          return res.status(404).json({
+          res.status(404).json({
             error: `Circuit breaker not found for service: ${serviceName}`,
             timestamp: new Date().toISOString(),
           });
+          return;
         }
 
         circuitBreaker.reset();
@@ -800,10 +802,11 @@ export class HealthController {
       const { name, value, unit, tags, description } = req.body;
 
       if (!name || value === undefined) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "Name and value are required",
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       this.monitoringService.recordCustomMetric(
@@ -887,10 +890,11 @@ export class HealthController {
       const updates = req.body;
 
       if (!ruleId) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "Rule ID is required",
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       const success = this.monitoringService.updateAlertingRule(
@@ -899,10 +903,11 @@ export class HealthController {
       );
 
       if (!success) {
-        return res.status(404).json({
+        res.status(404).json({
           error: `Alerting rule not found: ${ruleId}`,
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       structuredLogger.info("Alerting rule updated via API", {
@@ -938,19 +943,21 @@ export class HealthController {
       const alertId = req.params.alertId;
 
       if (!alertId) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "Alert ID is required",
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       const success = this.monitoringService.resolveAlert(alertId);
 
       if (!success) {
-        return res.status(404).json({
+        res.status(404).json({
           error: `Alert not found: ${alertId}`,
           timestamp: new Date().toISOString(),
         });
+        return;
       }
 
       structuredLogger.info("Alert resolved via API", {
@@ -982,10 +989,11 @@ export class HealthController {
    */
   async triggerTestAlert(req: Request, res: Response): Promise<void> {
     if (process.env.NODE_ENV === "production") {
-      return res.status(403).json({
+      res.status(403).json({
         error: "Test alerts not available in production",
         timestamp: new Date().toISOString(),
       });
+      return;
     }
 
     try {
@@ -1014,7 +1022,7 @@ export class HealthController {
           );
           break;
         default:
-          return res.status(400).json({
+          res.status(400).json({
             error: "Invalid alert type",
             validTypes: [
               "high_error_rate",
@@ -1023,6 +1031,7 @@ export class HealthController {
             ],
             timestamp: new Date().toISOString(),
           });
+          return;
       }
 
       structuredLogger.info("Test alert triggered", {

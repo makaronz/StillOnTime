@@ -48,6 +48,7 @@ export class MonitoringMiddleware {
 
       // Override res.end to capture response metrics
       const originalEnd = res.end;
+      const monitoringService = this.monitoringService; // Capture in closure
       res.end = function (chunk?: any, encoding?: any, cb?: any) {
         const responseTime = Date.now() - startTime;
         const isError = res.statusCode >= 400;

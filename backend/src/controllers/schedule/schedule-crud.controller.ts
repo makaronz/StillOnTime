@@ -16,6 +16,11 @@ export class ScheduleCrudController extends BaseScheduleController {
     req: Request,
     res: Response
   ): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
     try {
       const { scheduleId } = req.params;
       const updateData = req.body;
@@ -27,7 +32,7 @@ export class ScheduleCrudController extends BaseScheduleController {
       );
 
       if (error) {
-        res.status(error.status).json(error.json);
+        res.status((error as any).status).json((error as any).json);
         return;
       }
 
@@ -93,6 +98,11 @@ export class ScheduleCrudController extends BaseScheduleController {
     req: Request,
     res: Response
   ): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
     try {
       const { scheduleId } = req.params;
 
@@ -103,7 +113,7 @@ export class ScheduleCrudController extends BaseScheduleController {
       );
 
       if (error) {
-        res.status(error.status).json(error.json);
+        res.status((error as any).status).json((error as any).json);
         return;
       }
 

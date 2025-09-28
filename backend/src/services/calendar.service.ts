@@ -122,16 +122,14 @@ export class CalendarService {
 
       // Store in local database
       const localEvent = await this.calendarEventRepository.create({
-        data: {
-          calendarEventId: googleEvent.id,
-          title: eventData.title,
-          startTime: eventData.startTime,
-          endTime: eventData.endTime,
-          description: eventData.description,
-          location: eventData.location,
-          user: { connect: { id: userId } },
-          schedule: { connect: { id: scheduleData.id } },
-        },
+        calendarEventId: googleEvent.id,
+        title: eventData.title,
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        description: eventData.description,
+        location: eventData.location,
+        user: { connect: { id: userId } },
+        schedule: { connect: { id: scheduleData.id } },
       });
 
       logger.info("Successfully created calendar event", {
@@ -247,16 +245,16 @@ export class CalendarService {
       });
 
       // Update local database
-      const updatedLocalEvent = await this.calendarEventRepository.update({
-        where: { id: eventId },
-        data: {
+      const updatedLocalEvent = await this.calendarEventRepository.update(
+        eventId,
+        {
           title: eventData.title,
           startTime: eventData.startTime,
           endTime: eventData.endTime,
           description: eventData.description,
           location: eventData.location,
-        },
-      });
+        }
+      );
 
       logger.info("Successfully updated calendar event", {
         eventId,
@@ -305,9 +303,7 @@ export class CalendarService {
       });
 
       // Delete from local database
-      await this.calendarEventRepository.delete({
-        where: { id: eventId },
-      });
+      await this.calendarEventRepository.delete(eventId);
 
       logger.info("Successfully deleted calendar event", {
         eventId,

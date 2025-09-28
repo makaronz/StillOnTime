@@ -356,10 +356,10 @@ export class CalendarManagerService {
       }
 
       // Update the event
-      const updatedEvent = await this.calendarEventRepository.update({
-        where: { id: eventId },
-        data: updateData,
-      });
+      const updatedEvent = await this.calendarEventRepository.update(
+        eventId,
+        updateData
+      );
 
       // Sync with Google Calendar if needed
       if (
@@ -687,15 +687,15 @@ export class CalendarManagerService {
     switch (resolution.strategy) {
       case "reschedule":
         if (resolution.newStartTime) {
-          await this.calendarEventRepository.update({
-            where: { id: eventId },
-            data: {
+          await this.calendarEventRepository.update(
+            eventId,
+            {
               startTime: resolution.newStartTime,
               endTime:
                 resolution.newEndTime ||
                 new Date(resolution.newStartTime.getTime() + 2 * 60 * 60 * 1000),
-            },
-          });
+            }
+          );
         }
         break;
 

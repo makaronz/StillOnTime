@@ -333,17 +333,15 @@ export class NotificationService {
     );
 
     return this.notificationRepository.create({
-      data: {
-        user: { connect: { id: userId } },
-        channel,
-        template,
-        subject,
-        message,
-        data: data as any,
-        scheduledFor,
-        status: "pending",
-        retryCount: 0,
-      },
+      user: { connect: { id: userId } },
+      channel,
+      template,
+      subject,
+      message,
+      data: data as any,
+      scheduledFor,
+      status: "pending",
+      retryCount: 0,
     });
   }
 
@@ -860,6 +858,22 @@ export class NotificationService {
         error: error instanceof Error ? error.message : String(error),
         functionName: "NotificationService.updateDeliveryStatus",
       });
+    }
+  }
+
+  /**
+   * Find notification by external message ID (e.g., Twilio message SID)
+   */
+  async findNotificationByMessageId(messageId: string): Promise<Notification | null> {
+    try {
+      return await this.notificationRepository.findByMessageId(messageId);
+    } catch (error) {
+      logger.error("Failed to find notification by message ID", {
+        messageId,
+        error: error instanceof Error ? error.message : String(error),
+        functionName: "NotificationService.findNotificationByMessageId",
+      });
+      return null;
     }
   }
 
