@@ -28,4 +28,4 @@ echo "🛑 Press Ctrl+C to stop the server"
 echo ""
 
 cd ./serena-installation
-uv run serena start-mcp-server --config ../serena_config.yml --project ../.serena/project.yml
+uv run serena start-mcp-server --project ../.serena/project.yml
