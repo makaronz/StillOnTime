@@ -1,0 +1,49 @@
+gui_log_window: False
+# whether to open a graphical window with Serena's logs.
+# This is mainly supported on Windows and (partly) on Linux; not available on macOS.
+# If you want to see the logs in a web browser, use the `web_dashboard` option instead.
+
+web_dashboard: True
+# whether to open the Serena web dashboard (which will be accessible through your web browser) that
+# shows Serena's current session logs - as an alternative to the GUI log window which
+# is supported on all platforms.
+
+web_dashboard_open_on_launch: True
+# whether to open a browser window with the web dashboard when Serena starts (provided that web_dashboard
+# is enabled). If set to False, you can still open the dashboard manually by navigating to
+# http://localhost:24282/dashboard/ in your web browser (24282 = 0x5EDA, SErena DAshboard).
+
+log_level: 20
+# the minimum log level for the GUI log window and the dashboard (10 = debug, 20 = info, 30 = warning, 40 = error)
+
+trace_lsp_communication: False
+# whether to trace the communication between Serena and the language servers.
+# This is useful for debugging language server issues.
+
+ls_specific_settings: {}
+# Advanced configuration option allowing to configure language server implementation specific options.
+
+tool_timeout: 240
+# timeout, in seconds, after which tool executions are terminated
+
+excluded_tools: []
+# list of tools to be globally excluded
+
+included_optional_tools: []
+# list of optional tools (which are disabled by default) to be included
+
+jetbrains: False
+# whether to enable JetBrains mode and use tools based on the Serena JetBrains IDE plugin
+
+default_max_tool_answer_chars: 150000
+# Used as default for tools where the apply method has a default maximal answer length.
+
+record_tool_usage_stats: False
+# whether to record tool usage statistics, they will be shown in the web dashboard if recording is active.
+
+token_count_estimator: TIKTOKEN_GPT4O
+# Only relevant if `record_tool_usage` is True; the name of the token count estimator to use for tool usage statistics.
+
+# MANAGED BY SERENA, KEEP AT THE BOTTOM OF THE YAML AND DON'T EDIT WITHOUT NEED
+# The list of registered projects.
+projects: []
