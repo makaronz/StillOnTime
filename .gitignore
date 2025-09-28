@@ -134,3 +134,34 @@ serena-installation/
 PRIVACY_POLICY.md
 privacy-policy.html
 setup-privacy-hosting.md
+
+# Documentation and Analysis Files (generated/transient)
+ANALYSIS_REPORT.md
+CS_Automation_Technical_Documentation.md
+CS_Product_Requirements_Document.md
+CS_Technical_Architecture.md
+E2E_TESTING_SUMMARY.md
+PROJECT_PLAN.md
+RENAME_SUMMARY.md
+SERENA_SETUP.md
+WARP.md
+
+# Task Implementation Summaries
+TASK_*.md
+kilo_code_task_*.md
+
+# Serena Installation and Configuration
+serena_config.yml
+start-serena.sh
+gitingest-ingest/
+
+# POC Engineering Documentation
+poc-engineering/
+
+# Backend Logs and Generated Files
+backend/logs/
+backend/TASK_*.md
+backend/test-sms.js
+
+# Playwright Reports (already covered but ensuring completeness)
+playwright-report/
