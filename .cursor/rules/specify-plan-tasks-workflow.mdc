@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+description: Guardrails for /specify → /plan → /tasks → /analyze flow.
+---
+# Feature Flow Guardrails
+
+- Start with `/specify` to create feature spec from description. Output lives under `specs/[###-feature]/`.
+- Run `/plan` to generate `plan.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`.
+  - `/plan` MUST check `.specify/memory/constitution.md` and pass Constitution Gates.
+  - If Clarifications missing in spec, pause and request `/clarify`.
+- Run `/tasks` to create `tasks.md` from design artifacts. Tasks follow TDD (tests before impl) and parallel `[P]` markers.
+- Only then run `/analyze` (read‑only) to find inconsistencies before implementation.
+
+Always apply Todo2 process from [.claude/rules/todo2.mdc](mdc:.claude/rules/todo2.mdc):
+- Create todos first
+- Search local codebase and the web (2025) and document research with links
+- Keep scope tight, use simple solutions, and add result comments before review.

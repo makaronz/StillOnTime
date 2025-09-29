@@ -1,0 +1,32 @@
+---
+alwaysApply: true
+description: Quick command guide for the StillOnTime monorepo.
+---
+# Monorepo Commands Cheat‑Sheet
+
+Refer to [CLAUDE.md](mdc:CLAUDE.md) and [AGENTS.md](mdc:AGENTS.md).
+
+## Root
+- `npm run dev` – start backend + frontend
+- `npm run build` – build all
+- `npm run test` – run all tests
+- `npm run lint` – lint all
+- `npm install:all` – install deps
+- Docker: `npm run docker:up | down | logs`
+- Prisma: `npm run prisma:migrate | studio | generate`
+- E2E: `npm run test:e2e`, `:headed`, `:smoke`
+
+## Backend (`/backend`)
+- `npm run dev` | `dev:simple`
+- `npm run test` | `test:watch` | `test:coverage`
+- `npm run lint`
+- DB: `npm run db:init | db:test | prisma:studio | prisma:reset`
+
+## Frontend (`/frontend`)
+- `npm run dev | build | preview`
+- Tests: `npm run test | test:watch | test:ui | test:coverage`
+- Lint: `npm run lint`
+
+## Testing Discipline
+- TDD order: write failing tests, then implement.
+- Coverage target: >80% critical paths.

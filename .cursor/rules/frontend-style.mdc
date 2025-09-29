@@ -1,0 +1,12 @@
+---
+globs: frontend/**/*.{ts,tsx}
+description: Frontend React/TypeScript style and testing expectations.
+---
+# Frontend Style & Testing
+
+- Prefer functional components; colocate UI logic with components.
+- Use Zustand for global state and React Hook Form + Zod for forms (per project conventions).
+- Tailwind CSS for styling; keep class names readable and avoid deep nesting.
+- Testing: React Testing Library + Vitest; write tests for components, hooks, and services.
+- Keep API calls in `frontend/src/services`; no fetches in components.
+- Maintain accessibility (WCAG 2.1 AA) and responsive layouts.

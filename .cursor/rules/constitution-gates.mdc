@@ -1,0 +1,39 @@
+---
+alwaysApply: true
+description: Enforce project constitution gates (security, performance, TDD, film domain) across all prompts.
+---
+# Constitution Gates (StillOnTime)
+
+Use these non‑negotiable gates for any proposal, code, or plan. If a suggestion
+violates a MUST, stop and adjust the suggestion instead of diluting the rule.
+Source: [.specify/memory/constitution.md](mdc:.specify/memory/constitution.md)
+
+## Security & Compliance (MUST)
+- OAuth 2.0 with PKCE for all external integrations
+- Secrets encrypted and stored securely; no plaintext keys in repo
+- GDPR: enable deletion capabilities and avoid persistent storage of email content; delete temp PDFs within 1 hour
+- Circuit breakers + exponential backoff + fallbacks for external APIs
+
+## Real‑Time Performance (MUST)
+- Email processing ≤ 2 min; PDF parsing ≤ 30 s; route calc ≤ 15 s; calendar event ≤ 10 s
+- Uptime target 99% during 06:00–22:00 CET; include monitoring and fallbacks
+
+## TDD & Code Quality (MUST)
+- Tests first, then implementation (Red‑Green‑Refactor)
+- Coverage > 80% for critical paths; include unit, integration, and e2e tests
+- TypeScript strict mode
+
+## Film Industry Domain (MUST)
+- Reflect production terminology (call sheets, schedules, logistics)
+- Include industry time buffers (car change, parking, entry, traffic, morning routine, equipment loading)
+- Weather‑based equipment recommendations
+- Handle multi‑location shoots and complex scheduling
+- Ensure manual override capabilities
+
+## Review Checklist (apply to every change)
+- Meets all gates above
+- Clear error handling and structured logging
+- No console.log in production; use centralized logger
+- Swagger/OpenAPI for endpoints when applicable
+
+If any gate cannot be satisfied, explicitly document a simpler alternative and revisit scope rather than adding complexity.

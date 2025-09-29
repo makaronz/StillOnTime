@@ -1,0 +1,12 @@
+---
+globs: backend/**/*.ts
+description: Backend TypeScript linting discipline – explicit return types and strict standards.
+---
+# Backend Linting Discipline (TypeScript)
+
+- Explicit return types for all exported functions and methods (e.g., `Promise<void>`, `Promise<string>`), per [AGENTS.md](mdc:AGENTS.md).
+- No `any` or unsafe casts; prefer precise domain types from `backend/src/types`.
+- Use the shared logger in `backend/src/utils/logger.ts` – no `console.log`.
+- Wrap thrown errors in project error classes and let `backend/src/middleware/errorHandler.ts` map them.
+- Keep controllers thin; push logic to `services/`, persistence to `repositories/`.
+- Maintain strict mode; fix type errors instead of suppressing them.
