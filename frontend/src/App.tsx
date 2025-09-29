@@ -6,6 +6,7 @@ import Login from '@/pages/Login'
 import Configuration from '@/pages/Configuration'
 import History from '@/pages/History'
 import { Monitoring } from '@/pages/Monitoring'
+import PrivacyPolicy from '@/pages/PrivacyPolicy'
 import Layout from '@/components/Layout'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import OAuthCallback from '@/components/OAuthCallback'
@@ -22,6 +23,7 @@ function App(): JSX.Element {
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/auth/callback" element={<OAuthCallback />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       
       {/* Protected routes */}
       <Route
