@@ -1,0 +1,29 @@
+---
+alwaysApply: false
+globs: e2e-tests/**/*.ts,playwright*.config.ts
+description: E2E testing guardrails for Playwright (structure, running, reporting).
+---
+# E2E / Playwright Guardrails
+
+## Structure & Locations
+- Tests live in `e2e-tests/` (see existing specs).
+- Global setup/teardown: `e2e-tests/global-setup.ts`, `e2e-tests/global-teardown.ts`.
+- Runner: `e2e-tests/test-runner.ts`; report available in `playwright-report/`.
+
+## Commands
+- Root: `npm run test:e2e` | `npm run test:e2e:headed` | `npm run test:e2e:smoke` | `npm run test:e2e:report`.
+- Frontend-only: `npm run e2e:frontend`.
+
+## Gates (align with Constitution)
+- Include login/auth flows when applicable (OAuth 2.0 with PKCE).
+- Validate real-time performance targets (route calc ≤ 15s, etc.) with timeouts and measurements.
+- Ensure manual override flows are testable.
+
+## Patterns
+- Prefer data-testids for stable selectors.
+- Isolate network with `route` mocks where external APIs are non-deterministic; keep one happy-path with real services in staging.
+- Capture screenshots/trace on failure; publish HTML report artifact.
+
+## CI Hints
+- Run `npm run docker:up` before tests if environment required.
+- Ensure backend at :3001 and frontend at :3000 are healthy before starting.

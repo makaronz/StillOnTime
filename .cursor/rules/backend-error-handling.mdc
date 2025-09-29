@@ -1,0 +1,12 @@
+---
+globs: backend/**/*.ts
+description: Error handling standards – use hierarchy, middleware mapping, and structured logging.
+---
+# Backend Error Handling Standards
+
+- Use the hierarchical error classes (e.g., `APIError`, `BusinessLogicError`).
+- Always throw domain-specific errors; avoid `throw new Error()` in controllers/services.
+- Central middleware `backend/src/middleware/errorHandler.ts` does mapping to HTTP and logs in JSON.
+- Use `backend/src/utils/logger.ts` for structured logs; no `console.log`.
+- Include `traceId`/request-id in logs; propagate via middleware.
+- For external calls, combine `circuit-breaker.ts` and `retry.ts` (`@withRetry`) with clear error surfaces.
