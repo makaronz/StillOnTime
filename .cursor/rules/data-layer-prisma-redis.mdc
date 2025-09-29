@@ -1,0 +1,20 @@
+---
+globs: backend/src/**/*.{ts}
+description: Data layer patterns for Prisma repositories and Redis caching.
+---
+# Data Layer: Prisma & Redis
+
+## Repository Pattern (Prisma)
+- All DB access goes through `backend/src/repositories/*`.
+- Keep repositories pure (no HTTP, no business logic). Return domain types.
+- Migrations must be reversible; index critical queries.
+- Prefer transactional boundaries in services via `prisma.$transaction`.
+
+## Caching (Redis)
+- Use `backend/src/config/redis.ts` and shared CacheService if present.
+- Cache expensive reads (routes, weather) with TTL; invalidate on writes.
+- Namespaces: `route:`, `weather:`, `user:`; include version keys for schema changes.
+
+## Resilience
+- Wrap external calls with circuit breaker and retry; cache fallbacks where possible.
+- Never cache PII without encryption; follow GDPR deletion on related keys.

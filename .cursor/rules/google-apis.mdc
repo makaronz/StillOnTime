@@ -1,0 +1,23 @@
+---
+alwaysApply: false
+description: Google APIs integration guardrails (OAuth 2.0 PKCE, scopes, quotas, fallbacks).
+---
+# Google APIs Integration
+
+## Auth & Scopes
+- Use OAuth 2.0 with PKCE; no embedded secrets in frontend.
+- Limit scopes to minimum required:
+  - Gmail: `https://www.googleapis.com/auth/gmail.readonly`
+  - Calendar: `https://www.googleapis.com/auth/calendar`
+  - Drive: `https://www.googleapis.com/auth/drive.file`
+- Store tokens securely; rotate/refresh with proper expiry handling.
+
+## Quotas, Resilience, Logging
+- Implement circuit breakers and `@withRetry` exponential backoff.
+- Cache rate-limit headers and respect backoff hints.
+- Emit structured logs with request IDs; never log sensitive payloads.
+
+## Product Constraints (Constitution)
+- Email content processed in-memory; no persistent storage.
+- Temp PDFs deleted within 1 hour.
+- Provide fallbacks for partial outages; surface clear user guidance.
