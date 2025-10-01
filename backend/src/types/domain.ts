@@ -1,8 +1,10 @@
 /**
- * @file This file contains consolidated and standardized type definitions for the backend.
+ * @file Domain model type definitions for StillOnTime backend
+ * @description Consolidated business logic types with strict validation
  */
 
 import { CalendarEvent } from "./index";
+import { z } from "zod";
 
 /**
  * @interface CalendarConflict
@@ -173,10 +175,112 @@ export interface TimeRecommendation {
  * @interface TimeBuffers
  * @description Represents the different time buffers used in the time calculation.
  */
-interface TimeBuffers {
+export interface TimeBuffers {
   carChange: number;
   parking: number;
   entry: number;
   traffic: number;
   morningRoutine: number;
+}
+
+// Zod validation schemas for runtime type checking
+export const CalendarConflictSchema = z.object({
+  conflictingEvent: z.any(), // CalendarEvent schema would be defined separately
+  overlapType: z.enum(["partial", "complete", "encompasses"]),
+  overlapDuration: z.number().min(0),
+  type: z.enum(["time_overlap", "resource_conflict", "location_conflict"]),
+  conflictingData: z.record(z.any()),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+  suggestedResolution: z.string().min(1)
+});
+
+export const AlertRuleSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  condition: z.string().min(1),
+  threshold: z.number(),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+  enabled: z.boolean(),
+  cooldownPeriod: z.number().min(0),
+  lastTriggered: z.date().optional(),
+  description: z.string().min(1)
+});
+
+export const AlertSchema = z.object({
+  id: z.string().min(1),
+  ruleId: z.string().min(1),
+  severity: z.enum(["low", "medium", "high", "critical"]),
+  message: z.string().min(1),
+  timestamp: z.date(),
+  resolved: z.boolean(),
+  resolvedAt: z.date().optional(),
+  metadata: z.record(z.any())
+});
+
+export const TimeBuffersSchema = z.object({
+  carChange: z.number().min(0),
+  parking: z.number().min(0),
+  entry: z.number().min(0),
+  traffic: z.number().min(0),
+  morningRoutine: z.number().min(0)
+});
+
+export const TimeRecommendationSchema = z.object({
+  type: z.enum(["buffer_adjustment", "departure_time", "preparation"]),
+  priority: z.enum(["low", "medium", "high"]),
+  message: z.string().min(1),
+  description: z.string().min(1),
+  impact: z.string().min(1),
+  confidence: z.number().min(0).max(100),
+  suggestedChange: z.object({
+    field: z.string(),
+    currentValue: z.number(),
+    suggestedValue: z.number()
+  }).optional()
+});
+
+// Type validators for runtime validation
+export function validateCalendarConflict(data: unknown): data is CalendarConflict {
+  try {
+    CalendarConflictSchema.parse(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function validateAlertRule(data: unknown): data is AlertRule {
+  try {
+    AlertRuleSchema.parse(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function validateAlert(data: unknown): data is Alert {
+  try {
+    AlertSchema.parse(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function validateTimeBuffers(data: unknown): data is TimeBuffers {
+  try {
+    TimeBuffersSchema.parse(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function validateTimeRecommendation(data: unknown): data is TimeRecommendation {
+  try {
+    TimeRecommendationSchema.parse(data);
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -25,4 +25,11 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  globals: {
+    'ts-jest': {
+      useESM: false,
+      isolatedModules: true,
+    },
+  },
+  testTimeout: 10000,
 };
