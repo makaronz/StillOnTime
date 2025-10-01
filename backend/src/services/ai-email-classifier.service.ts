@@ -3,7 +3,7 @@
  * Advanced machine learning for intelligent email categorization and priority routing
  */
 
-import { logger, structuredLogger } from "../utils/logger";
+import { structuredLogger } from "../utils/logger";
 import { z } from "zod";
 
 // Classification schemas
@@ -195,7 +195,7 @@ export class AIEmailClassifierService {
     } catch (error) {
       structuredLogger.error("Email classification failed", {
         messageId,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       
       // Return fallback classification
@@ -289,7 +289,7 @@ export class AIEmailClassifierService {
     } catch (error) {
       structuredLogger.error("Failed to record feedback", {
         messageId,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   }
@@ -351,8 +351,8 @@ export class AIEmailClassifierService {
     timestamp: Date;
     hasAttachments: boolean;
   }): Promise<{
-    entities: Array<{ type: string; value: string; confidence: number }>;
-    sentiment: { score: number; magnitude: number; emotion: string };
+    entities: Array<{ type: "location" | "time" | "person" | "equipment" | "weather"; value: string; confidence: number }>;
+    sentiment: { score: number; magnitude: number; emotion: "neutral" | "positive" | "negative" | "urgent" | "concerned" };
     urgencyScore: number;
     temporalFeatures: { isTimeSpecific: boolean; timeEntities: string[] };
   }> {
@@ -524,15 +524,15 @@ export class AIEmailClassifierService {
   }
 
   // Utility methods for feature extraction
-  private extractEntities(text: string): Array<{ type: string; value: string; confidence: number }> {
-    const entities = [];
+  private extractEntities(text: string): Array<{ type: "location" | "time" | "person" | "equipment" | "weather"; value: string; confidence: number }> {
+    const entities: Array<{ type: "location" | "time" | "person" | "equipment" | "weather"; value: string; confidence: number }> = [];
     
     // Location extraction
     const locationPattern = /(studio|set|location|venue|address).{0,20}([A-Z][a-z\s,]+)/gi;
     let match;
     while ((match = locationPattern.exec(text)) !== null) {
       entities.push({
-        type: "location",
+        type: "location" as const,
         value: match[2].trim(),
         confidence: 0.8
       });
@@ -542,7 +542,7 @@ export class AIEmailClassifierService {
     const timePattern = /(\d{1,2}:\d{2}|\d{1,2}\s?(am|pm))/gi;
     while ((match = timePattern.exec(text)) !== null) {
       entities.push({
-        type: "time",
+        type: "time" as const,
         value: match[0],
         confidence: 0.9
       });
@@ -551,7 +551,7 @@ export class AIEmailClassifierService {
     return entities;
   }
 
-  private analyzeSentiment(text: string): { score: number; magnitude: number; emotion: string } {
+  private analyzeSentiment(text: string): { score: number; magnitude: number; emotion: "neutral" | "positive" | "negative" | "urgent" | "concerned" } {
     // Simplified sentiment analysis
     const positiveWords = /(good|great|excellent|perfect|ready|confirmed)/gi;
     const negativeWords = /(problem|issue|cancel|delay|emergency|urgent)/gi;
@@ -562,7 +562,7 @@ export class AIEmailClassifierService {
     const score = (positiveMatches - negativeMatches) / Math.max(1, positiveMatches + negativeMatches);
     const magnitude = (positiveMatches + negativeMatches) / text.split(/\s+/).length;
     
-    let emotion = "neutral";
+    let emotion: "neutral" | "positive" | "negative" | "urgent" | "concerned" = "neutral";
     if (score > 0.3) emotion = "positive";
     else if (score < -0.3) emotion = "negative";
     if (negativeMatches > 2) emotion = "urgent";
@@ -593,7 +593,7 @@ export class AIEmailClassifierService {
       /\d{1,2}\/\d{1,2}\/\d{2,4}/g
     ];
     
-    const timeEntities = [];
+    const timeEntities: string[] = [];
     let isTimeSpecific = false;
     
     timePatterns.forEach(pattern => {

@@ -1,0 +1,306 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stillontime-postgres
+  namespace: stillontime-production
+  labels:
+    app.kubernetes.io/name: stillontime-postgres
+    app.kubernetes.io/version: "15"
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: stillontime
+spec:
+  serviceName: stillontime-postgres-headless
+  replicas: 3  # Master + 2 read replicas
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stillontime-postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stillontime-postgres
+        app.kubernetes.io/component: database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+    spec:
+      serviceAccountName: stillontime-postgres
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      initContainers:
+      - name: postgres-init
+        image: postgres:15-alpine
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [ "$HOSTNAME" = "stillontime-postgres-0" ]; then
+            echo "Initializing master database..."
+            export PGUSER="$POSTGRES_USER"
+            export PGPASSWORD="$POSTGRES_PASSWORD"
+            
+            # Initialize master
+            initdb -D /var/lib/postgresql/data --auth-host=md5 --auth-local=peer
+            
+            # Configure replication
+            echo "wal_level = replica" >> /var/lib/postgresql/data/postgresql.conf
+            echo "max_wal_senders = 3" >> /var/lib/postgresql/data/postgresql.conf
+            echo "max_replication_slots = 3" >> /var/lib/postgresql/data/postgresql.conf
+            echo "hot_standby = on" >> /var/lib/postgresql/data/postgresql.conf
+            
+            # Configure authentication
+            echo "host replication replicator 0.0.0.0/0 md5" >> /var/lib/postgresql/data/pg_hba.conf
+          else
+            echo "Initializing replica database..."
+            export PGPASSWORD="$REPLICATION_PASSWORD"
+            pg_basebackup -h stillontime-postgres-0.stillontime-postgres-headless -D /var/lib/postgresql/data -U replicator -W -v -P
+            
+            # Configure standby
+            echo "standby_mode = 'on'" >> /var/lib/postgresql/data/recovery.conf
+            echo "primary_conninfo = 'host=stillontime-postgres-0.stillontime-postgres-headless port=5432 user=replicator'" >> /var/lib/postgresql/data/recovery.conf
+          fi
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-password
+        - name: REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-replication-password
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-db
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      - name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:latest
+        ports:
+        - containerPort: 9187
+          name: metrics
+        env:
+        - name: DATA_SOURCE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: stillontime-secrets
+              key: postgres-exporter-dsn
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+      volumes:
+      - name: postgres-config
+        configMap:
+          name: stillontime-postgres-config
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+      labels:
+        app.kubernetes.io/name: stillontime-postgres
+        app.kubernetes.io/component: database
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "ssd"
+      resources:
+        requests:
+          storage: 100Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stillontime-postgres-headless
+  namespace: stillontime-production
+  labels:
+    app.kubernetes.io/name: stillontime-postgres
+    app.kubernetes.io/component: database
+spec:
+  clusterIP: None
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+  selector:
+    app.kubernetes.io/name: stillontime-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stillontime-postgres-master
+  namespace: stillontime-production
+  labels:
+    app.kubernetes.io/name: stillontime-postgres
+    app.kubernetes.io/component: database
+    service-type: master
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+  selector:
+    app.kubernetes.io/name: stillontime-postgres
+    statefulset.kubernetes.io/pod-name: stillontime-postgres-0
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stillontime-postgres-replica
+  namespace: stillontime-production
+  labels:
+    app.kubernetes.io/name: stillontime-postgres
+    app.kubernetes.io/component: database
+    service-type: replica
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgres
+  selector:
+    app.kubernetes.io/name: stillontime-postgres
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stillontime-postgres
+  namespace: stillontime-production
+  labels:
+    app.kubernetes.io/name: stillontime-postgres
+    app.kubernetes.io/component: database
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stillontime-postgres-config
+  namespace: stillontime-production
+  labels:
+    app.kubernetes.io/name: stillontime-postgres
+    app.kubernetes.io/component: database
+data:
+  postgresql.conf: |
+    # Memory settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    work_mem = 4MB
+    maintenance_work_mem = 64MB
+    
+    # Checkpoint settings
+    checkpoint_completion_target = 0.9
+    wal_buffers = 16MB
+    
+    # Connection settings
+    max_connections = 200
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_truncate_on_rotation = on
+    log_rotation_age = 1d
+    log_rotation_size = 10MB
+    log_min_duration_statement = 1000
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    log_temp_files = 0
+    
+    # Replication settings
+    wal_level = replica
+    max_wal_senders = 3
+    max_replication_slots = 3
+    hot_standby = on
+    hot_standby_feedback = on
+    
+    # Performance tuning
+    random_page_cost = 1.1
+    seq_page_cost = 1.0
+    cpu_tuple_cost = 0.01
+    cpu_index_tuple_cost = 0.005
+    cpu_operator_cost = 0.0025
+    
+    # Autovacuum settings
+    autovacuum = on
+    autovacuum_max_workers = 3
+    autovacuum_naptime = 1min
+    autovacuum_vacuum_threshold = 50
+    autovacuum_analyze_threshold = 50

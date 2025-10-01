@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stillontime-production
+  labels:
+    app.kubernetes.io/name: stillontime
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: namespace
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stillontime-staging
+  labels:
+    app.kubernetes.io/name: stillontime
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: namespace
+    environment: staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stillontime-monitoring
+  labels:
+    app.kubernetes.io/name: stillontime
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: monitoring
+    environment: shared
