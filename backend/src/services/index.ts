@@ -11,6 +11,13 @@ export * from "./gmail.service";
 export * from "./pdf-parser.service";
 export * from "./job-processor.service";
 
+// Enhanced services
+export * from "./enhanced-pdf-parser.service";
+export * from "./enhanced-gmail.service";
+export * from "./enhanced-route-planner.service";
+export * from "./enhanced-calendar.service";
+export * from "./enhanced-service-manager";
+
 // Route planning services
 export * from "./google-maps.service";
 export * from "./route-planner.service";
@@ -64,6 +71,7 @@ import { MonitoringService } from "./monitoring.service";
 import { FallbackService } from "./fallback.service";
 import { ErrorRecoveryService } from "./error-recovery.service";
 import { ErrorRecoveryIntegrationService } from "./error-recovery-integration.service";
+import { EnhancedServiceManager } from "./enhanced-service-manager";
 import { userRepository } from "../repositories/user.repository";
 import { processedEmailRepository } from "../repositories/processed-email.repository";
 import { scheduleDataRepository } from "../repositories/schedule-data.repository";
@@ -72,6 +80,7 @@ import { weatherDataRepository } from "../repositories/weather-data.repository";
 import { calendarEventRepository } from "../repositories/calendar-event.repository";
 import { notificationRepository } from "../repositories/notification.repository";
 import { summaryRepository } from "../repositories/summary.repository";
+import { config } from "../config/config";
 const oauth2Service = new OAuth2Service(userRepository);
 const gmailService = new GmailService(oauth2Service, processedEmailRepository);
 const pdfParserService = new PDFParserService();
@@ -130,6 +139,14 @@ const errorRecoveryIntegrationService = new ErrorRecoveryIntegrationService(
   monitoringService
 );
 
+// Initialize enhanced service manager
+const enhancedServiceManager = new EnhancedServiceManager(
+  oauth2Service,
+  processedEmailRepository,
+  calendarEventRepository,
+  config.enhancedServices
+);
+
 // Service container for dependency injection
 export const services = {
   cache: cacheService,
@@ -154,6 +171,8 @@ export const services = {
   fallback: fallbackService,
   errorRecovery: errorRecoveryService,
   errorRecoveryIntegration: errorRecoveryIntegrationService,
+  // Enhanced services
+  enhancedServiceManager: enhancedServiceManager,
 } as const;
 
 export type ServiceContainer = typeof services;

@@ -19,6 +19,13 @@ interface Config {
     openWeatherApiKey: string;
     googleMapsApiKey: string;
   };
+  enhancedServices: {
+    enableEnhancedPDF: boolean;
+    enableEnhancedEmail: boolean;
+    enableEnhancedRouting: boolean;
+    enableEnhancedCalendar: boolean;
+    enableAIClassification: boolean;
+  };
 }
 
 // Helper function to get required environment variable
@@ -59,6 +66,13 @@ export const config: Config = {
   apis: {
     openWeatherApiKey: getRequiredEnvVar("OPENWEATHER_API_KEY"),
     googleMapsApiKey: getRequiredEnvVar("GOOGLE_MAPS_API_KEY"),
+  },
+  enhancedServices: {
+    enableEnhancedPDF: process.env.ENABLE_ENHANCED_PDF !== "false",
+    enableEnhancedEmail: process.env.ENABLE_ENHANCED_EMAIL !== "false",
+    enableEnhancedRouting: process.env.ENABLE_ENHANCED_ROUTING !== "false",
+    enableEnhancedCalendar: process.env.ENABLE_ENHANCED_CALENDAR !== "false",
+    enableAIClassification: process.env.ENABLE_AI_CLASSIFICATION === "true",
   },
 };
 

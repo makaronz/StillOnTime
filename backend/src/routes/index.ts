@@ -7,6 +7,7 @@ import { calendarRoutes } from "./calendar.routes";
 import { routePlanningRoutes } from "./route-planning.routes";
 import smsRoutes from "./sms.routes";
 import { createMonitoringRoutes } from "./monitoring.routes";
+import enhancedRoutes from "./enhanced.routes";
 import { HealthController } from "../controllers/health.controller";
 import { MonitoringMiddleware } from "../middleware/monitoring.middleware";
 
@@ -38,6 +39,9 @@ router.use("/route-planning", routePlanningRoutes);
 // SMS notification routes - /api/sms/*
 router.use("/sms", smsRoutes);
 
+// Enhanced services routes - /api/enhanced/*
+router.use("/enhanced", enhancedRoutes);
+
 // Monitoring and health routes - /api/monitoring/*
 // Note: These will be initialized in the main app with proper dependencies
 function initializeMonitoringRoutesImpl(
@@ -66,6 +70,7 @@ router.get("/health", (req, res) => {
       calendar: "/api/calendar",
       routePlanning: "/api/route-planning",
       sms: "/api/sms",
+      enhanced: "/api/enhanced",
       monitoring: "/api/monitoring",
     },
   });

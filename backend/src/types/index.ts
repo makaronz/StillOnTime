@@ -500,3 +500,203 @@ export function safeGetContactInfoArray(data: unknown): ContactInfo[] {
 
   return [];
 }
+
+// Enhanced Services Types
+export interface EnhancedServiceConfig {
+  enableEnhancedPDF: boolean;
+  enableEnhancedEmail: boolean;
+  enableEnhancedRouting: boolean;
+  enableEnhancedCalendar: boolean;
+  enableAIClassification: boolean;
+}
+
+// Enhanced PDF Parser Types
+export interface EnhancedPDFMetadata {
+  pages: number;
+  creator?: string;
+  producer?: string;
+  creationDate?: Date;
+  title?: string;
+  subject?: string;
+  keywords?: string[];
+  textLength: number;
+  extractionMethod: "text" | "ocr" | "hybrid";
+  processingTimeMs: number;
+}
+
+export interface EnhancedExtractionResult {
+  scheduleData: any; // ParsedScheduleData from PDFParserService
+  metadata: EnhancedPDFMetadata;
+  aiEnhanced: boolean;
+  qualityScore: number;
+  extractionDetails: {
+    textExtracted: boolean;
+    ocrUsed: boolean;
+    aiPostProcessed: boolean;
+    confidenceBoost: number;
+  };
+}
+
+// Enhanced Email Processing Types
+export interface EnhancedEmailAnalysis {
+  isScheduleEmail: boolean;
+  confidence: number;
+  reasons: string[];
+  metadata: {
+    subjectAnalysis: {
+      containsScheduleKeywords: boolean;
+      keywordCount: number;
+      urgencyIndicators: string[];
+    };
+    contentAnalysis: {
+      hasTimeReferences: boolean;
+      hasLocationReferences: boolean;
+      hasContactInfo: boolean;
+      textQuality: number;
+    };
+    senderAnalysis: {
+      domain: string;
+      trustScore: number;
+      isKnownSender: boolean;
+      reputation: "high" | "medium" | "low" | "unknown";
+    };
+    attachmentAnalysis: {
+      totalAttachments: number;
+      pdfCount: number;
+      suspiciousAttachments: number;
+      attachmentQuality: number;
+    };
+  };
+  aiClassification?: {
+    category: string;
+    extractedData: any;
+    confidence: number;
+  };
+}
+
+export interface EnhancedEmailProcessingResult {
+  processed: boolean;
+  analysis: EnhancedEmailAnalysis;
+  extractedScheduleData?: any;
+  processingTime: number;
+  errors: string[];
+  recommendations: string[];
+}
+
+// Enhanced Route Planning Types
+export interface EnhancedRouteOptions {
+  includeAlternatives: boolean;
+  optimizeForTraffic: boolean;
+  considerWeather: boolean;
+  maxAlternatives: number;
+  preferFastestRoute: boolean;
+  avoidTolls: boolean;
+  avoidHighways: boolean;
+}
+
+export interface TrafficPattern {
+  averageDelay: number;
+  variability: number;
+  confidence: number;
+  historicalData: {
+    dayOfWeek: number;
+    hourOfDay: number;
+    averageDuration: number;
+    trafficFactor: number;
+  }[];
+}
+
+export interface PredictiveRouteResult {
+  // Extends RouteCalculationResult from route-planner.service
+  predictionConfidence: number;
+  trafficPrediction: {
+    expectedDelay: number;
+    worstCaseScenario: number;
+    bestCaseScenario: number;
+    reliability: number;
+  };
+  adaptiveAlternatives: any[]; // RouteCalculationResult[]
+  intelligentRecommendations: {
+    departureTimeAdjustment: number;
+    bufferRecommendation: number;
+    routeQuality: "excellent" | "good" | "fair" | "poor";
+    warnings: string[];
+  };
+}
+
+export interface MultiDestinationOptimization {
+  optimizedOrder: ScheduleData[];
+  totalTravelTime: number;
+  totalDistance: number;
+  timesSaved: number;
+  fuelSavings: number;
+  routeEfficiency: number;
+}
+
+// Enhanced Calendar Types
+export interface EnhancedCalendarOptions {
+  generateICSFile: boolean;
+  includeCrewInvites: boolean;
+  enableTimezoneIntelligence: boolean;
+  optimizeScheduleTiming: boolean;
+  addWeatherAlerts: boolean;
+  includeRouteInstructions: boolean;
+}
+
+export interface TimezoneAnalysis {
+  userTimezone: string;
+  locationTimezone: string;
+  timezoneOffset: number;
+  daylightSavingChanges: {
+    upcoming: boolean;
+    date?: Date;
+    timeChange: number;
+  };
+  recommendations: string[];
+}
+
+export interface ScheduleOptimization {
+  suggestedCallTime: string;
+  originalCallTime: string;
+  optimizationReasons: string[];
+  efficiencyGain: number;
+  lightingAnalysis: {
+    sunrise: Date;
+    sunset: Date;
+    goldenHour: { start: Date; end: Date };
+    blueHour: { start: Date; end: Date };
+    recommendations: string[];
+  };
+  trafficAnalysis: {
+    peakHours: string[];
+    recommendedDeparture: Date;
+    trafficScore: number;
+  };
+}
+
+export interface CrewDistribution {
+  totalInvitesSent: number;
+  deliveryMethods: {
+    email: number;
+    ics: number;
+    mobile: number;
+  };
+  responses: {
+    accepted: number;
+    declined: number;
+    pending: number;
+  };
+  conflictingMembers: Array<{
+    name: string;
+    email: string;
+    conflict: string;
+  }>;
+}
+
+export interface EnhancedCalendarEventResult {
+  calendarEvent: CalendarEvent;
+  icsFile?: string;
+  timezoneAnalysis?: TimezoneAnalysis;
+  scheduleOptimization?: ScheduleOptimization;
+  crewDistribution?: CrewDistribution;
+}
