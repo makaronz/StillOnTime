@@ -508,7 +508,7 @@ export class GmailService {
   /**
    * Extract header value from Gmail message headers
    */
-  private getHeaderValue(
+  protected getHeaderValue(
     headers: gmail_v1.Schema$MessagePartHeader[],
     name: string
   ): string | undefined {

@@ -262,8 +262,8 @@ export class EnhancedPDFParserService extends PDFParserService {
                 });
               }
             },
-            tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-            tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
+            // tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+            // tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
           });
 
           return {
@@ -341,7 +341,7 @@ export class EnhancedPDFParserService extends PDFParserService {
       // Merge AI results with original extraction
       const enhancedData: ParsedScheduleData = {
         ...originalData,
-        confidence: Math.max(originalData.confidence, aiClassification.confidence || 0),
+        confidence: Math.max(originalData.confidence, aiClassification.classification?.confidence || 0),
       };
 
       // Apply AI corrections for specific fields

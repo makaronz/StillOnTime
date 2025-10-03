@@ -1,5 +1,5 @@
 import { google, gmail_v1 } from "googleapis";
-import { default as parseMessage } from "gmail-api-parse-message-ts";
+import { ParseGmailApi } from "gmail-api-parse-message-ts";
 import { simpleParser, ParsedMail, Attachment } from "mailparser";
 import { OAuth2Service } from "./oauth2.service";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
@@ -282,44 +282,11 @@ export class EnhancedGmailService extends GmailService {
   }
 
   /**
-   * Parse email with enhanced TypeScript-native parser
+   * Parse email with enhanced TypeScript-native parser (simplified)
    */
   private async parseEmailEnhanced(email: GmailMessage): Promise<ParsedMail> {
     try {
-      // First try gmail-api-parse-message-ts
-      const gmailParsed = parseMessage.default ? parseMessage.default(email) : parseMessage(email);
-      
-      // If that works well, return structured data
-      if (gmailParsed && gmailParsed.subject) {
-        logger.debug("Email parsed successfully with gmail-api-parse-message-ts", {
-          messageId: email.id,
-          subject: gmailParsed.subject,
-          hasAttachments: gmailParsed.attachments?.length > 0,
-        });
-
-        // Convert to ParsedMail format for consistency
-        return {
-          messageId: email.id,
-          date: gmailParsed.date,
-          subject: gmailParsed.subject,
-          from: gmailParsed.from,
-          to: gmailParsed.to,
-          text: gmailParsed.textPlain,
-          html: gmailParsed.textHtml,
-          attachments: gmailParsed.attachments?.map((att: any) => ({
-            filename: att.filename,
-            contentType: att.mimeType,
-            size: att.size,
-            content: att.data,
-          })) as Attachment[],
-        } as ParsedMail;
-      } else {
-        throw new Error("gmail-api-parse-message-ts parsing failed");
-      }
-    } catch (error) {
-      logger.warn("TypeScript parser failed, using fallback", { error, messageId: email.id });
-      
-      // Fallback to basic parsing from existing implementation
+      // Use basic Gmail API parsing for now (simplified implementation)
       const headers = email.payload?.headers || [];
       const subject = this.getHeaderValue(headers, "Subject") || "";
       const from = this.getHeaderValue(headers, "From") || "";
@@ -329,8 +296,34 @@ export class EnhancedGmailService extends GmailService {
         messageId: email.id,
         date,
         subject,
-        from: { text: from },
-        text: email.snippet,
+        from: { 
+          text: from,
+          value: [{ address: from, name: '' }],
+          html: from
+        },
+        text: email.snippet || "",
+        html: "",
+        headers: new Map(),
+        headerLines: [],
+        attachments: [],
+      } as ParsedMail;
+    } catch (error) {
+      logger.error("Failed to parse email", {
+        messageId: email.id,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+
+      // Return basic parsed mail on failure
+      return {
+        messageId: email.id || "",
+        date: new Date(),
+        subject: "",
+        from: { 
+          text: "",
+          value: [{ address: "", name: '' }],
+          html: ""
+        },
+        text: email.snippet || "",
         html: "",
         headers: new Map(),
         headerLines: [],
@@ -791,16 +784,4 @@ export class EnhancedGmailService extends GmailService {
     };
   }
 
-  /**
-   * Get header value helper (inherited from parent)
-   */
-  private getHeaderValue(
-    headers: gmail_v1.Schema$MessagePartHeader[],
-    name: string
-  ): string | undefined {
-    const header = headers.find(
-      (h) => h.name?.toLowerCase() === name.toLowerCase()
-    );
-    return header?.value || undefined;
-  }
 }

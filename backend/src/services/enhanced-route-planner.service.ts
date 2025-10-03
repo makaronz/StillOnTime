@@ -82,8 +82,8 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
     this.mapsClient = new Client({
       config: {
         timeout: 10000,
-        retry: true,
-        retryDelay: 1000,
+        // retry: true, // Not supported in Client config
+        // retryDelay: 1000, // Not supported in Client config
       }
     });
 
@@ -432,14 +432,14 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
       routeQuality = "poor";
     } else if (baseRoute.wakeUpTime.getHours() < 5) {
       warnings.push("Early wake-up time - ensure adequate rest");
-      routeQuality = routeQuality === "excellent" ? "good" : routeQuality;
+      routeQuality = "good";
     }
 
     // Analyze traffic conditions
     if (trafficPrediction.worstCaseScenario > 60) {
       warnings.push("High traffic variability - consider additional buffer time");
       bufferRecommendation = 30;
-      routeQuality = routeQuality === "excellent" ? "fair" : "poor";
+      routeQuality = "poor";
     } else if (trafficPrediction.expectedDelay > 30) {
       warnings.push("Moderate traffic expected");
       bufferRecommendation = 15;
@@ -451,7 +451,7 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
       routeQuality = "poor";
     } else if (baseRoute.totalTravelMinutes > 120) {
       warnings.push("Long travel time - plan for rest stops");
-      routeQuality = routeQuality === "excellent" ? "good" : routeQuality;
+      routeQuality = "good";
     }
 
     // Check if alternatives are significantly better
@@ -537,7 +537,7 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
           origin,
           destination,
           departure_time: departureTime,
-          traffic_model: "best_guess",
+          traffic_model: "best_guess" as any, // Google Maps API traffic model
           key: process.env.GOOGLE_MAPS_API_KEY!,
         },
       });

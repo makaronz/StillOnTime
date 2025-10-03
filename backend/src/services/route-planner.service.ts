@@ -37,7 +37,7 @@ export interface RouteSegment {
 
 export class RoutePlannerService {
   private googleMapsService: GoogleMapsService;
-  private userConfigRepository: UserConfigRepository;
+  protected userConfigRepository: UserConfigRepository;
   private routePlanRepository: RoutePlanRepository;
 
   constructor() {
@@ -241,7 +241,7 @@ export class RoutePlannerService {
   /**
    * Parse call time string and create Date objects
    */
-  private parseCallTime(
+  protected parseCallTime(
     shootingDate: Date,
     callTimeStr: string
   ): {

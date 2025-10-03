@@ -56,7 +56,7 @@ import { cacheInvalidationService } from "./cache-invalidation.service";
 import { OAuth2Service } from "./oauth2.service";
 import { GmailService } from "./gmail.service";
 import { PDFParserService } from "./pdf-parser.service";
-import { JobProcessorService } from "./job-processor";
+import { JobProcessorService } from "./job-processor.service";
 import { GoogleMapsService } from "./google-maps.service";
 import { RoutePlannerService } from "./route-planner.service";
 import { TimeCalculationService } from "./time-calculation.service";
