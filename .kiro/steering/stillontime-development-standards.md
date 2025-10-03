@@ -2,221 +2,160 @@
 inclusion: always
 ---
 
-# StillOnTime Film Schedule Automation - Development Standards
+# StillOnTime Development Standards
 
-## Code Standards and Best Practices
+## Architecture Overview
 
-### TypeScript Development
+**Monorepo Structure**: Backend (Node.js/TypeScript) + Frontend (React/TypeScript)
 
-- Use strict TypeScript configuration with `noImplicitAny` and `strictNullChecks`
-- Prefer interfaces over types for object shapes
-- Use proper error handling with custom error classes
-- Implement proper logging with structured data
-- Follow functional programming principles where applicable
+- **Database**: PostgreSQL with Prisma ORM, Redis for caching
+- **Authentication**: Google OAuth 2.0 with JWT sessions
+- **External APIs**: Google Calendar, Gmail, Maps, OpenWeather
+- **Background Jobs**: Email processing, weather updates, route calculations
 
-### API Development Standards
+## Code Standards
 
-- Use RESTful API design principles
-- Implement proper HTTP status codes (200, 201, 400, 401, 403, 404, 500)
-- Use consistent error response format:
+### TypeScript
 
-```typescript
-interface ErrorResponse {
-  error: string;
-  message: string;
-  code: string;
-  timestamp: string;
-  path: string;
-}
-```
+- Use strict mode with `noImplicitAny` and `strictNullChecks`
+- Prefer `interface` over `type` for object shapes
+- Create custom error classes extending base `Error`
+- Use Winston for structured logging with request IDs
 
-### OAuth 2.0 Security Standards
+### API Design
 
-- Always use HTTPS in production
-- Implement PKCE (Proof Key for Code Exchange) for OAuth flows
-- Store tokens securely with encryption
-- Implement proper token refresh mechanisms
-- Use minimal required scopes for Google APIs
-- Implement proper session management with JWT
+- RESTful endpoints with proper HTTP status codes (200, 201, 400, 401, 404, 500)
+- Standardized error responses: `{ error: string, message: string, code: string, timestamp: string, path: string }`
+- Validate all inputs using middleware
+- Implement rate limiting per user/endpoint
 
-### Database Standards
+### Database (Prisma)
 
-- Use Prisma migrations for all schema changes
-- Implement proper indexing for query performance
-- Use transactions for multi-table operations
-- Follow naming conventions: camelCase for fields, PascalCase for models
-- Implement soft deletes where appropriate
+- **ALWAYS** generate migrations for schema changes
+- Naming: `camelCase` for fields, `PascalCase` for models
+- Wrap multi-table operations in transactions
+- Add indexes for frequently queried fields
 
-### Error Handling Standards
+### Security
 
-- Use custom error classes with proper inheritance
-- Implement exponential backoff for API retries
-- Log all errors with context and stack traces
-- Provide user-friendly error messages
-- Implement circuit breaker pattern for external APIs
+- Use HTTPS in production
+- Implement PKCE for OAuth flows
+- Store tokens encrypted in database
+- Request minimal Google API scopes only
+- Apply CORS and security headers via helmet.js
 
-### Testing Standards
+## Business Logic Rules
 
-- Maintain minimum 80% code coverage
-- Use Jest for unit and integration tests
-- Mock external API calls in tests
-- Test OAuth flows with test tokens
-- Implement end-to-end tests for critical paths
+### Email Processing Pipeline
 
-### Performance Standards
-
-- Implement caching for frequently accessed data
-- Use background jobs for heavy processing
-- Optimize database queries with proper indexing
-- Implement rate limiting for API endpoints
-- Monitor and log performance metrics
-
-### Security Standards
-
-- Validate and sanitize all user inputs
-- Implement proper CORS configuration
-- Use helmet.js for security headers
-- Implement rate limiting per user
-- Regular security audits of dependencies
-- Encrypt sensitive data at rest
-
-## StillOnTime-Specific Business Logic
-
-### Email Processing Rules
-
-- Only process emails with schedule keywords in subject
-- Validate sender domains against whitelist
-- Require PDF attachment for processing
-- Implement duplicate detection using message ID and PDF hash
-- Process emails every 5 minutes maximum
+- **Filter**: Only process emails with schedule keywords in subject line
+- **Validation**: Check sender domains against approved whitelist
+- **Requirements**: PDF attachment mandatory for processing
+- **Deduplication**: Use message ID + PDF hash to prevent duplicates
+- **Rate Limit**: Process maximum every 5 minutes
 
 ### Schedule Data Validation
 
-- Shooting date must be in YYYY-MM-DD format
-- Call time must be in HH:MM 24-hour format
-- Location must be geocodable address
-- Scene type must be 'INT' or 'EXT'
-- Validate extracted data confidence scores
+- **Date Format**: YYYY-MM-DD (ISO 8601)
+- **Time Format**: HH:MM (24-hour format)
+- **Location**: Must be geocodable via Google Maps API
+- **Scene Type**: Only 'INT' (interior) or 'EXT' (exterior)
+- **Confidence**: Validate PDF extraction confidence scores before accepting
 
-### Route Calculation Rules
+### Route Calculation Logic
 
-- Always calculate Dom→Panavision→Location route
-- Apply standard buffers: 15min car change, 10min parking, 10min entry, 20min traffic, 45min morning routine
-- Use real-time traffic data when available
-- Validate wake-up time is not before 4:00 AM
-- Provide alternative routes when possible
+- **Standard Route**: Home → Panavision Equipment → Shooting Location
+- **Time Buffers**: 15min equipment + 10min parking + 10min entry + 20min traffic + 45min morning routine
+- **Traffic**: Use real-time data when available, fallback to historical
+- **Constraints**: Wake-up time never before 4:00 AM
+- **Alternatives**: Always provide backup route options
 
-### Calendar Integration Rules
+### Calendar Event Creation
 
-- Event title format: "StillOnTime — Dzień zdjęciowy (location)"
-- Set event duration: departure time to call_time + 10 hours
-- Create 3 alarms: wake_up-10min, wake_up, wake_up+5min
-- Set reminders: -12h, -3h, -1h, departure time
-- Include comprehensive description with all details
+- **Title Format**: "StillOnTime — Dzień zdjęciowy ({location})"
+- **Duration**: From departure_time to (call_time + 10 hours)
+- **Alarms**: Set at wake_up-10min, wake_up, wake_up+5min
+- **Reminders**: -12h, -3h, -1h, departure_time
 
-### Weather Integration Rules
+### Weather Data Integration
 
-- Fetch weather for EXT shoots (detailed), INT shoots (basic)
-- Generate warnings for: temp <0°C or >30°C, precipitation >0mm, wind >10m/s
-- Update weather data 24 hours before shooting
-- Cache weather data for 24 hours
-- Provide fallback when weather API unavailable
+- **EXT Shoots**: Full weather details (temp, precipitation, wind, visibility)
+- **INT Shoots**: Basic weather overview only
+- **Warnings**: Alert if temp <0°C or >30°C, precipitation >0mm, wind >10m/s
+- **Timing**: Update 24h before shoot, cache for 24h
 
-## File Organization
+## Project Structure
 
-### Backend Structure
+### Backend (`backend/src/`)
 
-```
-backend/
-├── src/
-│   ├── controllers/     # API route handlers
-│   ├── services/        # Business logic services
-│   ├── repositories/    # Data access layer
-│   ├── middleware/      # Express middleware
-│   ├── types/          # TypeScript type definitions
-│   ├── utils/          # Utility functions
-│   ├── config/         # Configuration files
-│   └── jobs/           # Background job processors
-├── prisma/             # Database schema and migrations
-├── tests/              # Test files
-└── docker/             # Docker configuration
-```
+- `controllers/` - Express route handlers (thin layer, delegate to services)
+- `services/` - Core business logic (main processing logic)
+- `repositories/` - Data access layer (Prisma queries and caching)
+- `middleware/` - Express middleware (auth, validation, logging)
+- `types/` - Shared TypeScript interfaces and types
+- `utils/` - Pure utility functions (no business logic)
+- `config/` - Environment and service configuration
+- `jobs/` - Background job processors (email, weather, routes)
 
-### Frontend Structure
+### Frontend (`frontend/src/`)
 
-```
-frontend/
-├── src/
-│   ├── components/     # Reusable UI components
-│   ├── pages/          # Page components
-│   ├── hooks/          # Custom React hooks
-│   ├── services/       # API service functions
-│   ├── stores/         # Zustand state stores
-│   ├── types/          # TypeScript interfaces
-│   ├── utils/          # Utility functions
-│   └── styles/         # Global styles and Tailwind config
-├── public/             # Static assets
-└── tests/              # Frontend tests
-```
+- `components/` - Reusable UI components (follow atomic design)
+- `pages/` - Route-level page components
+- `hooks/` - Custom React hooks (encapsulate stateful logic)
+- `services/` - API client functions (axios-based)
+- `stores/` - Zustand state management (global app state)
+- `types/` - TypeScript interfaces (shared with backend)
+- `utils/` - Pure utility functions
+- `styles/` - Tailwind CSS and global styles
 
-## Environment Configuration
+### File Naming Conventions
 
-### Required Environment Variables
+- **Components**: PascalCase (`UserProfile.tsx`)
+- **Services**: camelCase with `.service` suffix (`gmail.service.ts`)
+- **Types**: camelCase with `.types` suffix (`calendar.types.ts`)
+- **Tests**: Same name as file + `.test` suffix (`gmail.service.test.ts`)
 
-```bash
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/stillontime_automation"
-REDIS_URL="redis://localhost:6379"
+## Development Guidelines
 
-# Google OAuth 2.0
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-GOOGLE_REDIRECT_URI="http://localhost:3000/auth/callback"
+### Error Handling
 
-# External APIs
-OPENWEATHER_API_KEY="your-openweather-api-key"
-GOOGLE_MAPS_API_KEY="your-google-maps-api-key"
+- Use custom error classes extending base `Error`
+- Implement circuit breakers for external API calls
+- Add retry logic with exponential backoff
+- Log all errors with context and request IDs
+- Return user-friendly error messages in API responses
 
-# Application
-JWT_SECRET="your-jwt-secret"
-NODE_ENV="development"
-PORT="3001"
-FRONTEND_URL="http://localhost:3000"
-```
+### Performance
 
-## Deployment Guidelines
+- Implement Redis caching for frequently accessed data
+- Use database connection pooling
+- Optimize Prisma queries with proper `include`/`select`
+- Implement pagination for list endpoints
+- Use lazy loading for frontend components
 
-### Development Environment
+### Code Quality
 
-- Use Docker Compose for local development
-- Hot reloading for both frontend and backend
-- Use test databases with sample data
-- Mock external APIs when possible
+- Run ESLint with strict rules before committing
+- Use Prettier for consistent code formatting
+- Write unit tests for all service layer functions
+- Integration tests for API endpoints
+- E2E tests for critical user flows
 
-### Production Environment
+### Logging & Monitoring
 
-- Use environment-specific configuration
-- Implement proper logging and monitoring
-- Use HTTPS for all communications
-- Implement proper backup strategies
-- Use connection pooling for database
-- Implement health checks for all services
+- **Winston Logging**: Structured logs with levels (error, warn, info, debug)
+- **Request Tracing**: Include unique request IDs in all logs
+- **API Monitoring**: Track response times, error rates, OAuth flows
+- **Business Metrics**: Email processing rates, calendar sync success, route calculation performance
 
-## Monitoring and Logging
+## AI Assistant Guidelines
 
-### Logging Standards
+### When Working with This Codebase
 
-- Use structured logging with Winston
-- Log levels: error, warn, info, debug
-- Include request IDs for tracing
-- Log all OAuth flows and API calls
-- Implement log rotation and retention
-
-### Monitoring Requirements
-
-- Monitor API response times
-- Track OAuth token refresh rates
-- Monitor email processing success rates
-- Track calendar event creation success
-- Monitor external API usage and quotas
-- Implement alerting for critical failures
+- Always follow the layered architecture: Controllers → Services → Repositories
+- Use existing error classes and logging patterns
+- Implement proper validation before database operations
+- Follow the established naming conventions
+- Add appropriate tests when creating new functionality
+- Consider caching implications for data operations
+- Validate business logic rules before implementation

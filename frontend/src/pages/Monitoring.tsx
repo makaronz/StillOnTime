@@ -24,8 +24,6 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 
 const REFRESH_INTERVAL = 30000;
 
-const REFRESH_INTERVAL = 30000;
-
 export const Monitoring: React.FC = () => {
   const [dashboard, setDashboard] = useState<MonitoringDashboard | null>(null);
   const [loading, setLoading] = useState(true);

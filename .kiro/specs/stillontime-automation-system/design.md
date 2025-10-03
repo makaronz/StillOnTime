@@ -98,15 +98,19 @@ graph TD
 
 ### System Components
 
-1. **OAuth 2.0 Service** - zarządzanie autentykacją Google
-2. **Email Monitor** - monitorowanie i filtrowanie emaili Gmail
-3. **PDF Parser** - ekstrakcja danych z załączników PDF
-4. **Route Planner** - obliczanie optymalnych tras z uwzględnieniem ruchu
-5. **Weather Service** - integracja z API pogodowymi
-6. **Calendar Manager** - zarządzanie wydarzeniami i alarmami Google Calendar
-7. **Notification Manager** - system powiadomień wielokanałowych
-8. **Background Job Processor** - przetwarzanie zadań w tle
-9. **React Dashboard** - interfejs użytkownika
+1. **OAuth 2.0 Service** - zarządzanie autentykacją Google z automatycznym odświeżaniem tokenów
+2. **Email Monitor** - monitorowanie i filtrowanie emaili Gmail co 5 minut z retry logic
+3. **PDF Parser** - ekstrakcja danych z załączników PDF z OCR i interfejsem korekty
+4. **Route Planner** - obliczanie optymalnych tras z walidacją czasów i alternatywami
+5. **Weather Service** - integracja z API pogodowymi z różnicowaniem INT/EXT
+6. **Calendar Manager** - zarządzanie wydarzeniami z alarmami i integracją SMS
+7. **Notification Service** - system powiadomień wielokanałowych (email/SMS/push)
+8. **Summary Generator** - generowanie podsumowań w języku polskim
+9. **Analytics Service** - analiza danych historycznych i optymalizacja
+10. **Background Job Processor** - przetwarzanie zadań w tle z monitorowaniem
+11. **Error Handler** - obsługa błędów z graceful degradation
+12. **Configuration Manager** - bezpieczne zarządzanie konfiguracją systemu
+13. **React Dashboard** - interfejs użytkownika z analityką i kontrolą
 
 ## Components and Interfaces
 
@@ -134,7 +138,7 @@ class OAuth2Service {
 
 ### 2. Email Monitor Service
 
-**Purpose:** Wykrywanie i filtrowanie emaili z harmonogramami z załącznikami PDF
+**Purpose:** Wykrywanie i filtrowanie emaili z harmonogramami z załącznikami PDF z automatycznym monitorowaniem co 5 minut
 
 **Interface:**
 
@@ -145,19 +149,31 @@ class EmailMonitorService {
   async isEmailProcessed(messageId: string): Promise<boolean>;
   async markAsProcessed(emailData: ProcessedEmail): Promise<void>;
   validateScheduleEmail(email: GmailMessage): boolean;
+  async retryFailedProcessing(
+    messageId: string,
+    retryCount: number
+  ): Promise<void>;
+  async schedulePeriodicMonitoring(userId: string): Promise<void>;
 }
 ```
 
 **Filtering Criteria:**
 
 - Subject keywords: "plan zdjęciowy", "drabinka", "call time", "shooting schedule"
-- Sender domain validation
-- PDF attachment presence
-- Duplicate detection via Message-ID hash
+- Sender domain validation and whitelist checking
+- PDF attachment presence validation
+- Duplicate detection via Message-ID hash and PDF content hash
+- Processing within 5 minutes of email arrival
+
+**Retry Logic:**
+
+- Maximum 3 retry attempts with exponential backoff (2^n seconds)
+- Failure tracking and error reporting
+- Automatic recovery after system restoration
 
 ### 3. PDF Parser Service
 
-**Purpose:** Ekstrakcja strukturalnych danych z plików PDF harmonogramów
+**Purpose:** Ekstrakcja strukturalnych danych z plików PDF harmonogramów z OCR i interfejsem korekty manualnej
 
 **Interface:**
 
@@ -170,21 +186,34 @@ class PDFParserService {
   async extractTextFromPDF(pdfBuffer: Buffer): Promise<string>;
   parseScheduleData(pdfText: string): Partial<ScheduleData>;
   validateExtractedData(data: Partial<ScheduleData>): ValidationResult;
+  async performOCR(pdfBuffer: Buffer): Promise<OCRResult>;
+  generateConfidenceScore(extractedData: Partial<ScheduleData>): number;
+  createManualCorrectionInterface(
+    failedData: Partial<ScheduleData>
+  ): CorrectionInterface;
 }
 ```
 
 **Extraction Targets:**
 
-- Shooting date (YYYY-MM-DD format)
-- Call time (HH:MM 24-hour format)
-- Location addresses with geocoding validation
+- Shooting date (YYYY-MM-DD format) with validation
+- Call time (HH:MM 24-hour format) with validation
+- Location addresses with Google Maps geocoding validation
 - Scene numbers and INT/EXT designation
-- Safety notes and contact information
-- Equipment lists and special requirements
+- Contact information (names and phone numbers)
+- Safety notes and special requirements
+- Equipment lists and crew information
+
+**OCR and Validation:**
+
+- OCR fallback for scanned PDFs using Tesseract.js
+- Confidence scoring (0-100%) for extracted data reliability
+- Manual correction interface for failed or low-confidence extractions
+- Data validation against expected formats and ranges
 
 ### 4. Route Planner Service
 
-**Purpose:** Obliczanie optymalnych tras Dom→Panavision→Lokacja z uwzględnieniem ruchu
+**Purpose:** Obliczanie optymalnych tras Dom→Panavision→Lokacja z uwzględnieniem ruchu i walidacją czasów
 
 **Interface:**
 
@@ -202,6 +231,17 @@ class RoutePlannerService {
   ): Promise<RoutePlan>;
   applyTimeBuffers(baseTime: number, buffers: TimeBuffers): number;
   validateRouteResults(routeData: RouteResult): boolean;
+  async getAlternativeRoutes(routePlan: RoutePlan): Promise<RouteAlternative[]>;
+  calculateWakeUpTime(
+    callTime: string,
+    totalTravelTime: number,
+    buffers: TimeBuffers
+  ): Date;
+  validateReasonableWakeUpTime(wakeUpTime: Date): ValidationResult;
+  async getFallbackRouteEstimate(
+    origin: string,
+    destination: string
+  ): Promise<RouteEstimate>;
 }
 ```
 
@@ -213,9 +253,17 @@ class RoutePlannerService {
 - Traffic buffer: 20 minutes
 - Morning routine: 45 minutes
 
+**Route Validation:**
+
+- Wake-up time validation (never before 4:00 AM)
+- Unreasonable time flagging with adjustment suggestions
+- Alternative route options with time comparisons
+- Fallback distance-based estimates when API fails
+- Real-time traffic integration with Google Maps API
+
 ### 5. Weather Service
 
-**Purpose:** Pobieranie prognoz pogody i generowanie ostrzeżeń
+**Purpose:** Pobieranie prognoz pogody z różnicowaniem dla INT/EXT i generowanie ostrzeżeń
 
 **Interface:**
 
@@ -223,24 +271,46 @@ class RoutePlannerService {
 class WeatherService {
   async getWeatherForecast(
     location: string,
-    date: string
+    date: string,
+    sceneType: "INT" | "EXT"
   ): Promise<WeatherData>;
   generateWeatherWarnings(forecast: WeatherForecast): string[];
   async updateWeatherData(scheduleId: string): Promise<void>;
   handleWeatherAPIFailure(location: string, date: string): WeatherData;
+  async getDetailedForecast(
+    location: string,
+    date: string
+  ): Promise<DetailedWeatherData>;
+  async getBasicForecast(
+    location: string,
+    date: string
+  ): Promise<BasicWeatherData>;
+  getCachedWeatherData(location: string, date: string): WeatherData | null;
 }
 ```
 
+**Weather Data Differentiation:**
+
+- **EXT Shoots**: Detailed weather (temperature, precipitation, wind, humidity, visibility, UV index)
+- **INT Shoots**: Basic weather overview (temperature, general conditions)
+
 **Warning Conditions:**
 
-- Temperature < 0°C or > 30°C
-- Precipitation > 0mm
-- Wind speed > 10 m/s
-- Thunderstorms, fog conditions
+- Temperature < 0°C or > 30°C (extreme temperature warning)
+- Precipitation > 0mm (rain/snow warning)
+- Wind speed > 10 m/s (high wind warning)
+- Thunderstorms, fog, severe weather conditions
+- UV index warnings for outdoor shoots
+
+**Caching and Fallback:**
+
+- 24-hour cache TTL for weather data
+- Cached data usage when API unavailable
+- User notification of data limitations
 
 ### 6. Calendar Manager Service
 
-**Purpose:** Tworzenie wydarzeń kalendarzowych z alarmami i przypomnieniami
+**Purpose:** Tworzenie wydarzeń kalendarzowych z alarmami, przypomnieniami i integracją SMS
 
 **Interface:**
 
@@ -266,6 +336,15 @@ class CalendarManagerService {
     routePlan: RoutePlan,
     weather: WeatherData
   ): string;
+  async retryCalendarOperation(
+    operation: CalendarOperation,
+    retryCount: number
+  ): Promise<void>;
+  async sendSMSReminders(
+    userId: string,
+    eventData: CalendarEvent
+  ): Promise<void>;
+  async storeEventLocally(eventData: CalendarEvent): Promise<void>;
 }
 ```
 
@@ -273,10 +352,71 @@ class CalendarManagerService {
 
 - Title: "StillOnTime — Dzień zdjęciowy (location)"
 - Duration: departure time to call_time + 10 hours
-- Alarms: wake_up-10min, wake_up, wake_up+5min
-- Reminders: -12h, -3h, -1h, departure time
+- Comprehensive description with route plan, weather forecast, and warnings
+- Location: shooting location address
 
-### 7. Background Job Processor
+**Alarms and Reminders:**
+
+- **Wake-up Alarms**: wake_up_time-10min, wake_up_time, wake_up_time+5min
+- **Popup Reminders**: -12h, -3h, -1h, departure_time
+- **SMS Reminders**: Configurable SMS notifications for users with SMS enabled
+
+**Error Handling:**
+
+- Exponential backoff retry for Calendar API failures
+- Local storage of event data for later retry
+- Automatic retry when system recovers
+
+### 7. Notification Service
+
+**Purpose:** System powiadomień wielokanałowych (email, SMS, push) z preferencjami użytkownika
+
+**Interface:**
+
+```typescript
+class NotificationService {
+  async sendEmailNotification(
+    userId: string,
+    content: NotificationContent
+  ): Promise<void>;
+  async sendSMSNotification(
+    userId: string,
+    content: NotificationContent
+  ): Promise<void>;
+  async sendPushNotification(
+    userId: string,
+    content: NotificationContent
+  ): Promise<void>;
+  async sendMultiChannelNotification(
+    userId: string,
+    content: NotificationContent
+  ): Promise<void>;
+  async getUserNotificationPreferences(
+    userId: string
+  ): Promise<NotificationPreferences>;
+  trackNotificationDelivery(
+    notificationId: string,
+    status: DeliveryStatus
+  ): Promise<void>;
+  createNotificationTemplate(type: NotificationType): NotificationTemplate;
+}
+```
+
+**Notification Channels:**
+
+- **Email**: Comprehensive summaries with full details
+- **SMS**: Critical alerts and reminders (configurable)
+- **Push**: Real-time status updates and immediate alerts
+
+**Notification Types:**
+
+- Schedule processing completion
+- Critical error alerts
+- Weather warnings for outdoor shoots
+- Calendar event reminders
+- System recovery notifications
+
+### 8. Background Job Processor
 
 **Purpose:** Przetwarzanie zadań w tle z wykorzystaniem Bull Queue
 
@@ -289,12 +429,92 @@ class JobProcessor {
   async addRouteRecalculationJob(scheduleId: string): Promise<Job>;
   async processEmailJob(job: Job<EmailProcessingData>): Promise<void>;
   async processWeatherJob(job: Job<WeatherUpdateData>): Promise<void>;
+  async schedulePeriodicJobs(): Promise<void>;
+  handleJobFailure(job: Job, error: Error): Promise<void>;
 }
 ```
 
-### 8. React Frontend Dashboard
+**Job Types:**
 
-**Purpose:** Interfejs użytkownika do monitorowania i konfiguracji systemu
+- **Email Processing**: Periodic Gmail monitoring (every 5 minutes)
+- **Weather Updates**: Daily weather forecast updates
+- **Route Recalculation**: Dynamic route updates based on traffic
+- **Notification Delivery**: Scheduled reminders and alerts
+
+### 8. Summary Generation Service
+
+**Purpose:** Generowanie kompletnych podsumowań dnia zdjęciowego w języku polskim
+
+**Interface:**
+
+```typescript
+class SummaryService {
+  async generateDaySummary(
+    scheduleData: ScheduleData,
+    routePlan: RoutePlan,
+    weather: WeatherData
+  ): Promise<DaySummary>;
+  createTimeline(routePlan: RoutePlan, scheduleData: ScheduleData): Timeline;
+  formatSummaryInPolish(summaryData: DaySummary): string;
+  async storeSummaryHistory(summary: DaySummary, userId: string): Promise<void>;
+  async sendSummaryNotifications(
+    summary: DaySummary,
+    userId: string
+  ): Promise<void>;
+}
+```
+
+**Summary Components:**
+
+- **Timeline**: Wake-up, departure, and arrival times with buffer explanations
+- **Location Details**: Shooting location with route information and alternatives
+- **Weather Forecast**: Detailed weather with warnings for EXT shoots
+- **Contact Information**: Crew contacts and safety notes from PDF
+- **Equipment and Notes**: Special requirements and safety considerations
+
+### 9. Analytics and Historical Data Service
+
+**Purpose:** Analiza danych historycznych i optymalizacja planowania
+
+**Interface:**
+
+```typescript
+class AnalyticsService {
+  async getProcessingSuccessRates(
+    dateRange: DateRange
+  ): Promise<SuccessRateData>;
+  async getHistoricalTravelTimes(
+    route: RouteQuery
+  ): Promise<TravelTimeAnalytics>;
+  async analyzeWeatherImpact(
+    schedules: ScheduleData[]
+  ): Promise<WeatherImpactAnalysis>;
+  async generateOptimizationRecommendations(
+    userId: string
+  ): Promise<OptimizationRecommendations>;
+  async exportAnalyticsReport(
+    format: "PDF" | "CSV",
+    data: AnalyticsData
+  ): Promise<Buffer>;
+  detectPatterns(historicalData: HistoricalData[]): PatternAnalysis;
+  suggestBufferAdjustments(
+    travelHistory: TravelTimeData[]
+  ): BufferRecommendations;
+}
+```
+
+**Analytics Features:**
+
+- Processing success rates over time with trend analysis
+- Historical travel times and traffic pattern analysis
+- Weather impact correlation with schedule changes
+- Route optimization recommendations based on historical data
+- Buffer adjustment suggestions based on actual travel times
+- Export capabilities (PDF and CSV formats)
+
+### 10. React Frontend Dashboard
+
+**Purpose:** Interfejs użytkownika do monitorowania, konfiguracji i analizy systemu
 
 **Components:**
 
@@ -303,6 +523,7 @@ interface DashboardProps {
   systemStatus: SystemStatus;
   recentActivity: ProcessedEmail[];
   upcomingSchedules: ScheduleData[];
+  healthChecks: ServiceHealthStatus[];
 }
 
 interface ConfigurationProps {
@@ -310,6 +531,14 @@ interface ConfigurationProps {
   buffers: TimeBuffers;
   notifications: NotificationPrefs;
   oauthStatus: OAuthStatus;
+  apiConnections: APIConnectionStatus[];
+}
+
+interface AnalyticsProps {
+  successRates: SuccessRateData;
+  travelTimeAnalytics: TravelTimeAnalytics;
+  weatherImpact: WeatherImpactAnalysis;
+  optimizationRecommendations: OptimizationRecommendations;
 }
 
 interface AuthenticationProps {
@@ -322,12 +551,12 @@ interface AuthenticationProps {
 
 **Key Features:**
 
-- OAuth 2.0 authentication flow
-- Real-time status monitoring
-- Manual email processing triggers
-- Configuration management
-- Processing history and analytics
-- Error handling and retry options
+- **Real-time Monitoring**: System status, last 10 processed emails, upcoming schedules
+- **Manual Controls**: Email processing triggers, error retry options
+- **Configuration Management**: Address validation, time buffer presets, notification preferences
+- **Analytics Dashboard**: Success rates, travel time patterns, weather impact analysis
+- **Error Management**: Error logs display, retry mechanisms, service health indicators
+- **OAuth 2.0 Integration**: Secure authentication flow with Google services
 
 ## Data Models
 
@@ -345,12 +574,14 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  processedEmails ProcessedEmail[]
-  schedules       ScheduleData[]
-  routePlans      RoutePlan[]
-  weatherData     WeatherData[]
-  calendarEvents  CalendarEvent[]
-  userConfig      UserConfig?
+  processedEmails     ProcessedEmail[]
+  schedules           ScheduleData[]
+  routePlans          RoutePlan[]
+  weatherData         WeatherData[]
+  calendarEvents      CalendarEvent[]
+  notifications       Notification[]
+  processingAnalytics ProcessingAnalytics[]
+  userConfig          UserConfig?
 }
 
 model ProcessedEmail {
@@ -395,6 +626,7 @@ model ScheduleData {
   routePlan     RoutePlan?
   weatherData   WeatherData?
   calendarEvent CalendarEvent?
+  notifications Notification[]
 }
 
 model RoutePlan {
@@ -458,9 +690,45 @@ model UserConfig {
   notificationEmail     Boolean @default(true)
   notificationSMS       Boolean @default(false)
   notificationPush      Boolean @default(true)
+  smsPhoneNumber        String?
+  pushDeviceTokens      Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   userId                String @unique
   user                  User   @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  type          String   // "email", "sms", "push"
+  channel       String   // "summary", "alert", "reminder"
+  content       Json
+  status        String   @default("pending") // "pending", "sent", "failed"
+  sentAt        DateTime?
+  error         String?
+  createdAt     DateTime @default(now())
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  scheduleId    String?
+  schedule      ScheduleData? @relation(fields: [scheduleId], references: [id])
+}
+
+model ProcessingAnalytics {
+  id                String   @id @default(cuid())
+  date              DateTime
+  emailsProcessed   Int      @default(0)
+  emailsSuccessful  Int      @default(0)
+  emailsFailed      Int      @default(0)
+  avgProcessingTime Float?
+  routesCalculated  Int      @default(0)
+  weatherFetched    Int      @default(0)
+  calendarEvents    Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
 }
 ```
 
@@ -519,6 +787,86 @@ interface OAuthStatus {
   expiresAt?: Date;
   needsReauth: boolean;
 }
+
+interface NotificationContent {
+  title: string;
+  message: string;
+  data?: any;
+  priority: "low" | "normal" | "high" | "critical";
+}
+
+interface NotificationPreferences {
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+  smsPhoneNumber?: string;
+  pushDeviceTokens?: string[];
+}
+
+interface DaySummary {
+  id: string;
+  scheduleId: string;
+  timeline: Timeline;
+  locationDetails: LocationDetails;
+  weatherForecast: WeatherData;
+  contactInformation: ContactInfo[];
+  safetyNotes: string[];
+  equipmentList: string[];
+  generatedAt: Date;
+  language: "pl" | "en";
+}
+
+interface Timeline {
+  wakeUpTime: Date;
+  departureTime: Date;
+  arrivalTime: Date;
+  callTime: string;
+  bufferBreakdown: TimeBuffers;
+}
+
+interface AnalyticsData {
+  successRates: SuccessRateData;
+  travelTimeAnalytics: TravelTimeAnalytics;
+  weatherImpact: WeatherImpactAnalysis;
+  processingMetrics: ProcessingMetrics;
+}
+
+interface SuccessRateData {
+  emailProcessing: number;
+  pdfParsing: number;
+  routeCalculation: number;
+  calendarCreation: number;
+  overallSuccess: number;
+  timeRange: DateRange;
+}
+
+interface TravelTimeAnalytics {
+  averageTravelTime: number;
+  trafficPatterns: TrafficPattern[];
+  routeOptimizations: RouteOptimization[];
+  historicalComparison: HistoricalComparison;
+}
+
+interface OCRResult {
+  extractedText: string;
+  confidence: number;
+  boundingBoxes: BoundingBox[];
+  processingTime: number;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+  confidence: number;
+}
+
+interface CorrectionInterface {
+  originalData: Partial<ScheduleData>;
+  suggestedCorrections: Partial<ScheduleData>;
+  manualFields: ManualCorrectionField[];
+  validationResults: ValidationResult;
+}
 ```
 
 ## Error Handling
@@ -564,6 +912,19 @@ class ErrorHandler {
   ): Promise<void>;
   async handleParsingError(pdfData: Buffer, error: Error): Promise<void>;
   async handleDatabaseError(operation: string, error: Error): Promise<void>;
+  async handleRouteCalculationFailure(
+    routeData: RouteRequest
+  ): Promise<RouteEstimate>;
+  async handleWeatherAPIFailure(
+    location: string,
+    date: string
+  ): Promise<WeatherData>;
+  async handleCalendarFailure(eventData: CalendarEvent): Promise<void>;
+  async sendCriticalErrorNotification(
+    userId: string,
+    error: CriticalError
+  ): Promise<void>;
+  async resumeProcessingAfterRecovery(userId: string): Promise<void>;
   logError(
     level: LogLevel,
     message: string,
@@ -572,6 +933,17 @@ class ErrorHandler {
   ): void;
 }
 ```
+
+**Recovery Strategies:**
+
+1. **Exponential Backoff**: All external API calls use exponential backoff (2^n seconds, max 5 attempts)
+2. **Graceful Degradation**:
+   - PDF parsing failure → Manual correction interface
+   - Route calculation failure → Distance-based estimates
+   - Weather API failure → Cached data with user notification
+   - Calendar failure → Local storage with retry queue
+3. **Critical Error Handling**: Immediate user notification for system failures
+4. **Automatic Recovery**: Resume processing when services are restored
 
 ## Testing Strategy
 
@@ -606,6 +978,83 @@ class ErrorHandler {
 - SQL injection prevention
 - XSS protection testing
 - CSRF token validation
+
+## Configuration Management
+
+### Secure Configuration Storage
+
+**API Key Management:**
+
+- Encrypted storage of all API keys in database
+- Environment-specific configuration files
+- API key rotation and validation
+- Connection status monitoring for all external services
+
+**Address Configuration:**
+
+- Google Maps geocoding validation for all addresses
+- Home and Panavision address management
+- Address history and favorites
+- Geocoding confidence scoring
+
+**Time Buffer Management:**
+
+- Configurable time buffers with presets:
+  - Conservative: +25% to all buffers
+  - Standard: Default values (15/10/10/20/45 minutes)
+  - Aggressive: -15% to all buffers
+- Custom buffer configuration per user
+- Historical optimization recommendations
+
+**Notification Preferences:**
+
+- Multi-channel notification configuration (email/SMS/push)
+- SMS phone number validation and formatting
+- Push notification device token management
+- Notification frequency and timing preferences
+
+**System Configuration:**
+
+- Rate limiting configuration per API endpoint
+- Retry policy configuration (attempts, backoff multiplier)
+- Cache TTL settings for different data types
+- Audit logging for all configuration changes
+
+### Configuration Interface
+
+```typescript
+interface SystemConfiguration {
+  apiKeys: APIKeyConfiguration;
+  addresses: AddressConfiguration;
+  timeBuffers: TimeBufferConfiguration;
+  notifications: NotificationConfiguration;
+  rateLimiting: RateLimitConfiguration;
+  caching: CacheConfiguration;
+}
+
+interface APIKeyConfiguration {
+  googleMaps: string;
+  openWeatherMap: string;
+  twilioSMS?: string;
+  firebasePush?: string;
+  connectionStatus: Record<string, ConnectionStatus>;
+}
+
+interface AddressConfiguration {
+  homeAddress: ValidatedAddress;
+  panavisionAddress: ValidatedAddress;
+  addressHistory: ValidatedAddress[];
+}
+
+interface TimeBufferConfiguration {
+  preset: "conservative" | "standard" | "aggressive" | "custom";
+  carChange: number;
+  parking: number;
+  entry: number;
+  traffic: number;
+  morningRoutine: number;
+}
+```
 
 ## Security Considerations
 

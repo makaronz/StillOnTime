@@ -54,7 +54,7 @@ System rozwiązuje problem manualnego planowania dnia zdjęciowego poprzez autom
 
 #### Acceptance Criteria
 
-1. WHEN schedule data is processed THEN the system SHALL create Google Calendar event with title "MP2 — Dzień zdjęciowy (location)"
+1. WHEN schedule data is processed THEN the system SHALL create Google Calendar event with title "StillOnTime — Dzień zdjęciowy (location)"
 2. WHEN creating calendar event THEN the system SHALL set duration from departure time to call_time + 10 hours
 3. WHEN creating calendar event THEN the system SHALL include comprehensive description with route plan and weather
 4. WHEN creating alarms THEN the system SHALL set 3 wake-up alarms at wake_up_time-10min, wake_up_time, wake_up_time+5min
@@ -110,7 +110,7 @@ System rozwiązuje problem manualnego planowania dnia zdjęciowego poprzez autom
 
 #### Acceptance Criteria
 
-1. WHEN configuring API keys THEN the system SHALL store them securely in Google Apps Script Properties
+1. WHEN configuring API keys THEN the system SHALL store them securely in encrypted database storage
 2. WHEN testing API connections THEN the system SHALL provide connection status indicators
 3. WHEN configuring addresses THEN the system SHALL validate using Google Maps geocoding
 4. WHEN configuring time buffers THEN the system SHALL provide presets and custom options
