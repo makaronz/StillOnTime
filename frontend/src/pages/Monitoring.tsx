@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -24,13 +24,17 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 
 const REFRESH_INTERVAL = 30000;
 
-export const Monitoring: React.FC = () => {
+export const Monitoring: React.FC = memo(() => {
   const [dashboard, setDashboard] = useState<MonitoringDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
+    if (!loading) {
+      setIsRefreshing(true);
+    }
     try {
       const data = await monitoringService.getDashboard();
       setDashboard(data);
@@ -41,7 +45,7 @@ export const Monitoring: React.FC = () => {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [loading]);
 
   useEffect(() => {
     fetchDashboard();
@@ -54,25 +58,25 @@ export const Monitoring: React.FC = () => {
     return () => clearInterval(interval);
   }, [autoRefresh, fetchDashboard]);
 
-  const getStatusColor = (status: HealthStatus) => {
+  const getStatusColor = useCallback((status: HealthStatus) => {
     switch (status) {
       case 'healthy': return 'text-green-600 bg-green-100';
       case 'degraded': return 'text-yellow-600 bg-yellow-100';
       case 'unhealthy': return 'text-red-600 bg-red-100';
       default: return 'text-gray-600 bg-gray-100';
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: HealthStatus) => {
+  const getStatusIcon = useCallback((status: HealthStatus) => {
     switch (status) {
       case 'healthy': return <CheckCircle className="w-5 h-5" />;
       case 'degraded': return <AlertTriangle className="w-5 h-5" />;
       case 'unhealthy': return <XCircle className="w-5 h-5" />;
       default: return <Clock className="w-5 h-5" />;
     }
-  };
+  }, []);
 
-  const getSeverityColor = (severity: AlertSeverity) => {
+  const getSeverityColor = useCallback((severity: AlertSeverity) => {
     switch (severity) {
       case 'critical': return 'text-red-800 bg-red-100 border-red-200';
       case 'high': return 'text-red-600 bg-red-50 border-red-200';
@@ -80,9 +84,9 @@ export const Monitoring: React.FC = () => {
       case 'low': return 'text-blue-600 bg-blue-50 border-blue-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
-  };
+  }, []);
 
-  const formatUptime = (seconds: number) => {
+  const formatUptime = useCallback((seconds: number) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -90,23 +94,23 @@ export const Monitoring: React.FC = () => {
     if (days > 0) return `${days}d ${hours}h ${minutes}m`;
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
-  };
+  }, []);
 
-  const formatBytes = (bytes: number) => {
+  const formatBytes = useCallback((bytes: number) => {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 B';
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
-  };
+  }, []);
 
-  const resolveAlert = async (alertId: string) => {
+  const resolveAlert = useCallback(async (alertId: string) => {
     try {
       await monitoringService.resolveAlert(alertId);
       await fetchDashboard(); // Refresh data
     } catch (err) {
       console.error('Failed to resolve alert:', err);
     }
-  };
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -169,10 +173,11 @@ export const Monitoring: React.FC = () => {
             
             <button
               onClick={fetchDashboard}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={isRefreshing}
+              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
@@ -527,4 +532,4 @@ export const Monitoring: React.FC = () => {
       </div>
     </div>
   );
-};
+});

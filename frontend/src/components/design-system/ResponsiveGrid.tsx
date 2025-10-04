@@ -3,7 +3,7 @@
  * Intelligent layout management with adaptive breakpoints
  */
 
-import { ReactNode, useMemo } from 'react'
+import React, { ReactNode, useMemo, memo, useCallback, useState, useRef } from 'react'
 import { cn } from '@/utils/className'
 
 export interface GridBreakpoint {
@@ -37,7 +37,6 @@ export interface ResponsiveGridProps {
   
   // Advanced features
   masonry?: boolean
-  virtualScroll?: boolean
   animateLayout?: boolean
   
   // Accessibility
@@ -48,8 +47,9 @@ export interface ResponsiveGridProps {
 
 /**
  * Responsive Grid Component with intelligent layout management
+ * Optimized with React.memo for performance
  */
-export default function ResponsiveGrid({
+const ResponsiveGrid = memo(function ResponsiveGrid({
   children,
   className,
   breakpoints = {
@@ -66,14 +66,13 @@ export default function ResponsiveGrid({
   justifyItems = 'stretch',
   alignItems = 'stretch',
   masonry = false,
-  virtualScroll = false,
   animateLayout = true,
   role = 'grid',
   ariaLabel,
   ariaDescription
 }: ResponsiveGridProps): JSX.Element {
   
-  // Generate responsive CSS classes
+  // Generate responsive CSS classes with optimized memoization
   const gridClasses = useMemo(() => {
     const classes = ['grid', 'w-full']
     
@@ -168,7 +167,9 @@ export default function ResponsiveGrid({
       {children}
     </div>
   )
-}
+})
+
+export default ResponsiveGrid
 
 /**
  * Grid Item Component with responsive span control
@@ -197,7 +198,7 @@ interface GridItemProps {
   ariaLabel?: string
 }
 
-export function GridItem({
+export const GridItem = memo(function GridItem({
   children,
   className,
   span,
@@ -245,7 +246,7 @@ export function GridItem({
       {children}
     </div>
   )
-}
+})
 
 /**
  * Responsive Card Grid - Specialized grid for card layouts
@@ -256,7 +257,7 @@ interface CardGridProps extends Omit<ResponsiveGridProps, 'autoFit' | 'minItemWi
   cardAspectRatio?: 'square' | 'video' | 'photo' | 'auto'
 }
 
-export function CardGrid({
+export const CardGrid = memo(function CardGrid({
   children,
   cardMinWidth = 320,
   cardMaxWidth = 400,
@@ -299,7 +300,7 @@ export function CardGrid({
       ))}
     </ResponsiveGrid>
   )
-}
+})
 
 /**
  * Dashboard Grid - Specialized grid for dashboard widgets
@@ -309,7 +310,7 @@ interface DashboardGridProps extends ResponsiveGridProps {
   widgetGap?: number
 }
 
-export function DashboardGrid({
+export const DashboardGrid = memo(function DashboardGrid({
   children,
   compactMode = false,
   widgetGap = 6,
@@ -336,9 +337,71 @@ export function DashboardGrid({
       {children}
     </ResponsiveGrid>
   )
+})
+
+/**
+ * Virtualized Grid Component for large datasets
+ * Renders only visible items for optimal performance
+ */
+interface VirtualizedGridProps extends Omit<ResponsiveGridProps, 'children'> {
+  items: ReactNode[]
+  itemHeight: number
+  containerHeight: number
+  overscan?: number
 }
 
-// Utility function for className concatenation (if not already available)
-function cn(...classes: (string | undefined | false | null)[]): string {
-  return classes.filter(Boolean).join(' ')
-}
+export const VirtualizedGrid = memo(function VirtualizedGrid({
+  items,
+  itemHeight,
+  containerHeight,
+  overscan = 5,
+  ...gridProps
+}: VirtualizedGridProps): JSX.Element {
+  const [scrollTop, setScrollTop] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop)
+  }, [])
+  
+  const visibleItems = useMemo(() => {
+    const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan)
+    const endIndex = Math.min(
+      items.length - 1,
+      Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
+    )
+    
+    return items.slice(startIndex, endIndex + 1).map((item, index) => (
+      <div
+        key={startIndex + index}
+        style={{
+          position: 'absolute',
+          top: (startIndex + index) * itemHeight,
+          width: '100%',
+          height: itemHeight,
+        }}
+      >
+        {item}
+      </div>
+    ))
+  }, [items, scrollTop, itemHeight, containerHeight, overscan])
+  
+  const totalHeight = items.length * itemHeight
+  
+  return (
+    <div
+      ref={containerRef}
+      style={{ height: containerHeight, overflow: 'auto' }}
+      onScroll={handleScroll}
+      className="relative"
+    >
+      <ResponsiveGrid {...gridProps} className={cn('relative', gridProps.className)}>
+        <div style={{ height: totalHeight, position: 'relative' }}>
+          {visibleItems}
+        </div>
+      </ResponsiveGrid>
+    </div>
+  )
+})
+
+// Note: cn utility function is imported from @/utils/className

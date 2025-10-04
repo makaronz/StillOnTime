@@ -116,22 +116,22 @@ const jobProcessorService = new JobProcessorService(
 );
 
 // Initialize error handling and recovery services
-const monitoringService = new MonitoringService(
-  null as any, // Will be initialized properly in main app
+const fallbackService = new FallbackService(cacheService, notificationService);
+const errorHandlerService = new ErrorHandlerService(
+  oauth2Service,
   cacheService,
   notificationService
 );
-const fallbackService = new FallbackService(cacheService, notificationService);
+const monitoringService = new MonitoringService(
+  errorHandlerService,
+  cacheService,
+  notificationService
+);
 const errorRecoveryService = new ErrorRecoveryService(
   fallbackService,
   monitoringService,
   notificationService,
   cacheService
-);
-const errorHandlerService = new ErrorHandlerService(
-  oauth2Service,
-  cacheService,
-  notificationService
 );
 const errorRecoveryIntegrationService = new ErrorRecoveryIntegrationService(
   notificationService,

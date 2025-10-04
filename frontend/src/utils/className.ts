@@ -174,13 +174,21 @@ export function focus(
   color: string = 'primary-500',
   size: 'sm' | 'md' | 'lg' = 'md'
 ): string {
+  const sizeMap = {
+    sm: '1',
+    md: '2', 
+    lg: '3'
+  }
+  
+  const ringSize = sizeMap[size]
+  
   switch (type) {
     case 'ring':
-      return `focus:outline-none focus:ring-2 focus:ring-${color} focus:ring-offset-2`
+      return `focus:outline-none focus:ring-${ringSize} focus:ring-${color} focus:ring-offset-2`
     case 'outline':
-      return `focus:outline-2 focus:outline-${color} focus:outline-offset-2`
+      return `focus:outline-${ringSize} focus:outline-${color} focus:outline-offset-2`
     case 'underline':
-      return `focus:outline-none focus:border-b-2 focus:border-${color}`
+      return `focus:outline-none focus:border-b-${ringSize} focus:border-${color}`
     case 'background':
       return `focus:outline-none focus:bg-${color}/10`
     default:
@@ -285,7 +293,7 @@ export function layout(
     rows?: number
   } = {}
 ): string {
-  const classes = [type]
+  const classes: string[] = [type]
   
   if (type === 'flex') {
     if (options.direction) classes.push(`flex-${options.direction}`)

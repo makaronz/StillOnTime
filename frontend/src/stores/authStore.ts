@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { subscribeWithSelector } from "zustand/middleware";
 import { authService } from "@/services/auth";
 import { User } from "@/types";
 import {
@@ -16,6 +17,8 @@ interface AuthState {
   isLoading: boolean;
   token: string | null;
   tokenExpiry: number | null;
+  lastActivity: number;
+  sessionTimeoutWarning: boolean;
 
   // Actions
   login: (token: string, user: User, expiresIn?: number) => void;
@@ -24,9 +27,15 @@ interface AuthState {
   refreshToken: () => Promise<void>;
   startGoogleLogin: () => Promise<void>;
   handleOAuthCallback: (code: string, state: string) => Promise<void>;
+  updateActivity: () => void;
+  clearSessionWarning: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
+// Session timeout (30 minutes)
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+const WARNING_TIMEOUT = 25 * 60 * 1000;
+
+export const useAuthStore = create<AuthState>()(subscribeWithSelector(
   persist(
     (set, get) => ({
       user: null,
@@ -34,15 +43,20 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       token: null,
       tokenExpiry: null,
+      lastActivity: Date.now(),
+      sessionTimeoutWarning: false,
 
       login: (token: string, user: User, expiresIn?: number) => {
         const expiry = expiresIn ? Date.now() + expiresIn * 1000 : null;
+        const now = Date.now();
         set({
           token,
           user,
           isAuthenticated: true,
           tokenExpiry: expiry,
           isLoading: false,
+          lastActivity: now,
+          sessionTimeoutWarning: false,
         });
         toast.success(`Welcome back, ${user.name || user.email}!`);
       },
@@ -60,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             tokenExpiry: null,
             isLoading: false,
+            sessionTimeoutWarning: false,
           });
           toast.success("Logged out successfully");
         }
@@ -84,6 +99,7 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: false,
               tokenExpiry: null,
               isLoading: false,
+              sessionTimeoutWarning: false,
             });
             return;
           }
@@ -109,6 +125,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             tokenExpiry: null,
             isLoading: false,
+            sessionTimeoutWarning: false,
           });
         }
       },
@@ -122,6 +139,7 @@ export const useAuthStore = create<AuthState>()(
             user: response.user,
             tokenExpiry: expiry,
             isAuthenticated: true,
+            lastActivity: Date.now(),
           });
         } catch (error) {
           console.error("Token refresh failed:", error);
@@ -174,6 +192,8 @@ export const useAuthStore = create<AuthState>()(
             tokenExpiry: expiry,
             isAuthenticated: true,
             isLoading: false,
+            lastActivity: Date.now(),
+            sessionTimeoutWarning: false,
           });
 
           // Clean up OAuth storage
@@ -192,11 +212,26 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             isAuthenticated: false,
             tokenExpiry: null,
+            sessionTimeoutWarning: false,
           });
           // Clean up on error
           cleanupOAuthStorage();
           throw error;
         }
+      },
+
+      updateActivity: () => {
+        const { isAuthenticated } = get();
+        if (isAuthenticated) {
+          set({ 
+            lastActivity: Date.now(),
+            sessionTimeoutWarning: false,
+          });
+        }
+      },
+
+      clearSessionWarning: () => {
+        set({ sessionTimeoutWarning: false });
       },
     }),
     {
@@ -206,7 +241,87 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         tokenExpiry: state.tokenExpiry,
         isAuthenticated: state.isAuthenticated,
+        lastActivity: state.lastActivity,
       }),
     }
-  )
+  ))
 );
+
+// Session management - check for inactivity
+if (typeof window !== 'undefined') {
+  let sessionTimer: NodeJS.Timeout;
+  let warningTimer: NodeJS.Timeout;
+
+  const resetSessionTimers = () => {
+    clearTimeout(sessionTimer);
+    clearTimeout(warningTimer);
+    
+    const state = useAuthStore.getState();
+    if (!state.isAuthenticated) return;
+
+    // Set warning timer
+    warningTimer = setTimeout(() => {
+      const currentState = useAuthStore.getState();
+      if (currentState.isAuthenticated) {
+        useAuthStore.setState({ sessionTimeoutWarning: true });
+        const toastId = toast('Session will expire in 5 minutes due to inactivity.', {
+          duration: 10000,
+        });
+        
+        // Allow user to extend session by clicking anywhere
+        const extendSession = () => {
+          useAuthStore.getState().updateActivity();
+          toast.dismiss(toastId);
+        };
+        
+        document.addEventListener('click', extendSession, { once: true });
+      }
+    }, WARNING_TIMEOUT);
+
+    // Set logout timer
+    sessionTimer = setTimeout(() => {
+      const currentState = useAuthStore.getState();
+      if (currentState.isAuthenticated) {
+        toast.error('Session expired due to inactivity');
+        currentState.logout();
+      }
+    }, SESSION_TIMEOUT);
+  };
+
+  // Listen for activity
+  const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+  const throttledUpdate = (() => {
+    let timeout: NodeJS.Timeout;
+    return () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        useAuthStore.getState().updateActivity();
+      }, 1000); // Throttle to once per second
+    };
+  })();
+
+  activityEvents.forEach(event => {
+    document.addEventListener(event, throttledUpdate, true);
+  });
+
+  // Subscribe to auth state changes
+  useAuthStore.subscribe(
+    (state) => state.isAuthenticated,
+    (isAuthenticated) => {
+      if (isAuthenticated) {
+        resetSessionTimers();
+      } else {
+        clearTimeout(sessionTimer);
+        clearTimeout(warningTimer);
+      }
+    }
+  );
+
+  // Subscribe to activity updates
+  useAuthStore.subscribe(
+    (state) => state.lastActivity,
+    () => {
+      resetSessionTimers();
+    }
+  );
+}
