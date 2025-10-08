@@ -1,212 +1,166 @@
-# StillOnTime API Setup Scripts
+# API Setup Scripts
 
-This directory contains helper scripts for setting up external API integrations.
+Helper scripts for setting up StillOnTime external API integrations.
 
-## 📋 Available Scripts
+## Quick Start
 
-### 1. `create-env.sh` - Environment Configuration Generator
+Run the main setup helper:
 
-Creates `.env` files with your API credentials.
-
-**Usage:**
 ```bash
-./scripts/create-env.sh
+./scripts/setup-api.sh
 ```
 
-**What it does:**
-- Prompts for all required API credentials
-- Generates JWT secret if not provided
-- Creates both `backend/.env` and `.env`
-- Backs up existing files
+This will guide you through the entire process.
+
+## Individual Scripts
+
+### 1. setup-api.sh (Main Helper)
+**Purpose**: Interactive guide through the entire setup process  
+**Usage**: `./scripts/setup-api.sh`  
+**What it does**:
+- Opens the step-by-step manual guide
+- Runs the .env file generator
+- Optionally runs API connectivity tests
+- Provides next steps
+
+### 2. create-env.sh (Environment Generator)
+**Purpose**: Create .env files with your API credentials  
+**Usage**: `./scripts/create-env.sh`  
+**What it does**:
+- Prompts for all API credentials
+- Auto-generates JWT secret if not provided
+- Creates backend/.env and root .env files
+- Backs up existing .env files
 - Shows configuration summary
 
-**Requirements:**
-- Completed API setup (see `claudedocs/INTERACTIVE_API_SETUP.md`)
-- Google OAuth credentials
-- Google Maps API key
-- OpenWeather API key
+**Required inputs**:
+- Google Client ID
+- Google Client Secret
+- Google Maps API Key
+- OpenWeather API Key
+- JWT Secret (optional - auto-generated if empty)
 
----
+### 3. test-apis.sh (API Validator)
+**Purpose**: Test all API configurations  
+**Usage**: `./scripts/test-apis.sh`  
+**What it does**:
+- Validates all environment variables are set
+- Tests OpenWeather API connectivity
+- Tests Google Maps API (Geocoding, Directions)
+- Checks JWT secret length (≥32 chars)
+- Verifies OAuth credentials are configured
+- Provides troubleshooting tips for failures
 
-### 2. `test-apis.sh` - API Connectivity Tester
+## Why Manual Setup?
 
-Tests if all external APIs are properly configured and accessible.
+**You cannot fully automate Google Cloud Console setup** because:
+- Google blocks automated browsers (Playwright, Selenium) for security
+- OAuth setup requires human authentication (2FA, CAPTCHA)
+- API key creation needs manual approval and verification
 
-**Usage:**
-```bash
-./scripts/test-apis.sh
-```
+**What IS automated**:
+- ✅ JWT secret generation
+- ✅ .env file creation
+- ✅ API connectivity testing
+- ✅ Configuration validation
 
-**What it tests:**
-- ✅ OpenWeather API connectivity
-- ✅ Google Maps Geocoding API
-- ✅ Google Maps Directions API
-- ✅ JWT secret length
-- ✅ OAuth credentials presence
-- ✅ Database configuration
-- ✅ Redis configuration
+**What requires manual steps**:
+- ⚠️ Creating Google Cloud Project
+- ⚠️ Enabling APIs in Google Console
+- ⚠️ Setting up OAuth consent screen
+- ⚠️ Creating OAuth credentials and API keys
+- ⚠️ OpenWeather account registration
 
-**Requirements:**
-- Existing `.env` file
-- API keys must be activated (wait 5-10 minutes)
+## Step-by-Step Process
 
----
-
-### 3. `interactive-api-setup.ts` - Full Setup Assistant (TypeScript)
-
-**Note:** This script attempts interactive setup but Google blocks automated browser access.  
-**Recommended:** Use `claudedocs/INTERACTIVE_API_SETUP.md` instead.
-
----
-
-## 🚀 Quick Start Workflow
-
-Follow this sequence for a smooth setup:
-
-### Step 1: Manual API Setup (15-20 minutes)
-
+### Step 1: Manual API Setup
 Follow the interactive guide:
-```
-Open: claudedocs/INTERACTIVE_API_SETUP.md
+```bash
+cat claudedocs/INTERACTIVE_API_SETUP.md
+# Or use: ./scripts/setup-api.sh (opens it for you)
 ```
 
 This guide walks you through:
-- Creating Google Cloud Project
-- Enabling APIs
-- Configuring OAuth
-- Getting API keys
-- Setting up OpenWeather
+1. Creating Google Cloud Project "StillOnTime"
+2. Enabling 7 required APIs (Gmail, Calendar, 4x Maps)
+3. Configuring OAuth consent screen
+4. Creating OAuth credentials
+5. Creating Google Maps API key
+6. Setting up OpenWeather account
 
-### Step 2: Generate .env File (2 minutes)
-
-Run the environment generator:
+### Step 2: Create .env Files
+After collecting all credentials:
 ```bash
 ./scripts/create-env.sh
 ```
 
 Paste your credentials when prompted.
 
-### Step 3: Test Configuration (1 minute)
-
-Verify everything works:
+### Step 3: Verify Configuration
+Test that everything works:
 ```bash
 ./scripts/test-apis.sh
 ```
 
-All tests should pass (or wait a few minutes for API activation).
-
 ### Step 4: Start Application
-
+If tests pass:
 ```bash
-# Start Docker services
+npm run docker:up          # Start PostgreSQL & Redis
+cd backend && npm run db:init  # Initialize database
+npm run dev                # Start application
+```
+
+## Troubleshooting
+
+### "API key invalid"
+**Cause**: New API keys need activation time  
+**Solution**: Wait 5-10 minutes (Google Maps) or up to 2 hours (OpenWeather)
+
+### "OAuth redirect_uri_mismatch"
+**Cause**: Redirect URI in Google Console doesn't match exactly  
+**Solution**: Verify it's exactly `http://localhost:3000/auth/callback` (no trailing slash)
+
+### "Missing environment variable"
+**Cause**: .env file incomplete or not created  
+**Solution**: Re-run `./scripts/create-env.sh`
+
+### "Database connection error"
+**Cause**: Docker containers not running  
+**Solution**: 
+```bash
+npm run docker:down
 npm run docker:up
-
-# Initialize database
-cd backend && npm run db:init && cd ..
-
-# Start application
-npm run dev
 ```
 
-Open: http://localhost:3000
+## Documentation
 
----
+- **Interactive Setup Guide**: [../claudedocs/INTERACTIVE_API_SETUP.md](../claudedocs/INTERACTIVE_API_SETUP.md)
+- **Quick Reference**: [../claudedocs/API_QUICK_REFERENCE.md](../claudedocs/API_QUICK_REFERENCE.md)
+- **Main README**: [../README.md](../README.md)
 
-## 📝 NPM Scripts
+## Security Notes
 
-These scripts are also available as npm commands:
-
-```bash
-# Generate .env file
-npm run setup:env
-
-# Test API connectivity
-npm run test:apis
-```
-
----
-
-## 🆘 Troubleshooting
-
-### Script Permission Denied
-
-```bash
-chmod +x scripts/*.sh
-```
-
-### "API key invalid" Errors
-
-**Wait time:**
-- Google Maps: 5-10 minutes after creation
-- OpenWeather: Up to 2 hours (usually 10-15 minutes)
-
-### .env File Not Found
-
-Run the environment generator:
-```bash
-./scripts/create-env.sh
-```
-
-### Tests Still Failing
-
-Check:
-1. APIs are enabled in Google Cloud Console
-2. No extra spaces in API keys
-3. Correct project is selected in Google Console
-4. OAuth redirect URI matches exactly: `http://localhost:3000/auth/callback`
-
----
-
-## 📚 Documentation
-
-- **Interactive Setup Guide:** `claudedocs/INTERACTIVE_API_SETUP.md` (START HERE)
-- **Quick Reference:** `claudedocs/API_QUICK_REFERENCE.md`
-- **Full Setup Guide:** `claudedocs/API_SETUP_GUIDE.md`
-- **Main README:** `../README.md`
-
----
-
-## 🔒 Security Notes
-
-- Never commit `.env` files to Git
-- `.env` is already in `.gitignore`
-- Keep your API keys secure
+⚠️ **IMPORTANT**:
+- Never commit .env files to Git (already in .gitignore)
+- Keep API credentials secure
 - Use different secrets for production
-- Backup files are created with timestamps
+- JWT secret should be ≥32 characters (auto-generated secrets are 64 chars)
 
----
+## Scripts Location
 
-## 💡 Tips
+```
+scripts/
+├── README.md           # This file
+├── setup-api.sh        # Main interactive helper
+├── create-env.sh       # Environment file generator
+└── test-apis.sh        # API connectivity tester
+```
 
-**For Development:**
-- Use the same Google account for all services
-- Add yourself as a test user in OAuth consent
-- Free tiers are sufficient for development
+## Getting Help
 
-**For Production:**
-- Use separate API keys
-- Enable API key restrictions
-- Set up billing alerts in Google Cloud
-- Monitor API quotas
-
----
-
-## 📊 API Quotas & Limits
-
-**Google Maps (Free Tier):**
-- $200 free monthly credit
-- ~40,000 geocoding requests per month
-- ~40,000 directions requests per month
-
-**OpenWeather (Free Tier):**
-- 60 calls per minute
-- 1,000,000 calls per month
-- Current weather + 5-day forecast
-
-**Gmail API:**
-- 1 billion quota units per day (effectively unlimited for this use case)
-
----
-
-*For issues or questions, check the troubleshooting sections in the documentation.*
-
+If you encounter issues:
+1. Check the troubleshooting sections in this README
+2. Review [INTERACTIVE_API_SETUP.md](../claudedocs/INTERACTIVE_API_SETUP.md) for detailed steps
+3. Check [API_QUICK_REFERENCE.md](../claudedocs/API_QUICK_REFERENCE.md) for common fixes
+4. Verify Docker is running: `docker ps`
+5. Check application logs in `backend/logs/`

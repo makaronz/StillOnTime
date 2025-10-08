@@ -4,19 +4,25 @@ Quick reference for all external API integrations used in StillOnTime.
 
 ## Quick Start
 
+Follow the step-by-step interactive guide, then use helper scripts:
+
 ```bash
-# Run the interactive setup assistant
-npx ts-node scripts/interactive-api-setup.ts
+# 1. Follow the manual setup guide
+cat claudedocs/INTERACTIVE_API_SETUP.md
+
+# 2. Create .env file with your credentials
+chmod +x scripts/create-env.sh
+./scripts/create-env.sh
+
+# 3. Test your API configuration
+chmod +x scripts/test-apis.sh
+./scripts/test-apis.sh
 ```
 
-The interactive assistant will:
-- ✅ Guide you through each step
-- ✅ Open required pages in your browser
-- ✅ Automatically generate JWT secret
-- ✅ Create .env files
-- ✅ Test API connectivity
-
 **Estimated time:** 15-20 minutes
+
+**Why manual setup?**
+Google Cloud Console requires human authentication and blocks automated browsers for security. The helper scripts automate what's possible (env generation, validation) while you handle the manual OAuth setup steps.
 
 ---
 
