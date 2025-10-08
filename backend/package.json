@@ -18,6 +18,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "db:init": "ts-node src/scripts/init-db.ts",
     "db:test": "ts-node src/scripts/test-database.ts",
+    "test:api": "ts-node scripts/test-api-integration.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
   },

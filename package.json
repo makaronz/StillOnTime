@@ -34,7 +34,10 @@
     "docker:logs": "docker-compose logs -f",
     "prisma:migrate": "cd backend && npx prisma migrate dev",
     "prisma:studio": "cd backend && npx prisma studio",
-    "prisma:generate": "cd backend && npx prisma generate"
+    "prisma:generate": "cd backend && npx prisma generate",
+    "setup:api": "npx tsx scripts/interactive-api-setup.ts",
+    "setup:env": "./scripts/create-env.sh",
+    "test:apis": "./scripts/test-apis.sh"
   },
   "keywords": [
     "film",
@@ -48,7 +51,9 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.55.1",
+    "@types/node": "^24.7.0",
     "concurrently": "^8.2.2",
+    "ts-node": "^10.9.2",
     "tsx": "^4.20.5"
   },
   "workspaces": [
