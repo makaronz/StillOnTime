@@ -20,10 +20,11 @@ class AuthService {
     const response = await apiService.get<{
       success: boolean;
       authUrl: string;
+      state: string;
     }>("/api/auth/login");
     return {
       authUrl: response.authUrl,
-      state: "", // State is handled by backend
+      state: response.state, // Use state from backend
     };
   }
 

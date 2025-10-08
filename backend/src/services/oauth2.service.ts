@@ -45,22 +45,23 @@ export class OAuth2Service {
   /**
    * Generate authorization URL with required scopes and PKCE
    */
-  async getAuthUrl(state?: string): Promise<string> {
+  async getAuthUrl(state?: string): Promise<{ authUrl: string; state: string }> {
     try {
+      const generatedState = state || crypto.randomBytes(32).toString("hex");
       const authUrl = this.oauth2Client.generateAuthUrl({
         access_type: "offline",
         scope: this.REQUIRED_SCOPES,
         prompt: "consent", // Force consent to get refresh token
-        state: state || crypto.randomBytes(32).toString("hex"),
+        state: generatedState,
         include_granted_scopes: true,
       });
 
       logger.info("Generated OAuth authorization URL", {
         scopes: this.REQUIRED_SCOPES,
-        state,
+        state: generatedState,
       });
 
-      return authUrl;
+      return { authUrl, state: generatedState };
     } catch (error) {
       logger.error("Failed to generate auth URL", { error });
       throw new Error("Failed to generate authorization URL");

@@ -150,14 +150,16 @@ export const useAuthStore = create<AuthState>()(subscribeWithSelector(
       startGoogleLogin: async () => {
         set({ isLoading: true });
         try {
-          // Generate secure state parameter
-          const secureState = generateSecureState();
-
           const response = await authService.getGoogleAuthUrl();
 
-          // Store state for validation (use our secure state if backend doesn't provide one)
-          const stateToStore = response.state || secureState;
-          sessionStorage.setItem("oauth_state", stateToStore);
+          // Store state for validation (backend provides the state)
+          if (response.state) {
+            sessionStorage.setItem("oauth_state", response.state);
+          } else {
+            // Fallback: generate our own state if backend doesn't provide one
+            const secureState = generateSecureState();
+            sessionStorage.setItem("oauth_state", secureState);
+          }
 
           // Redirect to Google OAuth
           window.location.href = response.authUrl;

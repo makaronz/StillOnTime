@@ -14,17 +14,18 @@ export class AuthController {
   async login(req: Request, res: Response): Promise<void> {
     try {
       const state = req.query.state as string;
-      const authUrl = await services.oauth2.getAuthUrl(state);
+      const { authUrl, state: generatedState } = await services.oauth2.getAuthUrl(state);
 
       logger.info("OAuth login initiated", {
         ip: req.ip,
         userAgent: req.get("User-Agent"),
-        state,
+        state: generatedState,
       });
 
       res.json({
         success: true,
         authUrl,
+        state: generatedState,
         message: "Redirect to Google OAuth for authentication",
       });
     } catch (error) {
