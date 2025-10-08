@@ -122,10 +122,13 @@ jobs:
         cd backend && npm audit --audit-level high
         cd frontend && npm audit --audit-level high
         
-    - name: CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
       with:
         languages: javascript,typescript
+        
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
 
   # Build and Package
   build:
@@ -226,9 +229,8 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [quality-gates, build]
+    needs: [quality-gates, build, security-scan]
     if: github.ref == 'refs/heads/develop'
-    environment: staging
     
     steps:
     - name: Checkout code
@@ -279,7 +281,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [quality-gates, build, security-scan]
     if: github.ref == 'refs/heads/main'
-    environment: production
     
     steps:
     - name: Checkout code
@@ -402,7 +403,6 @@ jobs:
     runs-on: ubuntu-latest
     if: failure() && github.ref == 'refs/heads/main'
     needs: [deploy-production, performance-test]
-    environment: production
     
     steps:
     - name: Checkout code
