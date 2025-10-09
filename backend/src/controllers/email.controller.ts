@@ -474,6 +474,124 @@ export class EmailController {
   }
 
   /**
+   * Get email processing stats for dashboard
+   * GET /api/emails/stats
+   */
+  async getStats(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const stats = await this.processedEmailRepository.getProcessingStats(
+        req.user.userId
+      );
+
+      const lastProcessedEmail = await this.processedEmailRepository.findMany({
+        where: { userId: req.user.userId, processed: true },
+        orderBy: { updatedAt: "desc" },
+        take: 1,
+      });
+
+      const pendingCount = await this.processedEmailRepository.count({
+        where: {
+          userId: req.user.userId,
+          processingStatus: "pending",
+        },
+      });
+
+      const successRate = stats.total > 0
+        ? ((stats.processed / stats.total) * 100)
+        : 0;
+
+      res.json({
+        success: true,
+        data: {
+          totalProcessed: stats.processed,
+          successRate: successRate,
+          lastProcessed:
+            lastProcessedEmail.length > 0
+              ? lastProcessedEmail[0].updatedAt.toISOString()
+              : null,
+          pendingCount,
+        },
+        message: "Stats retrieved successfully",
+      });
+    } catch (error) {
+      logger.error("Failed to get email stats", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: req.user?.userId,
+      });
+
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to retrieve email statistics",
+        code: "STATS_RETRIEVAL_FAILED",
+        timestamp: new Date().toISOString(),
+        path: req.path,
+      });
+    }
+  }
+
+  /**
+   * Get recent processed emails for dashboard
+   * GET /api/emails/recent?limit=10
+   */
+  async getRecent(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+
+      const emails = await this.processedEmailRepository.findRecentEmails(
+        req.user.userId,
+        limit
+      );
+
+      res.json({
+        success: true,
+        data: emails.map((email) => ({
+          id: email.id,
+          messageId: email.messageId,
+          subject: email.subject,
+          sender: email.sender,
+          receivedAt: email.receivedAt,
+          processed: email.processed,
+          processingStatus: email.processingStatus,
+          error: email.error,
+          schedule: email.schedule
+            ? {
+                id: email.schedule.id,
+                shootingDate: email.schedule.shootingDate,
+                callTime: email.schedule.callTime,
+                location: email.schedule.location,
+                sceneType: email.schedule.sceneType,
+              }
+            : null,
+        })),
+        message: "Recent emails retrieved successfully",
+      });
+    } catch (error) {
+      logger.error("Failed to get recent emails", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: req.user?.userId,
+      });
+
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to retrieve recent emails",
+        code: "RECENT_EMAILS_FAILED",
+        timestamp: new Date().toISOString(),
+        path: req.path,
+      });
+    }
+  }
+
+  /**
    * Enable/disable periodic email monitoring
    * POST /api/email/monitoring
    */

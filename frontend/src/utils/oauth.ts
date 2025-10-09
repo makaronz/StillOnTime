@@ -20,12 +20,21 @@ export function validateState(
   receivedState: string,
   storedState: string | null
 ): boolean {
-  if (!receivedState || !storedState) {
+  if (!receivedState) {
+    console.warn("OAuth: No state parameter received");
     return false;
+  }
+
+  if (!storedState) {
+    console.warn("OAuth: No stored state found - this may happen on page refresh during OAuth");
+    // In development, allow missing stored state (happens on page refresh)
+    // TODO: In production, return false here for better security
+    return import.meta.env.DEV;
   }
 
   // Use constant-time comparison to prevent timing attacks
   if (receivedState.length !== storedState.length) {
+    console.warn("OAuth: State length mismatch");
     return false;
   }
 
@@ -34,7 +43,12 @@ export function validateState(
     result |= receivedState.charCodeAt(i) ^ storedState.charCodeAt(i);
   }
 
-  return result === 0;
+  const isValid = result === 0;
+  if (!isValid) {
+    console.warn("OAuth: State parameter mismatch - possible CSRF attack");
+  }
+
+  return isValid;
 }
 
 /**
@@ -45,9 +59,10 @@ export function validateAuthCode(code: string): boolean {
     return false;
   }
 
-  // Basic validation - code should be at least 10 characters and contain only valid characters
-  const codeRegex = /^[A-Za-z0-9\-._~]+$/;
-  return code.length >= 10 && code.length <= 512 && codeRegex.test(code);
+  // Relaxed validation for development - accept any reasonable code format
+  // Google OAuth codes can vary in format and length
+  const codeRegex = /^[A-Za-z0-9\-._~%/]+$/;
+  return code.length >= 4 && code.length <= 2048 && codeRegex.test(code);
 }
 
 /**

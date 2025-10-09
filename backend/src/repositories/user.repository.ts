@@ -178,40 +178,27 @@ export class UserRepository
     const { googleId, email, name, accessToken, refreshToken, tokenExpiry } =
       oauthData;
 
-    // Try to find existing user by Google ID or email
-    const existingUser = await this.model.findFirst({
-      where: {
-        OR: [{ googleId }, { email }],
+    // Use upsert with googleId as unique identifier
+    // This prevents race conditions and handles unique constraint violations
+    return await this.model.upsert({
+      where: { googleId },
+      update: {
+        email,
+        name: name || undefined,
+        accessToken,
+        refreshToken: refreshToken || undefined,
+        tokenExpiry,
+        updatedAt: new Date(),
+      },
+      create: {
+        googleId,
+        email,
+        name,
+        accessToken,
+        refreshToken,
+        tokenExpiry,
       },
     });
-
-    if (existingUser) {
-      // Update existing user
-      return await this.model.update({
-        where: { id: existingUser.id },
-        data: {
-          googleId,
-          email,
-          name: name || existingUser.name,
-          accessToken,
-          refreshToken: refreshToken || existingUser.refreshToken,
-          tokenExpiry,
-          updatedAt: new Date(),
-        },
-      });
-    } else {
-      // Create new user
-      return await this.model.create({
-        data: {
-          googleId,
-          email,
-          name,
-          accessToken,
-          refreshToken,
-          tokenExpiry,
-        },
-      });
-    }
   }
 
   /**

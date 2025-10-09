@@ -215,33 +215,19 @@ export class OAuth2Service {
       const encryptedAccessToken = this.encryptToken(tokens.access_token);
       const encryptedRefreshToken = tokens.refresh_token
         ? this.encryptToken(tokens.refresh_token)
-        : null;
+        : undefined;
 
       const tokenExpiry = new Date(Date.now() + tokens.expires_in * 1000);
 
-      // Check if user exists
-      let user = await this.userRepository.findByGoogleId(googleId);
-
-      if (user) {
-        // Update existing user
-        user = await this.userRepository.update(user.id, {
-          email,
-          name,
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          tokenExpiry,
-        });
-      } else {
-        // Create new user
-        user = await this.userRepository.create({
-          email,
-          name,
-          googleId,
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          tokenExpiry,
-        });
-      }
+      // Use atomic upsert to prevent race conditions
+      const user = await this.userRepository.createOrUpdateFromOAuth({
+        googleId,
+        email,
+        name,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        tokenExpiry,
+      });
 
       logger.info("Successfully stored user tokens", {
         userId: user.id,
@@ -251,7 +237,15 @@ export class OAuth2Service {
 
       return user;
     } catch (error) {
-      logger.error("Failed to store user tokens", { googleId, email, error });
+      logger.error("Failed to store user tokens", { 
+        googleId, 
+        email, 
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : error
+      });
       throw new Error("Failed to store user authentication tokens");
     }
   }
@@ -367,7 +361,7 @@ export class OAuth2Service {
     const key = crypto.scryptSync(config.jwtSecret, "salt", 32);
     const iv = crypto.randomBytes(16);
 
-    const cipher = crypto.createCipher(algorithm, key);
+    const cipher = crypto.createCipheriv(algorithm, key, iv);
 
     let encrypted = cipher.update(token, "utf8", "hex");
     encrypted += cipher.final("hex");
@@ -391,7 +385,7 @@ export class OAuth2Service {
       const iv = Buffer.from(parts[0], "hex");
       const encrypted = parts[1];
 
-      const decipher = crypto.createDecipher(algorithm, key);
+      const decipher = crypto.createDecipheriv(algorithm, key, iv);
 
       let decrypted = decipher.update(encrypted, "hex", "utf8");
       decrypted += decipher.final("utf8");

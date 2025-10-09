@@ -230,6 +230,55 @@ export class BaseScheduleController {
   }
 
   /**
+   * Get upcoming schedules for dashboard
+   * GET /api/schedules/upcoming?limit=5
+   */
+  async getUpcoming(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 5, 50);
+
+      const schedules = await this.scheduleDataRepository.findUpcomingSchedules(
+        req.user.userId,
+        limit
+      );
+
+      res.json({
+        success: true,
+        data: schedules.map((schedule: any) => ({
+          id: schedule.id,
+          shootingDate: schedule.shootingDate,
+          callTime: schedule.callTime,
+          location: schedule.location,
+          sceneType: schedule.sceneType,
+          scenes: schedule.scenes,
+          hasRoutePlan: !!schedule.routePlan,
+          hasWeatherData: !!schedule.weatherData,
+          hasCalendarEvent: !!schedule.calendarEvent,
+        })),
+        message: "Upcoming schedules retrieved successfully",
+      });
+    } catch (error) {
+      logger.error("Failed to get upcoming schedules", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: req.user.userId,
+      });
+
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to get upcoming schedules",
+        code: "UPCOMING_SCHEDULES_FAILED",
+        timestamp: new Date().toISOString(),
+        path: req.path,
+      });
+    }
+  }
+
+  /**
    * Verify schedule ownership
    */
   protected async verifyScheduleOwnership(

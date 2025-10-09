@@ -1,42 +1,52 @@
-import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { Kysely, PostgresDialect } from "kysely";
+import type { Database } from "./database-types";
 import { config } from "./config";
+import { logger } from "@/utils/logger";
 
-// Create Prisma client with proper configuration
-export const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: config.databaseUrl,
-    },
-  },
-  log:
-    config.nodeEnv === "development"
-      ? ["query", "info", "warn", "error"]
-      : ["error"],
-  errorFormat: "pretty",
+// Create PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: config.databaseUrl,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
+
+// Kysely database instance
+export const db = new Kysely<Database>({
+  dialect: new PostgresDialect({
+    pool,
+  }),
+});
+
+// Export prisma alias for backward compatibility during migration
+export const prisma = db;
 
 // Handle graceful shutdown
 process.on("beforeExit", async () => {
-  await prisma.$disconnect();
+  await db.destroy();
+  await pool.end();
 });
 
 process.on("SIGINT", async () => {
-  await prisma.$disconnect();
+  await db.destroy();
+  await pool.end();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
-  await prisma.$disconnect();
+  await db.destroy();
+  await pool.end();
   process.exit(0);
 });
 
 // Database connection health check
 export const checkDatabaseConnection = async (): Promise<boolean> => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await pool.query("SELECT 1");
     return true;
   } catch (error) {
-    console.error("Database connection failed:", error);
+    logger.error("Database connection failed", { error });
     return false;
   }
 };
@@ -44,16 +54,20 @@ export const checkDatabaseConnection = async (): Promise<boolean> => {
 // Initialize database connection
 export const initializeDatabase = async (): Promise<void> => {
   try {
-    await prisma.$connect();
-    console.log("✅ Database connected successfully");
+    // Test connection
+    await pool.query("SELECT 1");
+    logger.info("✅ Database connected successfully", {
+      environment: config.nodeEnv,
+      version: "1.0.0",
+    });
 
-    // Run a simple query to verify connection
+    // Run health check
     const isConnected = await checkDatabaseConnection();
     if (!isConnected) {
       throw new Error("Database health check failed");
     }
   } catch (error) {
-    console.error("❌ Failed to connect to database:", error);
+    logger.error("❌ Failed to connect to database", { error });
     throw error;
   }
 };

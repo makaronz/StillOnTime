@@ -33,6 +33,31 @@ const handleValidationErrors = (
 };
 
 /**
+ * Dashboard Routes
+ */
+
+// GET /api/emails/stats - Get email stats for dashboard
+router.get(
+  "/stats",
+  authenticateToken,
+  emailController.getStats.bind(emailController)
+);
+
+// GET /api/emails/recent - Get recent emails for dashboard
+router.get(
+  "/recent",
+  [
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("Limit must be between 1 and 100"),
+  ],
+  handleValidationErrors,
+  authenticateToken,
+  emailController.getRecent.bind(emailController)
+);
+
+/**
  * All email routes require authentication and valid OAuth
  */
 router.use(authenticateToken);

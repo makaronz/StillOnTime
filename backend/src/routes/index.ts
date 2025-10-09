@@ -3,6 +3,7 @@ import { authRoutes } from "./auth.routes";
 import { userRoutes } from "./user.routes";
 import { emailRoutes } from "./email.routes";
 import { scheduleRoutes } from "./schedule.routes";
+import { systemRoutes } from "./system.routes";
 import { calendarRoutes } from "./calendar.routes";
 import { routePlanningRoutes } from "./route-planning.routes";
 import smsRoutes from "./sms.routes";
@@ -24,11 +25,16 @@ router.use("/auth", authRoutes);
 // User management routes - /api/user/*
 router.use("/user", userRoutes);
 
-// Email processing routes - /api/email/*
+// Email processing routes - /api/email/* and /api/emails/*
 router.use("/email", emailRoutes);
+router.use("/emails", emailRoutes);
 
-// Schedule management routes - /api/schedule/*
+// Schedule management routes - /api/schedule/* and /api/schedules/*
 router.use("/schedule", scheduleRoutes);
+router.use("/schedules", scheduleRoutes);
+
+// System status routes - /api/system/*
+router.use("/system", systemRoutes);
 
 // Calendar management routes - /api/calendar/*
 router.use("/calendar", calendarRoutes);
@@ -65,8 +71,9 @@ router.get("/health", (req, res) => {
     routes: {
       auth: "/api/auth",
       user: "/api/user",
-      email: "/api/email",
-      schedule: "/api/schedule",
+      email: "/api/email, /api/emails",
+      schedule: "/api/schedule, /api/schedules",
+      system: "/api/system",
       calendar: "/api/calendar",
       routePlanning: "/api/route-planning",
       sms: "/api/sms",

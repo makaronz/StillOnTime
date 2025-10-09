@@ -33,6 +33,24 @@ const handleValidationErrors = (
 };
 
 /**
+ * Dashboard Routes
+ */
+
+// GET /api/schedules/upcoming - Get upcoming schedules for dashboard
+router.get(
+  "/upcoming",
+  [
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 50 })
+      .withMessage("Limit must be between 1 and 50"),
+  ],
+  handleValidationErrors,
+  authenticateToken,
+  scheduleController.getUpcoming.bind(scheduleController)
+);
+
+/**
  * All schedule routes require authentication and valid OAuth
  */
 router.use(authenticateToken);
