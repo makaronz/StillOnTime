@@ -167,6 +167,10 @@ playwright-report/
 client_secret_630855945931-trnbkkt4jr2dggq58ejdrdutpvc7cbqa.apps.googleusercontent.com.json
 chat_err.md
 
+
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt
+
 # Claude Flow generated files
 .claude/settings.local.json
 .mcp.json
@@ -191,5 +195,12 @@ coordination/orchestration/*
 *.sqlite-journal
 *.sqlite-wal
 claude-flow
+backend/.backup-20251009_210452/
+backend/.backup-20251009_210452/repositories/
+backend/.backup-20251009_210452/repositories/index.ts
+
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
+err2.md
+backend/.backup-20251009_210452/repositories/calendar-event.repository.ts
+backend/.backup-20251009_210452/repositories/base.repository.ts

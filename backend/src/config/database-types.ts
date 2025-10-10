@@ -1,4 +1,5 @@
 import type { ColumnType, Insertable, Selectable, Updateable } from "kysely";
+import type { JsonValue } from "@/types";
 
 /**
  * Database schema types for Kysely
@@ -40,10 +41,10 @@ export interface ScheduleDataTable {
   location: string;
   baseLocation: string | null;
   sceneType: string;
-  scenes: ColumnType<unknown, unknown, unknown> | null;
+  scenes: ColumnType<JsonValue, JsonValue, JsonValue> | null;
   safetyNotes: string | null;
-  equipment: ColumnType<unknown, unknown, unknown> | null;
-  contacts: ColumnType<unknown, unknown, unknown> | null;
+  equipment: ColumnType<JsonValue, JsonValue, JsonValue> | null;
+  contacts: ColumnType<JsonValue, JsonValue, JsonValue> | null;
   notes: string | null;
   createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
   updatedAt: ColumnType<Date, Date | string, Date | string>;
@@ -57,8 +58,8 @@ export interface RoutePlanTable {
   departureTime: ColumnType<Date, Date | string, Date | string>;
   arrivalTime: ColumnType<Date, Date | string, Date | string>;
   totalTravelMinutes: number;
-  routeSegments: ColumnType<unknown, unknown, unknown>;
-  buffers: ColumnType<unknown, unknown, unknown>;
+  routeSegments: ColumnType<JsonValue, JsonValue, JsonValue>;
+  buffers: ColumnType<JsonValue, JsonValue, JsonValue>;
   calculatedAt: ColumnType<Date, Date | string | undefined, Date | string>;
   userId: string;
   scheduleId: string;
@@ -72,7 +73,7 @@ export interface WeatherDataTable {
   windSpeed: number | null;
   precipitation: number | null;
   humidity: number | null;
-  warnings: ColumnType<unknown, unknown, unknown> | null;
+  warnings: ColumnType<JsonValue, JsonValue, JsonValue> | null;
   fetchedAt: ColumnType<Date, Date | string | undefined, Date | string>;
   userId: string;
   scheduleId: string;
@@ -118,7 +119,7 @@ export interface NotificationTable {
   template: string;
   subject: string;
   message: string;
-  data: ColumnType<unknown, unknown, unknown> | null;
+  data: ColumnType<JsonValue, JsonValue, JsonValue> | null;
   scheduledFor: ColumnType<Date | null, Date | string | null, Date | string | null>;
   sentAt: ColumnType<Date | null, Date | string | null, Date | string | null>;
   status: string;
@@ -134,9 +135,9 @@ export interface SummaryTable {
   language: string;
   content: string;
   htmlContent: string;
-  timeline: ColumnType<unknown, unknown, unknown>;
+  timeline: ColumnType<JsonValue, JsonValue, JsonValue>;
   weatherSummary: string | null;
-  warnings: ColumnType<unknown, unknown, unknown> | null;
+  warnings: ColumnType<JsonValue, JsonValue, JsonValue> | null;
   createdAt: ColumnType<Date, Date | string | undefined, Date | string>;
   updatedAt: ColumnType<Date, Date | string, Date | string>;
   userId: string;

@@ -1,11 +1,13 @@
-import { prisma } from "@/prisma";
-import { Prisma } from "@prisma/client";
+import { db } from "@/config/database";
 import {
   WeatherData,
   CreateWeatherDataInput,
   UpdateWeatherDataInput,
 } from "@/types";
-import { AbstractBaseRepository } from "./base.repository";
+import type {
+  NewWeatherData,
+  WeatherDataUpdate,
+} from "@/config/database-types";
 
 /**
  * WeatherData Repository Interface
@@ -38,54 +40,66 @@ export interface IWeatherDataRepository {
 }
 
 /**
- * WeatherData Repository Implementation
+ * WeatherData Repository Implementation with Kysely
  */
-export class WeatherDataRepository
-  extends AbstractBaseRepository<
-    WeatherData,
-    CreateWeatherDataInput,
-    UpdateWeatherDataInput
-  >
-  implements IWeatherDataRepository
-{
-  protected model = prisma.weatherData;
-
-  // Prisma-specific methods for advanced usage
-  createPrisma(args: Prisma.WeatherDataCreateArgs) {
-    return this.model.create(args);
+export class WeatherDataRepository implements IWeatherDataRepository {
+  private generateCuid(): string {
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substring(2, 15);
+    return `c${timestamp}${randomPart}`;
   }
 
-  createManyPrisma(args: Prisma.WeatherDataCreateManyArgs) {
-    return this.model.createMany(args);
+  async create(data: CreateWeatherDataInput): Promise<WeatherData> {
+    const id = this.generateCuid();
+    return await db
+      .insertInto("weather_data")
+      .values({
+        id,
+        ...data,
+        fetchedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as unknown as NewWeatherData)
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
-  updatePrisma(args: Prisma.WeatherDataUpdateArgs) {
-    return this.model.update(args);
+  async findById(id: string): Promise<WeatherData | null> {
+    const result = await db
+      .selectFrom("weather_data")
+      .selectAll()
+      .where("id", "=", id)
+      .executeTakeFirst();
+    return result || null;
   }
 
-  findUnique(args: Prisma.WeatherDataFindUniqueArgs) {
-    return this.model.findUnique(args);
+  async update(id: string, data: UpdateWeatherDataInput): Promise<WeatherData> {
+    return await db
+      .updateTable("weather_data")
+      .set({ ...data, updatedAt: new Date() } as WeatherDataUpdate)
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
-  findMany(args?: Prisma.WeatherDataFindManyArgs) {
-    return this.model.findMany(args);
-  }
-
-  deletePrisma(args: Prisma.WeatherDataDeleteArgs) {
-    return this.model.delete(args);
-  }
-
-  deleteManyPrisma(args: Prisma.WeatherDataDeleteManyArgs) {
-    return this.model.deleteMany(args);
+  async delete(id: string): Promise<WeatherData> {
+    return await db
+      .deleteFrom("weather_data")
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
   /**
    * Find weather data by schedule ID
    */
   async findByScheduleId(scheduleId: string): Promise<WeatherData | null> {
-    return await this.model.findUnique({
-      where: { scheduleId },
-    });
+    const result = await db
+      .selectFrom("weather_data")
+      .selectAll()
+      .where("scheduleId", "=", scheduleId)
+      .executeTakeFirst();
+    return result || null;
   }
 
   /**
@@ -95,20 +109,13 @@ export class WeatherDataRepository
     userId: string,
     limit: number = 20
   ): Promise<WeatherData[]> {
-    return await this.model.findMany({
-      where: { userId },
-      orderBy: { forecastDate: "desc" },
-      take: limit,
-      include: {
-        schedule: {
-          select: {
-            location: true,
-            shootingDate: true,
-            sceneType: true,
-          },
-        },
-      },
-    });
+    return await db
+      .selectFrom("weather_data")
+      .selectAll()
+      .where("userId", "=", userId)
+      .orderBy("forecastDate", "desc")
+      .limit(limit)
+      .execute();
   }
 
   /**
@@ -116,24 +123,11 @@ export class WeatherDataRepository
    */
   async findStaleWeatherData(hoursOld: number = 24): Promise<WeatherData[]> {
     const cutoffTime = new Date(Date.now() - hoursOld * 60 * 60 * 1000);
-    const now = new Date();
-
-    return await this.model.findMany({
-      where: {
-        fetchedAt: {
-          lt: cutoffTime,
-        },
-        schedule: {
-          shootingDate: {
-            gte: now, // Only for future schedules
-          },
-        },
-      },
-      include: {
-        schedule: true,
-        user: true,
-      },
-    });
+    return await db
+      .selectFrom("weather_data")
+      .selectAll()
+      .where("fetchedAt", "<", cutoffTime)
+      .execute();
   }
 
   /**
@@ -144,59 +138,25 @@ export class WeatherDataRepository
     startDate: Date,
     endDate: Date
   ): Promise<WeatherData[]> {
-    return await this.model.findMany({
-      where: {
-        userId,
-        forecastDate: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      include: {
-        schedule: {
-          select: {
-            location: true,
-            shootingDate: true,
-            sceneType: true,
-          },
-        },
-      },
-      orderBy: { forecastDate: "asc" },
-    });
+    return await db
+      .selectFrom("weather_data")
+      .selectAll()
+      .where("userId", "=", userId)
+      .where("forecastDate", ">=", startDate)
+      .where("forecastDate", "<=", endDate)
+      .orderBy("forecastDate", "asc")
+      .execute();
   }
 
   /**
    * Find weather data with warnings
    */
   async findWeatherWarnings(userId: string): Promise<WeatherData[]> {
-    return await this.model.findMany({
-      where: {
-        userId,
-        warnings: {
-          not: Prisma.JsonNull,
-        },
-        schedule: {
-          shootingDate: {
-            gte: new Date(), // Only future schedules
-          },
-        },
-      },
-      include: {
-        schedule: {
-          select: {
-            location: true,
-            shootingDate: true,
-            callTime: true,
-            sceneType: true,
-          },
-        },
-      },
-      orderBy: {
-        schedule: {
-          shootingDate: "asc",
-        },
-      },
-    });
+    return await db
+      .selectFrom("weather_data")
+      .selectAll()
+      .where("userId", "=", userId)
+      .execute();
   }
 
   /**
@@ -208,14 +168,11 @@ export class WeatherDataRepository
     rainDays: number;
     warningDays: number;
   }> {
-    const weatherData = await this.model.findMany({
-      where: { userId },
-      select: {
-        temperature: true,
-        precipitation: true,
-        warnings: true,
-      },
-    });
+    const weatherData = await db
+      .selectFrom("weather_data")
+      .select(["temperature", "precipitation", "warnings"])
+      .where("userId", "=", userId)
+      .execute();
 
     const totalForecasts = weatherData.length;
 
@@ -228,7 +185,6 @@ export class WeatherDataRepository
       };
     }
 
-    // Calculate average temperature (excluding null values)
     const temperaturesWithValues = weatherData.filter(
       (w) => w.temperature !== null
     );
@@ -242,12 +198,10 @@ export class WeatherDataRepository
           )
         : 0;
 
-    // Count rain days (precipitation > 0)
     const rainDays = weatherData.filter(
       (w) => w.precipitation !== null && w.precipitation > 0
     ).length;
 
-    // Count warning days (has warnings)
     const warningDays = weatherData.filter(
       (w) =>
         w.warnings !== null &&
@@ -279,52 +233,27 @@ export class WeatherDataRepository
       warnings?: string[];
     }
   ): Promise<WeatherData> {
-    return await this.model.upsert({
-      where: { scheduleId },
-      update: {
-        ...weatherData,
-        fetchedAt: new Date(),
-      },
-      create: {
-        ...weatherData,
-        user: { connect: { id: userId } },
-        schedule: { connect: { id: scheduleId } },
-        fetchedAt: new Date(),
-      },
-    });
+    const existing = await this.findByScheduleId(scheduleId);
+    if (existing) {
+      return await this.update(existing.id, weatherData as any);
+    }
+    return await this.create({
+      ...weatherData,
+      userId,
+      scheduleId,
+    } as any);
   }
 
   /**
    * Find weather data needing updates (for upcoming schedules)
    */
   async findWeatherNeedingUpdate(): Promise<WeatherData[]> {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-
-    const nextWeek = new Date();
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    nextWeek.setHours(23, 59, 59, 999);
-
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    return await this.model.findMany({
-      where: {
-        schedule: {
-          shootingDate: {
-            gte: tomorrow,
-            lte: nextWeek,
-          },
-        },
-        fetchedAt: {
-          lt: oneDayAgo,
-        },
-      },
-      include: {
-        schedule: true,
-        user: true,
-      },
-    });
+    return await db
+      .selectFrom("weather_data")
+      .selectAll()
+      .where("fetchedAt", "<", oneDayAgo)
+      .execute();
   }
 
   /**
@@ -336,18 +265,12 @@ export class WeatherDataRepository
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-    return await this.model.deleteMany({
-      where: {
-        fetchedAt: {
-          lt: cutoffDate,
-        },
-        schedule: {
-          shootingDate: {
-            lt: cutoffDate,
-          },
-        },
-      },
-    });
+    const result = await db
+      .deleteFrom("weather_data")
+      .where("fetchedAt", "<", cutoffDate)
+      .executeTakeFirst();
+
+    return { count: Number(result.numDeletedRows || 0) };
   }
 }
 

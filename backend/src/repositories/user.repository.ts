@@ -1,115 +1,180 @@
-import { prisma } from "@/prisma";
+import { db } from "@/config/database";
 import {
   User,
+  NewUser,
+  UserUpdate,
   UserConfig,
-  CreateUserInput,
-  UpdateUserInput,
-  UserWithRelations,
-} from "@/types";
-import { AbstractBaseRepository, FindManyOptions } from "./base.repository";
-import { Prisma } from "@prisma/client";
+  NewUserConfig,
+  UserConfigUpdate,
+} from "@/config/database-types";
+import { sql } from "kysely";
 
 /**
- * User Repository Interface
- * Extends base repository with user-specific operations
+ * User Repository with Kysely
  */
-export interface IUserRepository {
-  // Base CRUD operations
-  create(data: CreateUserInput): Promise<User>;
-  findById(id: string): Promise<User | null>;
-  findByEmail(email: string): Promise<User | null>;
-  findByGoogleId(googleId: string): Promise<User | null>;
-  update(id: string, data: UpdateUserInput): Promise<User>;
-  delete(id: string): Promise<User>;
-
-  // User-specific operations
-  findWithRelations(id: string): Promise<UserWithRelations | null>;
-  updateTokens(
-    id: string,
-    accessToken: string,
-    refreshToken?: string,
-    expiresAt?: Date
-  ): Promise<User>;
-  clearTokens(id: string): Promise<User>;
-  findUsersWithExpiredTokens(): Promise<User[]>;
-
-  // OAuth-specific operations
-  createOrUpdateFromOAuth(oauthData: {
-    googleId: string;
-    email: string;
-    name?: string;
-    accessToken: string;
-    refreshToken?: string;
-    tokenExpiry?: Date;
-  }): Promise<User>;
-}
-
-/**
- * User Repository Implementation
- */
-export class UserRepository
-  extends AbstractBaseRepository<User, CreateUserInput, UpdateUserInput>
-  implements IUserRepository
-{
-  protected model = prisma.user;
-
+export class UserRepository {
   /**
    * Find user by email address
    */
   async findByEmail(email: string): Promise<User | null> {
-    return await this.model.findUnique({
-      where: { email },
-    });
+    const user = await db
+      .selectFrom("users")
+      .selectAll()
+      .where("email", "=", email)
+      .executeTakeFirst();
+
+    return user || null;
   }
 
   /**
    * Find user by Google ID
    */
   async findByGoogleId(googleId: string): Promise<User | null> {
-    return await this.model.findUnique({
-      where: { googleId },
-    });
+    const user = await db
+      .selectFrom("users")
+      .selectAll()
+      .where("googleId", "=", googleId)
+      .executeTakeFirst();
+
+    return user || null;
   }
 
   /**
-   * Find user with all related data
+   * Find user by ID
    */
-  async findWithRelations(id: string): Promise<UserWithRelations | null> {
-    return await this.model.findUnique({
-      where: { id },
-      include: {
-        processedEmails: {
-          orderBy: { createdAt: "desc" },
-          take: 10, // Limit to recent emails
-        },
-        schedules: {
-          orderBy: { shootingDate: "desc" },
-          include: {
-            routePlan: true,
-            weatherData: true,
-            calendarEvent: true,
-          },
-        },
-        routePlans: {
-          orderBy: { calculatedAt: "desc" },
-        },
-        weatherData: {
-          orderBy: { fetchedAt: "desc" },
-        },
-        calendarEvents: {
-          orderBy: { createdAt: "desc" },
-        },
-        notifications: {
-          orderBy: { createdAt: "desc" },
-          take: 20, // Limit to recent notifications
-        },
-        summaries: {
-          orderBy: { createdAt: "desc" },
-          take: 10, // Limit to recent summaries
-        },
-        userConfig: true,
-      },
-    });
+  async findById(id: string): Promise<User | null> {
+    const user = await db
+      .selectFrom("users")
+      .selectAll()
+      .where("id", "=", id)
+      .executeTakeFirst();
+
+    return user || null;
+  }
+
+  /**
+   * Find user with all related data (alias for findByIdWithConfig)
+   */
+  async findWithRelations(id: string): Promise<any | null> {
+    return await this.findByIdWithConfig(id);
+  }
+
+  /**
+   * Find user by ID with user config
+   */
+  async findByIdWithConfig(
+    id: string
+  ): Promise<(User & { userConfig: UserConfig | null }) | null> {
+    const user = await db
+      .selectFrom("users")
+      .leftJoin("user_configs", "users.id", "user_configs.userId")
+      .selectAll("users")
+      .select([
+        "user_configs.id as userConfigId",
+        "user_configs.homeAddress",
+        "user_configs.panavisionAddress",
+        "user_configs.bufferCarChange",
+        "user_configs.bufferParking",
+        "user_configs.bufferEntry",
+        "user_configs.bufferTraffic",
+        "user_configs.bufferMorningRoutine",
+        "user_configs.notificationEmail",
+        "user_configs.notificationSMS",
+        "user_configs.notificationPush",
+        "user_configs.smsNumber",
+        "user_configs.smsVerified",
+        "user_configs.smsVerificationCode",
+        "user_configs.smsVerificationExpiry",
+        "user_configs.pushToken",
+        "user_configs.pushTokenVerified",
+        "user_configs.userId as userConfigUserId",
+      ])
+      .where("users.id", "=", id)
+      .executeTakeFirst();
+
+    if (!user) return null;
+
+    const userConfig = user.userConfigId
+      ? ({
+          id: user.userConfigId,
+          homeAddress: user.homeAddress!,
+          panavisionAddress: user.panavisionAddress!,
+          bufferCarChange: user.bufferCarChange!,
+          bufferParking: user.bufferParking!,
+          bufferEntry: user.bufferEntry!,
+          bufferTraffic: user.bufferTraffic!,
+          bufferMorningRoutine: user.bufferMorningRoutine!,
+          notificationEmail: user.notificationEmail!,
+          notificationSMS: user.notificationSMS!,
+          notificationPush: user.notificationPush!,
+          smsNumber: user.smsNumber!,
+          smsVerified: user.smsVerified!,
+          smsVerificationCode: user.smsVerificationCode!,
+          smsVerificationExpiry: user.smsVerificationExpiry!,
+          pushToken: user.pushToken!,
+          pushTokenVerified: user.pushTokenVerified!,
+          userId: user.userConfigUserId!,
+        } as UserConfig)
+      : null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      googleId: user.googleId,
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+      tokenExpiry: user.tokenExpiry,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      userConfig,
+    };
+  }
+
+  /**
+   * Create user
+   */
+  async create(data: {
+    email: string;
+    googleId: string;
+    name?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    tokenExpiry?: Date;
+  }): Promise<User> {
+    const id = this.generateCuid();
+
+    const user = await db
+      .insertInto("users")
+      .values({
+        id,
+        email: data.email,
+        googleId: data.googleId,
+        name: data.name || null,
+        accessToken: data.accessToken || null,
+        refreshToken: data.refreshToken || null,
+        tokenExpiry: data.tokenExpiry || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return user;
+  }
+
+  /**
+   * Update user
+   */
+  async update(id: string, data: UserUpdate): Promise<User> {
+    const user = await db
+      .updateTable("users")
+      .set({ ...data, updatedAt: new Date() })
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return user;
   }
 
   /**
@@ -121,46 +186,52 @@ export class UserRepository
     refreshToken?: string,
     expiresAt?: Date
   ): Promise<User> {
-    return await this.model.update({
-      where: { id },
-      data: {
+    const user = await db
+      .updateTable("users")
+      .set({
         accessToken,
-        refreshToken: refreshToken || undefined,
-        tokenExpiry: expiresAt,
+        refreshToken: refreshToken || null,
+        tokenExpiry: expiresAt || null,
         updatedAt: new Date(),
-      },
-    });
+      })
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return user;
   }
 
   /**
    * Clear user's OAuth tokens (logout)
    */
   async clearTokens(id: string): Promise<User> {
-    return await this.model.update({
-      where: { id },
-      data: {
+    const user = await db
+      .updateTable("users")
+      .set({
         accessToken: null,
         refreshToken: null,
         tokenExpiry: null,
         updatedAt: new Date(),
-      },
-    });
+      })
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return user;
   }
 
   /**
    * Find users with expired tokens for cleanup/refresh
    */
   async findUsersWithExpiredTokens(): Promise<User[]> {
-    return await this.model.findMany({
-      where: {
-        tokenExpiry: {
-          lt: new Date(),
-        },
-        accessToken: {
-          not: null,
-        },
-      },
-    });
+    const users = await db
+      .selectFrom("users")
+      .selectAll()
+      .where("tokenExpiry", "<", new Date())
+      .where("accessToken", "is not", null)
+      .execute();
+
+    return users;
   }
 
   /**
@@ -178,50 +249,29 @@ export class UserRepository
     const { googleId, email, name, accessToken, refreshToken, tokenExpiry } =
       oauthData;
 
-    // Use upsert with googleId as unique identifier
-    // This prevents race conditions and handles unique constraint violations
-    return await this.model.upsert({
-      where: { googleId },
-      update: {
+    // Check if user exists
+    const existingUser = await this.findByGoogleId(googleId);
+
+    if (existingUser) {
+      // Update existing user
+      return await this.update(existingUser.id, {
         email,
-        name: name || undefined,
+        name: name || null,
         accessToken,
-        refreshToken: refreshToken || undefined,
-        tokenExpiry,
-        updatedAt: new Date(),
-      },
-      create: {
+        refreshToken: refreshToken || null,
+        tokenExpiry: tokenExpiry || null,
+      });
+    } else {
+      // Create new user
+      return await this.create({
         googleId,
         email,
         name,
         accessToken,
         refreshToken,
         tokenExpiry,
-      },
-    });
-  }
-
-  /**
-   * Find user by ID
-   */
-  async findById(id: string): Promise<User | null> {
-    return await this.model.findUnique({
-      where: { id },
-    });
-  }
-
-  /**
-   * Find user by ID with user config
-   */
-  async findByIdWithConfig(
-    id: string
-  ): Promise<(User & { userConfig: UserConfig | null }) | null> {
-    return await this.model.findUnique({
-      where: { id },
-      include: {
-        userConfig: true,
-      },
-    });
+      });
+    }
   }
 
   /**
@@ -248,40 +298,54 @@ export class UserRepository
       pushTokenVerified: boolean;
     }>
   ): Promise<UserConfig> {
-    return await prisma.userConfig.upsert({
-      where: { userId },
-      update: {
-        ...configData,
-      },
-      create: {
-        userId,
-        homeAddress: configData.homeAddress || "",
-        panavisionAddress: configData.panavisionAddress || "",
-        bufferCarChange: configData.bufferCarChange || 15,
-        bufferParking: configData.bufferParking || 10,
-        bufferEntry: configData.bufferEntry || 10,
-        bufferTraffic: configData.bufferTraffic || 20,
-        bufferMorningRoutine: configData.bufferMorningRoutine || 45,
-        notificationEmail: configData.notificationEmail ?? true,
-        notificationSMS: configData.notificationSMS ?? false,
-        notificationPush: configData.notificationPush ?? true,
-        smsNumber: configData.smsNumber,
-        smsVerified: configData.smsVerified ?? false,
-        smsVerificationCode: configData.smsVerificationCode,
-        smsVerificationExpiry: configData.smsVerificationExpiry,
-        pushToken: configData.pushToken,
-        pushTokenVerified: configData.pushTokenVerified ?? false,
-      },
-    });
-  }
+    // Check if config exists
+    const existingConfig = await db
+      .selectFrom("user_configs")
+      .selectAll()
+      .where("userId", "=", userId)
+      .executeTakeFirst();
 
-  /**
-   * Find all users (for admin operations)
-   */
-  async findAll(): Promise<User[]> {
-    return await this.model.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    if (existingConfig) {
+      // Update existing config
+      const config = await db
+        .updateTable("user_configs")
+        .set(configData)
+        .where("userId", "=", userId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return config;
+    } else {
+      // Create new config
+      const id = this.generateCuid();
+
+      const config = await db
+        .insertInto("user_configs")
+        .values({
+          id,
+          userId,
+          homeAddress: configData.homeAddress || "",
+          panavisionAddress: configData.panavisionAddress || "",
+          bufferCarChange: configData.bufferCarChange || 15,
+          bufferParking: configData.bufferParking || 10,
+          bufferEntry: configData.bufferEntry || 10,
+          bufferTraffic: configData.bufferTraffic || 20,
+          bufferMorningRoutine: configData.bufferMorningRoutine || 45,
+          notificationEmail: configData.notificationEmail ?? true,
+          notificationSMS: configData.notificationSMS ?? false,
+          notificationPush: configData.notificationPush ?? true,
+          smsNumber: configData.smsNumber || null,
+          smsVerified: configData.smsVerified ?? false,
+          smsVerificationCode: configData.smsVerificationCode || null,
+          smsVerificationExpiry: configData.smsVerificationExpiry || null,
+          pushToken: configData.pushToken || null,
+          pushTokenVerified: configData.pushTokenVerified ?? false,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return config;
+    }
   }
 
   /**
@@ -293,25 +357,81 @@ export class UserRepository
     totalSchedules: number;
     upcomingSchedules: number;
   }> {
-    const [totalEmails, processedEmails, totalSchedules, upcomingSchedules] =
-      await Promise.all([
-        prisma.processedEmail.count({ where: { userId } }),
-        prisma.processedEmail.count({ where: { userId, processed: true } }),
-        prisma.scheduleData.count({ where: { userId } }),
-        prisma.scheduleData.count({
-          where: {
-            userId,
-            shootingDate: { gte: new Date() },
-          },
-        }),
-      ]);
+    const stats = await db
+      .selectFrom("users")
+      .select([
+        (eb) =>
+          eb
+            .selectFrom("processed_emails")
+            .select((eb) => eb.fn.countAll<number>().as("count"))
+            .whereRef("processed_emails.userId", "=", "users.id")
+            .as("totalEmails"),
+        (eb) =>
+          eb
+            .selectFrom("processed_emails")
+            .select((eb) => eb.fn.countAll<number>().as("count"))
+            .whereRef("processed_emails.userId", "=", "users.id")
+            .where("processed_emails.processed", "=", true)
+            .as("processedEmails"),
+        (eb) =>
+          eb
+            .selectFrom("schedule_data")
+            .select((eb) => eb.fn.countAll<number>().as("count"))
+            .whereRef("schedule_data.userId", "=", "users.id")
+            .as("totalSchedules"),
+        (eb) =>
+          eb
+            .selectFrom("schedule_data")
+            .select((eb) => eb.fn.countAll<number>().as("count"))
+            .whereRef("schedule_data.userId", "=", "users.id")
+            .where("schedule_data.shootingDate", ">=", new Date())
+            .as("upcomingSchedules"),
+      ])
+      .where("users.id", "=", userId)
+      .executeTakeFirstOrThrow();
 
     return {
-      totalEmails,
-      processedEmails,
-      totalSchedules,
-      upcomingSchedules,
+      totalEmails: Number(stats.totalEmails),
+      processedEmails: Number(stats.processedEmails),
+      totalSchedules: Number(stats.totalSchedules),
+      upcomingSchedules: Number(stats.upcomingSchedules),
     };
+  }
+
+  /**
+   * Delete user
+   */
+  async delete(id: string): Promise<User> {
+    const user = await db
+      .deleteFrom("users")
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return user;
+  }
+
+  /**
+   * Find all users
+   */
+  async findAll(): Promise<User[]> {
+    const users = await db
+      .selectFrom("users")
+      .selectAll()
+      .orderBy("createdAt", "desc")
+      .execute();
+
+    return users;
+  }
+
+  /**
+   * Generate CUID for primary keys
+   * Simple implementation - replace with proper cuid library if needed
+   */
+  private generateCuid(): string {
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substring(2, 15);
+    return `c${timestamp}${randomPart}`;
   }
 }
 

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { logger } from "@/utils/logger";
-import { prisma } from "@/config/database";
+import { db } from "@/config/database";
+import { sql } from "kysely";
 import { getRedisClient } from "@/config/redis";
 
 /**
@@ -22,7 +23,7 @@ export class SystemController {
       // Check database connection
       let databaseConnected = false;
       try {
-        await prisma.$queryRaw`SELECT 1`;
+        await sql`SELECT 1`.execute(db);
         databaseConnected = true;
       } catch (error) {
         logger.error("Database health check failed", { error });
@@ -39,13 +40,11 @@ export class SystemController {
       }
 
       // Get user's token status
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.userId },
-        select: {
-          tokenExpiry: true,
-          refreshToken: true,
-        },
-      });
+      const user = await db
+        .selectFrom("users")
+        .select(["tokenExpiry", "refreshToken"])
+        .where("id", "=", req.user.userId)
+        .executeTakeFirst();
 
       const now = new Date();
       const tokenValid = user?.tokenExpiry
@@ -102,14 +101,11 @@ export class SystemController {
         return;
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.userId },
-        select: {
-          tokenExpiry: true,
-          refreshToken: true,
-          accessToken: true,
-        },
-      });
+      const user = await db
+        .selectFrom("users")
+        .select(["tokenExpiry", "refreshToken", "accessToken"])
+        .where("id", "=", req.user.userId)
+        .executeTakeFirst();
 
       const now = new Date();
       const tokenValid = user?.tokenExpiry
@@ -231,10 +227,11 @@ export class SystemController {
       switch (service) {
         case "gmail":
           try {
-            const user = await prisma.user.findUnique({
-              where: { id: req.user.userId },
-              select: { tokenExpiry: true, accessToken: true },
-            });
+            const user = await db
+              .selectFrom("users")
+              .select(["tokenExpiry", "accessToken"])
+              .where("id", "=", req.user.userId)
+              .executeTakeFirst();
             const tokenValid = user?.tokenExpiry
               ? new Date(user.tokenExpiry) > new Date()
               : false;
@@ -249,10 +246,11 @@ export class SystemController {
 
         case "calendar":
           try {
-            const user = await prisma.user.findUnique({
-              where: { id: req.user.userId },
-              select: { tokenExpiry: true, accessToken: true },
-            });
+            const user = await db
+              .selectFrom("users")
+              .select(["tokenExpiry", "accessToken"])
+              .where("id", "=", req.user.userId)
+              .executeTakeFirst();
             const tokenValid = user?.tokenExpiry
               ? new Date(user.tokenExpiry) > new Date()
               : false;

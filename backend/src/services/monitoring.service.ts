@@ -20,7 +20,8 @@ import {
 } from "../types/domain";
 import { CacheService } from "./cache.service";
 import { NotificationService } from "./notification.service";
-import { prisma } from "../config/database";
+import { db } from "@/config/database";
+import { sql } from "kysely";
 
 export interface PerformanceMetrics {
   timestamp: Date;
@@ -574,7 +575,7 @@ export class MonitoringService {
     try {
       switch (serviceName) {
         case "database":
-          await prisma.$queryRaw`SELECT 1`;
+          await sql`SELECT 1`.execute(db);
           successCount = 1;
           break;
 

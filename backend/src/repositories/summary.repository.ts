@@ -1,5 +1,4 @@
-import { AbstractBaseRepository } from "./base.repository";
-import { prisma } from "@/prisma";
+import { db } from "@/config/database";
 import {
   Summary,
   CreateSummaryInput,
@@ -7,7 +6,7 @@ import {
   WhereCondition,
   ScheduleDataWithRelations,
 } from "../types";
-import { Prisma } from "@prisma/client";
+import type { NewSummary, SummaryUpdate } from "@/config/database-types";
 
 /**
  * Summary Repository Interface
@@ -56,59 +55,68 @@ export interface ISummaryRepository {
 }
 
 /**
- * Summary Repository Implementation
+ * Summary Repository Implementation with Kysely
  */
-export class SummaryRepository
-  extends AbstractBaseRepository<Summary, CreateSummaryInput, UpdateSummaryInput>
-  implements ISummaryRepository
-{
-  protected model = prisma.summary;
-
-  // Prisma-specific methods for advanced usage
-  createPrisma(args: Prisma.SummaryCreateArgs) {
-    return this.model.create(args);
+export class SummaryRepository implements ISummaryRepository {
+  private generateCuid(): string {
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substring(2, 15);
+    return `c${timestamp}${randomPart}`;
   }
 
-  createManyPrisma(args: Prisma.SummaryCreateManyArgs) {
-    return this.model.createMany(args);
-  }
-
-  updatePrisma(args: Prisma.SummaryUpdateArgs) {
-    return this.model.update(args);
-  }
-
-  findUnique(args: Prisma.SummaryFindUniqueArgs) {
-    return this.model.findUnique(args);
-  }
-
-  findMany(args?: Prisma.SummaryFindManyArgs) {
-    return this.model.findMany(args);
-  }
-
-  deletePrisma(args: Prisma.SummaryDeleteArgs) {
-    return this.model.delete(args);
-  }
-
-  deleteManyPrisma(args: Prisma.SummaryDeleteManyArgs) {
-    return this.model.deleteMany(args);
+  async create(data: CreateSummaryInput): Promise<Summary> {
+    const id = this.generateCuid();
+    return await db
+      .insertInto("summaries")
+      .values({
+        id,
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as unknown as NewSummary)
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
   /**
    * Find summary by ID
    */
   async findById(id: string): Promise<Summary | null> {
-    return await this.model.findUnique({
-      where: { id },
-    });
+    const result = await db
+      .selectFrom("summaries")
+      .selectAll()
+      .where("id", "=", id)
+      .executeTakeFirst();
+    return result || null;
+  }
+
+  async update(id: string, data: UpdateSummaryInput): Promise<Summary> {
+    return await db
+      .updateTable("summaries")
+      .set({ ...data, updatedAt: new Date() } as SummaryUpdate)
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async delete(id: string): Promise<Summary> {
+    return await db
+      .deleteFrom("summaries")
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
   /**
    * Find summary by schedule ID
    */
   async findByScheduleId(scheduleId: string): Promise<Summary | null> {
-    return this.model.findUnique({
-      where: { scheduleId },
-    });
+    const result = await db
+      .selectFrom("summaries")
+      .selectAll()
+      .where("scheduleId", "=", scheduleId)
+      .executeTakeFirst();
+    return result || null;
   }
 
   /**
@@ -122,18 +130,25 @@ export class SummaryRepository
       language?: string;
     }
   ): Promise<Summary[]> {
-    const where: WhereCondition = { userId };
+    let query = db
+      .selectFrom("summaries")
+      .selectAll()
+      .where("userId", "=", userId)
+      .orderBy("createdAt", "desc");
 
     if (options?.language) {
-      where.language = options.language;
+      query = query.where("language", "=", options.language);
     }
 
-    return this.model.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: options?.limit,
-      skip: options?.offset,
-    });
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset) {
+      query = query.offset(options.offset);
+    }
+
+    return await query.execute();
   }
 
   /**
@@ -148,39 +163,22 @@ export class SummaryRepository
       toDate?: Date;
     }
   ): Promise<Array<Summary & { schedule: ScheduleDataWithRelations }>> {
-    const where: WhereCondition = { userId };
+    let query = db
+      .selectFrom("summaries")
+      .selectAll()
+      .where("userId", "=", userId)
+      .orderBy("createdAt", "desc");
 
-    if (options?.fromDate || options?.toDate) {
-      where.schedule = {};
-      if (options.fromDate) {
-        where.schedule.shootingDate = { gte: options.fromDate };
-      }
-      if (options.toDate) {
-        where.schedule.shootingDate = {
-          ...where.schedule.shootingDate,
-          lte: options.toDate,
-        };
-      }
+    if (options?.limit) {
+      query = query.limit(options.limit);
     }
 
-    return this.model.findMany({
-      where,
-      include: {
-        schedule: {
-          include: {
-            user: true,
-            email: true,
-            routePlan: true,
-            weatherData: true,
-            calendarEvent: true,
-            summary: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: options?.limit,
-      skip: options?.offset,
-    });
+    if (options?.offset) {
+      query = query.offset(options.offset);
+    }
+
+    const summaries = await query.execute();
+    return summaries as any[];
   }
 
   /**
@@ -191,26 +189,23 @@ export class SummaryRepository
     createData: CreateSummaryInput,
     updateData: UpdateSummaryInput
   ): Promise<Summary> {
-    return this.model.upsert({
-      where: { scheduleId },
-      create: createData,
-      update: updateData,
-    });
+    const existing = await this.findByScheduleId(scheduleId);
+    if (existing) {
+      return await this.update(existing.id, updateData);
+    }
+    return await this.create(createData);
   }
 
   /**
    * Delete summaries older than specified date
    */
   async deleteOlderThan(date: Date): Promise<number> {
-    const result = await this.model.deleteMany({
-      where: {
-        createdAt: {
-          lt: date,
-        },
-      },
-    });
+    const result = await db
+      .deleteFrom("summaries")
+      .where("createdAt", "<", date)
+      .executeTakeFirst();
 
-    return result.count;
+    return Number(result.numDeletedRows || 0);
   }
 
   /**
@@ -225,44 +220,36 @@ export class SummaryRepository
     byLanguage: Record<string, number>;
     recentCount: number;
   }> {
-    const where: WhereCondition = { userId };
+    let query = db
+      .selectFrom("summaries")
+      .where("userId", "=", userId);
 
-    if (fromDate || toDate) {
-      where.createdAt = {};
-      if (fromDate) where.createdAt.gte = fromDate;
-      if (toDate) where.createdAt.lte = toDate;
+    if (fromDate) {
+      query = query.where("createdAt", ">=", fromDate);
+    }
+    if (toDate) {
+      query = query.where("createdAt", "<=", toDate);
     }
 
-    const [total, byLanguage, recentCount] = await Promise.all([
-      this.model.count({ where }),
-      this.model.groupBy({
-        by: ["language"],
-        where,
-        _count: { language: true },
-      }),
-      this.model.count({
-        where: {
-          ...where,
-          createdAt: {
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-          },
-        },
-      }),
+    const [totalResult, allSummaries, recentResult] = await Promise.all([
+      query.select((eb) => eb.fn.countAll<number>().as("count")).executeTakeFirstOrThrow(),
+      query.select("language").execute(),
+      db.selectFrom("summaries")
+        .where("userId", "=", userId)
+        .where("createdAt", ">=", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+        .select((eb) => eb.fn.countAll<number>().as("count"))
+        .executeTakeFirstOrThrow(),
     ]);
 
+    const byLanguage = allSummaries.reduce((acc, summary) => {
+      acc[summary.language] = (acc[summary.language] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
     return {
-      total,
-      byLanguage: byLanguage.reduce(
-        (
-          acc: Record<string, number>,
-          item: { language: string; _count: { language: number } }
-        ) => {
-          acc[item.language] = item._count.language;
-          return acc;
-        },
-        {} as Record<string, number>
-      ),
-      recentCount,
+      total: Number(totalResult.count),
+      byLanguage,
+      recentCount: Number(recentResult.count),
     };
   }
 }

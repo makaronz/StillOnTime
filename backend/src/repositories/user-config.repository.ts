@@ -1,18 +1,18 @@
-import { prisma } from "@/config/database";
+import { db } from "@/config/database";
 import {
   UserConfig,
-  CreateUserConfigInput,
-  UpdateUserConfigInput,
-} from "@/types";
+  NewUserConfig,
+  UserConfigUpdate,
+} from "@/config/database-types";
 
 /**
  * UserConfig Repository Interface
  */
 export interface IUserConfigRepository {
   // Base CRUD operations
-  create(data: CreateUserConfigInput): Promise<UserConfig>;
+  create(data: Partial<NewUserConfig>): Promise<UserConfig>;
   findById(id: string): Promise<UserConfig | null>;
-  update(id: string, data: UpdateUserConfigInput): Promise<UserConfig>;
+  update(id: string, data: UserConfigUpdate): Promise<UserConfig>;
   delete(id: string): Promise<UserConfig>;
 
   // UserConfig-specific operations
@@ -29,33 +29,96 @@ export interface IUserConfigRepository {
 }
 
 /**
- * UserConfig Repository Implementation
+ * UserConfig Repository Implementation with Kysely
  */
 export class UserConfigRepository implements IUserConfigRepository {
-  // Basic CRUD operations using Prisma directly
-  async create(data: CreateUserConfigInput): Promise<UserConfig> {
-    return await prisma.userConfig.create({ data });
+  /**
+   * Create user configuration
+   */
+  async create(data: Partial<NewUserConfig>): Promise<UserConfig> {
+    const id = this.generateCuid();
+
+    const config = await db
+      .insertInto("user_configs")
+      .values({
+        id,
+        userId: data.userId!,
+        homeAddress: data.homeAddress || "",
+        panavisionAddress:
+          data.panavisionAddress ||
+          "Panavision Office, 123 Example St, Los Angeles, CA 90028",
+        bufferCarChange: data.bufferCarChange ?? 15,
+        bufferParking: data.bufferParking ?? 10,
+        bufferEntry: data.bufferEntry ?? 10,
+        bufferTraffic: data.bufferTraffic ?? 20,
+        bufferMorningRoutine: data.bufferMorningRoutine ?? 45,
+        notificationEmail: data.notificationEmail ?? true,
+        notificationSMS: data.notificationSMS ?? false,
+        notificationPush: data.notificationPush ?? true,
+        smsNumber: data.smsNumber || null,
+        smsVerified: data.smsVerified ?? false,
+        smsVerificationCode: data.smsVerificationCode || null,
+        smsVerificationExpiry: data.smsVerificationExpiry || null,
+        pushToken: data.pushToken || null,
+        pushTokenVerified: data.pushTokenVerified ?? false,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return config;
   }
 
+  /**
+   * Find user configuration by ID
+   */
   async findById(id: string): Promise<UserConfig | null> {
-    return await prisma.userConfig.findUnique({ where: { id } });
+    const config = await db
+      .selectFrom("user_configs")
+      .selectAll()
+      .where("id", "=", id)
+      .executeTakeFirst();
+
+    return config || null;
   }
 
-  async update(id: string, data: UpdateUserConfigInput): Promise<UserConfig> {
-    return await prisma.userConfig.update({ where: { id }, data });
+  /**
+   * Update user configuration
+   */
+  async update(id: string, data: UserConfigUpdate): Promise<UserConfig> {
+    const config = await db
+      .updateTable("user_configs")
+      .set(data)
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return config;
   }
 
+  /**
+   * Delete user configuration
+   */
   async delete(id: string): Promise<UserConfig> {
-    return await prisma.userConfig.delete({ where: { id } });
+    const config = await db
+      .deleteFrom("user_configs")
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return config;
   }
 
   /**
    * Find user configuration by user ID
    */
   async findByUserId(userId: string): Promise<UserConfig | null> {
-    return await prisma.userConfig.findUnique({
-      where: { userId },
-    });
+    const config = await db
+      .selectFrom("user_configs")
+      .selectAll()
+      .where("userId", "=", userId)
+      .executeTakeFirst();
+
+    return config || null;
   }
 
   /**
@@ -68,18 +131,25 @@ export class UserConfigRepository implements IUserConfigRepository {
     const existingConfig = await this.findByUserId(userId);
 
     if (existingConfig) {
-      return await prisma.userConfig.update({
-        where: { userId },
-        data: configData,
-      });
+      return await db
+        .updateTable("user_configs")
+        .set(configData)
+        .where("userId", "=", userId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
     } else {
-      return await prisma.userConfig.create({
-        data: {
+      const id = this.generateCuid();
+
+      return await db
+        .insertInto("user_configs")
+        .values({
+          id,
+          userId,
           ...this.getDefaultConfigData(),
           ...configData,
-          user: { connect: { id: userId } },
-        } as any,
-      });
+        } as NewUserConfig)
+        .returningAll()
+        .executeTakeFirstOrThrow();
     }
   }
 
@@ -301,17 +371,39 @@ export class UserConfigRepository implements IUserConfigRepository {
     const existingConfig = await this.findByUserId(userId);
 
     if (existingConfig) {
-      return await prisma.userConfig.update({
-        where: { userId },
-        data: this.getDefaultConfigData(),
-      });
+      return await db
+        .updateTable("user_configs")
+        .set(this.getDefaultConfigData())
+        .where("userId", "=", userId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
     } else {
-      return await prisma.userConfig.create({
-        data: {
+      const id = this.generateCuid();
+
+      return await db
+        .insertInto("user_configs")
+        .values({
+          id,
+          userId,
           ...this.getDefaultConfigData(),
-          user: { connect: { id: userId } },
-        } as any,
-      });
+        } as NewUserConfig)
+        .returningAll()
+        .executeTakeFirstOrThrow();
     }
   }
+
+  /**
+   * Generate CUID for primary keys
+   */
+  private generateCuid(): string {
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substring(2, 15);
+    return `c${timestamp}${randomPart}`;
+  }
 }
+
+// Export a ready-to-use singleton instance
+export const userConfigRepository = new UserConfigRepository();
+
+// Also export as default for flexibility
+export default UserConfigRepository;

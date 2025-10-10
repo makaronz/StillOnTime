@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { UserRepository } from "@/repositories/user.repository";
 import { UserConfigRepository } from "@/repositories/user-config.repository";
+import { ProcessedEmail } from "@/config/database-types";
+import { ScheduleData } from "@/config/database-types";
 import { logger } from "@/utils/logger";
 import { services } from "@/services";
 
@@ -60,7 +62,7 @@ export class UserController {
         statistics: stats,
         oauth: oauthStatus,
         recentActivity: {
-          emails: user.processedEmails.slice(0, 5).map((email) => ({
+          emails: user.processedEmails.slice(0, 5).map((email: ProcessedEmail) => ({
             id: email.id,
             subject: email.subject,
             sender: email.sender,
@@ -68,7 +70,7 @@ export class UserController {
             processed: email.processed,
             processingStatus: email.processingStatus,
           })),
-          schedules: user.schedules.slice(0, 5).map((schedule) => ({
+          schedules: user.schedules.slice(0, 5).map((schedule: ScheduleData) => ({
             id: schedule.id,
             shootingDate: schedule.shootingDate,
             callTime: schedule.callTime,

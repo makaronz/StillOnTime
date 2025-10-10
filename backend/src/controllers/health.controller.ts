@@ -7,7 +7,8 @@ import { Request, Response } from "express";
 import { logger, structuredLogger } from "../utils/logger";
 import { CircuitBreakerRegistry } from "../utils/circuit-breaker";
 import { CacheService } from "../services/cache.service";
-import { prisma } from "../config/database";
+import { db } from "@/config/database";
+import { sql } from "kysely";
 import { OAuth2Service } from "../services/oauth2.service";
 import { MonitoringService } from "../services/monitoring.service";
 import { ErrorHandlerService } from "../services/error-handler.service";
@@ -276,7 +277,7 @@ export class HealthController {
     const startTime = Date.now();
 
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      await sql`SELECT 1`.execute(db);
       const responseTime = Date.now() - startTime;
 
       return {
