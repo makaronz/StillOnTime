@@ -149,45 +149,70 @@ export class OAuth2Service {
       }
 
       if (!user.accessToken) {
-        throw new Error("User has no access token");
+        throw new Error("User has no access token - re-authentication required");
+      }
+
+      // Decrypt tokens first
+      let decryptedAccessToken: string;
+      let decryptedRefreshToken: string | undefined;
+
+      try {
+        decryptedAccessToken = this.decryptToken(user.accessToken);
+        decryptedRefreshToken = user.refreshToken
+          ? this.decryptToken(user.refreshToken)
+          : undefined;
+      } catch (decryptError) {
+        logger.error("Token decryption failed for user", {
+          userId,
+          error: decryptError,
+          hasRefreshToken: !!user.refreshToken
+        });
+        throw new Error("Token decryption failed - please re-authenticate");
       }
 
       // Check if token needs refresh
       const now = new Date();
       const tokenExpiry = user.tokenExpiry;
+      const needsRefresh = tokenExpiry && tokenExpiry <= now;
 
-      if (tokenExpiry && tokenExpiry <= now) {
-        if (!user.refreshToken) {
+      if (needsRefresh) {
+        if (!decryptedRefreshToken) {
+          logger.warn("Access token expired with no refresh token available", { userId });
           throw new Error(
-            "Access token expired and no refresh token available"
+            "Access token expired and no refresh token available - re-authentication required"
           );
         }
 
         // Refresh the token
-        const newTokens = await this.refreshAccessToken(user.refreshToken);
+        try {
+          const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
 
-        // Update user with new tokens
-        await this.userRepository.update(userId, {
-          accessToken: this.encryptToken(newTokens.access_token),
-          refreshToken: newTokens.refresh_token
-            ? this.encryptToken(newTokens.refresh_token)
-            : user.refreshToken,
-          tokenExpiry: new Date(Date.now() + newTokens.expires_in * 1000),
-        });
+          // Update user with new tokens
+          await this.userRepository.update(userId, {
+            accessToken: this.encryptToken(newTokens.access_token),
+            refreshToken: newTokens.refresh_token
+              ? this.encryptToken(newTokens.refresh_token)
+              : user.refreshToken,
+            tokenExpiry: new Date(Date.now() + newTokens.expires_in * 1000),
+          });
 
-        // Set credentials on client
-        this.oauth2Client.setCredentials({
-          access_token: newTokens.access_token,
-          refresh_token: newTokens.refresh_token,
-          expiry_date: Date.now() + newTokens.expires_in * 1000,
-        });
+          // Set credentials on client
+          this.oauth2Client.setCredentials({
+            access_token: newTokens.access_token,
+            refresh_token: newTokens.refresh_token,
+            expiry_date: Date.now() + newTokens.expires_in * 1000,
+          });
+
+          logger.info("Successfully refreshed expired token for user", { userId });
+        } catch (refreshError) {
+          logger.error("Failed to refresh expired token", {
+            userId,
+            error: refreshError
+          });
+          throw new Error("Token refresh failed - please re-authenticate");
+        }
       } else {
         // Use existing token
-        const decryptedAccessToken = this.decryptToken(user.accessToken);
-        const decryptedRefreshToken = user.refreshToken
-          ? this.decryptToken(user.refreshToken)
-          : undefined;
-
         this.oauth2Client.setCredentials({
           access_token: decryptedAccessToken,
           refresh_token: decryptedRefreshToken,
@@ -197,7 +222,11 @@ export class OAuth2Service {
 
       return this.oauth2Client;
     } catch (error) {
-      logger.error("Failed to get Google client for user", { userId, error });
+      logger.error("Failed to get Google client for user", {
+        userId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        requiresReauth: error instanceof Error && error.message.includes("re-authenticate")
+      });
       throw error;
     }
   }
@@ -386,22 +415,30 @@ export class OAuth2Service {
       const algorithm = "aes-256-gcm";
 
       const parts = encryptedToken.split(":");
-      
+
       // Support both old format (iv:encrypted) and new format (salt:iv:authTag:encrypted)
       if (parts.length === 2) {
         // Old format - fallback to old decryption for backward compatibility
         logger.warn("Decrypting token using legacy format - token should be re-encrypted");
-        const key = crypto.scryptSync(config.jwtSecret, "salt", 32);
-        const iv = Buffer.from(parts[0], "hex");
-        const encrypted = parts[1];
-        const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-        let decrypted = decipher.update(encrypted, "hex", "utf8");
-        decrypted += decipher.final("utf8");
-        return decrypted;
+        try {
+          const key = crypto.scryptSync(config.jwtSecret, "salt", 32);
+          const iv = Buffer.from(parts[0], "hex");
+          const encrypted = parts[1];
+          const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+          let decrypted = decipher.update(encrypted, "hex", "utf8");
+          decrypted += decipher.final("utf8");
+          return decrypted;
+        } catch (legacyError) {
+          logger.error("Failed to decrypt token using legacy format", {
+            error: legacyError,
+            hint: "Token may need re-authentication"
+          });
+          throw new Error("Token format incompatible - please re-authenticate");
+        }
       }
-      
+
       if (parts.length !== 4) {
-        throw new Error("Invalid encrypted token format (expected salt:iv:authTag:encrypted)");
+        throw new Error(`Invalid encrypted token format (expected salt:iv:authTag:encrypted, got ${parts.length} parts)`);
       }
 
       const salt = Buffer.from(parts[0], "hex");
@@ -420,8 +457,17 @@ export class OAuth2Service {
 
       return decrypted;
     } catch (error) {
-      logger.error("Failed to decrypt token", { error });
-      throw new Error("Failed to decrypt authentication token");
+      logger.error("Failed to decrypt token", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        isAuthError: error instanceof Error && error.message.includes("decrypt")
+      });
+
+      // Throw specific error for auth failures
+      if (error instanceof Error && error.message.includes("re-authenticate")) {
+        throw error;
+      }
+
+      throw new Error("Failed to decrypt authentication token - please re-authenticate");
     }
   }
 

@@ -81,6 +81,25 @@ export class AuthController {
         return;
       }
 
+      // Validate state parameter for CSRF protection
+      // Note: In production, state should be validated against a session/cookie value
+      // For now, we verify it exists and has the expected format
+      if (!state || typeof state !== 'string' || state.length < 16) {
+        logger.warn("OAuth callback received invalid state parameter", {
+          state: state ? `${state.substring(0, 10)}...` : 'missing',
+          ip: req.ip,
+        });
+
+        res.status(400).json({
+          error: "Bad Request",
+          message: "Invalid state parameter - possible CSRF attack",
+          code: "INVALID_STATE",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+        });
+        return;
+      }
+
       // Exchange code for tokens
       const tokens = await services.oauth2.exchangeCodeForTokens(code);
 

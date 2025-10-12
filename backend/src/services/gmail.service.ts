@@ -168,9 +168,19 @@ export class GmailService {
 
       return filteredMessages;
     } catch (error) {
-      logger.error("Failed to get schedule emails", { userId, error });
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      logger.error("Failed to get schedule emails", {
+        userId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        requiresReauth: error instanceof Error && error.message.includes("re-authenticate")
+      });
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      // Provide specific error messages for auth failures
+      if (errorMessage.includes("re-authenticate")) {
+        throw new Error("Gmail authentication expired - please re-authenticate");
+      }
+
       throw new Error(`Failed to retrieve schedule emails: ${errorMessage}`);
     }
   }
@@ -322,10 +332,17 @@ export class GmailService {
         userId,
         messageId,
         attachmentId,
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
+        requiresReauth: error instanceof Error && error.message.includes("re-authenticate")
       });
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      // Provide specific error messages for auth failures
+      if (errorMessage.includes("re-authenticate")) {
+        throw new Error("Gmail authentication expired - please re-authenticate");
+      }
+
       throw new Error(`Failed to download attachment: ${errorMessage}`);
     }
   }
@@ -620,10 +637,17 @@ export class GmailService {
       logger.error("Failed to process specific email", {
         userId,
         messageId,
-        error,
+        error: error instanceof Error ? error.message : "Unknown error",
+        requiresReauth: error instanceof Error && error.message.includes("re-authenticate")
       });
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      // Provide specific error messages for auth failures
+      if (errorMessage.includes("re-authenticate")) {
+        throw new Error("Gmail authentication expired - please re-authenticate");
+      }
+
       throw new Error(`Failed to process email: ${errorMessage}`);
     }
   }

@@ -39,14 +39,25 @@ class AuthService {
       success: boolean;
       user: User;
       token: string;
+      expiresIn?: number;
+      message?: string;
     }>("/api/auth/callback", {
       code,
       state,
     });
+
+    if (!response.success) {
+      throw new Error(response.message || "Failed to exchange OAuth code");
+    }
+
+    if (!response.token || !response.user) {
+      throw new Error("Invalid response from authentication server");
+    }
+
     return {
       token: response.token,
       user: response.user,
-      expiresIn: 3600, // Default 1 hour
+      expiresIn: response.expiresIn || 3600, // Default 1 hour
     };
   }
 

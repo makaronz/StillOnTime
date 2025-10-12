@@ -178,17 +178,7 @@ err2.md
 backend/.backup-20251009_210452/repositories/calendar-event.repository.ts
 backend/.backup-20251009_210452/repositories/base.repository.ts
 
-# Claude Flow generated files
-.claude/settings.local.json
-.mcp.json
-claude-flow.config.json
-.swarm/
-.hive-mind/
-memory/claude-flow-data.json
-memory/sessions/*
-!memory/sessions/README.md
-memory/agents/*
-!memory/agents/README.md
+
 # Swarm coordination files (keep orchestration docs, ignore runtime data)
 coordination/memory_bank/sessions/*
 coordination/subtasks/*
@@ -210,3 +200,32 @@ cursor_agent_types_overview.md
 .claude/commands/hooks/overview.md
 .claude/commands/memory/
 backend/.backup-20251009_210452/
+
+
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt
+
+# Claude Flow generated files
+.claude/settings.local.json
+.mcp.json
+claude-flow.config.json
+.swarm/
+.hive-mind/
+coordination/
+memory/claude-flow-data.json
+memory/sessions/*
+!memory/sessions/README.md
+memory/agents/*
+!memory/agents/README.md
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+claude-flow
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt

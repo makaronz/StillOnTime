@@ -15,12 +15,28 @@ export default function Login(): JSX.Element {
     const code = searchParams.get('code')
     const state = searchParams.get('state')
     const error = searchParams.get('error')
+    const errorDescription = searchParams.get('error_description')
 
+    // Handle OAuth provider errors
     if (error) {
-      toast.error(`Login failed: ${error}`)
+      let errorMessage = 'Login failed'
+
+      if (error === 'access_denied') {
+        errorMessage = 'Login cancelled. You denied access to your Google account.'
+      } else if (errorDescription) {
+        errorMessage = `Login failed: ${errorDescription}`
+      } else {
+        errorMessage = `Login failed: ${error}`
+      }
+
+      toast.error(errorMessage)
+
+      // Clean up URL parameters
+      navigate('/login', { replace: true })
       return
     }
 
+    // Handle OAuth callback
     if (code && state) {
       handleOAuthCallback(code, state)
         .then(() => {
@@ -28,8 +44,11 @@ export default function Login(): JSX.Element {
           const from = location.state?.from?.pathname || '/'
           navigate(from, { replace: true })
         })
-        .catch(() => {
-          // Error is already handled in the store
+        .catch((err) => {
+          // Error toast is already shown in the store
+          // Clean up URL and stay on login page
+          console.error('OAuth callback error:', err)
+          navigate('/login', { replace: true })
         })
     }
   }, [searchParams, handleOAuthCallback, navigate, location.state])
@@ -71,6 +90,16 @@ export default function Login(): JSX.Element {
         <section aria-labelledby="login-section-title">
           <h2 id="login-section-title" className="sr-only">Authentication</h2>
           <div className="mt-8">
+            {/* Show loading state during OAuth callback */}
+            {searchParams.get('code') && searchParams.get('state') && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex items-center">
+                  <Loader2 className="h-5 w-5 mr-3 animate-spin text-blue-600" aria-hidden="true" />
+                  <p className="text-sm text-blue-800">Completing authentication...</p>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}

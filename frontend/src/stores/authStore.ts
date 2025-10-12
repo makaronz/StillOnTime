@@ -205,9 +205,22 @@ export const useAuthStore = create<AuthState>()(subscribeWithSelector(
           );
         } catch (error) {
           console.error("OAuth callback failed:", error);
-          const errorMessage =
-            error instanceof Error ? error.message : "Login failed";
-          toast.error(`Authentication error: ${errorMessage}`);
+
+          // Provide user-friendly error messages
+          let errorMessage = "Login failed. Please try again.";
+          if (error instanceof Error) {
+            if (error.message.includes("state parameter")) {
+              errorMessage = "Security validation failed. Please restart the login process.";
+            } else if (error.message.includes("authorization code")) {
+              errorMessage = "Invalid authorization code. Please try logging in again.";
+            } else if (error.message.includes("network") || error.message.includes("fetch")) {
+              errorMessage = "Network error. Please check your connection and try again.";
+            } else {
+              errorMessage = error.message;
+            }
+          }
+
+          toast.error(errorMessage);
           set({
             isLoading: false,
             token: null,
@@ -216,6 +229,7 @@ export const useAuthStore = create<AuthState>()(subscribeWithSelector(
             tokenExpiry: null,
             sessionTimeoutWarning: false,
           });
+
           // Clean up on error
           cleanupOAuthStorage();
           throw error;

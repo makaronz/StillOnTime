@@ -1,0 +1,393 @@
+{
+  "component_name": "OAuthConfigurationCard",
+  "file_location": "frontend/src/components/configuration/OAuthConfigurationCard.tsx",
+  "description": "Comprehensive OAuth settings management component for Google OAuth2 integration",
+
+  "component_hierarchy": {
+    "main_component": "OAuthConfigurationCard",
+    "sub_components": [
+      "ConnectionStatusBadge",
+      "GoogleAccountInfo",
+      "SyncPreferencesPanel",
+      "TokenManagementSection",
+      "ErrorRecoveryPanel"
+    ]
+  },
+
+  "typescript_interfaces": {
+    "OAuthConfigurationCardProps": {
+      "className": "string (optional)",
+      "onConnectionChange": "(connected: boolean) => void (optional)"
+    },
+    "OAuthStatus": {
+      "connected": "boolean",
+      "accountEmail": "string | null",
+      "accountName": "string | null",
+      "scopes": "string[]",
+      "tokenExpiry": "Date | null",
+      "lastSync": "Date | null",
+      "needsReauth": "boolean",
+      "error": "string | null"
+    },
+    "SyncPreferences": {
+      "gmailEnabled": "boolean",
+      "gmailSyncFrequency": "number (minutes)",
+      "gmailFolders": "string[]",
+      "calendarEnabled": "boolean",
+      "selectedCalendars": "string[]",
+      "autoSync": "boolean"
+    }
+  },
+
+  "state_management": {
+    "store_file": "frontend/src/stores/oauthStore.ts",
+    "store_name": "useOAuthStore",
+    "state_properties": [
+      "oauthStatus: OAuthStatus | null",
+      "syncPreferences: SyncPreferences",
+      "isLoading: boolean",
+      "isRefreshing: boolean",
+      "error: string | null"
+    ],
+    "actions": [
+      "checkOAuthStatus: () => Promise<void>",
+      "refreshToken: () => Promise<void>",
+      "disconnectAccount: () => Promise<void>",
+      "reconnectAccount: () => Promise<void>",
+      "updateSyncPreferences: (prefs: Partial<SyncPreferences>) => Promise<void>",
+      "testConnection: () => Promise<boolean>"
+    ]
+  },
+
+  "service_layer": {
+    "file": "frontend/src/services/oauth.ts",
+    "class": "OAuthService",
+    "endpoints": {
+      "getStatus": "GET /api/oauth/status",
+      "refreshToken": "POST /api/oauth/refresh",
+      "disconnect": "POST /api/oauth/disconnect",
+      "reconnect": "GET /api/oauth/reconnect",
+      "updatePreferences": "PUT /api/oauth/preferences",
+      "testConnection": "GET /api/oauth/test"
+    }
+  },
+
+  "component_sections": [
+    {
+      "section": "Connection Status Header",
+      "purpose": "Visual indicator of OAuth connection state",
+      "elements": [
+        {
+          "element": "Status Badge",
+          "states": {
+            "connected": {
+              "icon": "CheckCircle (Lucide)",
+              "color": "text-green-600 bg-green-50 border-green-200",
+              "text": "Connected"
+            },
+            "disconnected": {
+              "icon": "XCircle (Lucide)",
+              "color": "text-red-600 bg-red-50 border-red-200",
+              "text": "Disconnected"
+            },
+            "needs_reauth": {
+              "icon": "AlertCircle (Lucide)",
+              "color": "text-yellow-600 bg-yellow-50 border-yellow-200",
+              "text": "Re-authentication Required"
+            }
+          }
+        },
+        {
+          "element": "Last Sync Time",
+          "format": "date-fns formatDistanceToNow",
+          "styling": "text-xs text-gray-500"
+        }
+      ]
+    },
+    {
+      "section": "Google Account Information",
+      "purpose": "Display connected account details and permissions",
+      "elements": [
+        {
+          "element": "Account Avatar",
+          "component": "div with Mail icon",
+          "styling": "h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center"
+        },
+        {
+          "element": "Account Email",
+          "styling": "text-sm font-medium text-gray-900"
+        },
+        {
+          "element": "Account Name",
+          "styling": "text-xs text-gray-500"
+        },
+        {
+          "element": "Scopes Display",
+          "component": "Badge list",
+          "scopes": [
+            {"label": "Gmail", "icon": "Mail"},
+            {"label": "Calendar", "icon": "Calendar"},
+            {"label": "Drive", "icon": "FolderOpen"}
+          ],
+          "styling": "inline-flex items-center px-2 py-1 rounded text-xs bg-blue-50 text-blue-700"
+        }
+      ]
+    },
+    {
+      "section": "Action Buttons",
+      "elements": [
+        {
+          "button": "Disconnect",
+          "type": "danger",
+          "styling": "px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50",
+          "confirmation": true,
+          "confirmation_message": "Are you sure you want to disconnect your Google account? This will stop all email monitoring and calendar syncing.",
+          "icon": "Unlink (Lucide)"
+        },
+        {
+          "button": "Reconnect / Re-authenticate",
+          "type": "primary",
+          "styling": "px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700",
+          "icon": "RefreshCw (Lucide)"
+        },
+        {
+          "button": "Test Connection",
+          "type": "secondary",
+          "styling": "px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50",
+          "icon": "TestTube (Lucide)"
+        }
+      ]
+    },
+    {
+      "section": "Sync Preferences (Future-Ready)",
+      "purpose": "Gmail and Calendar sync configuration",
+      "note": "Currently disabled - backend API not yet implemented",
+      "elements": [
+        {
+          "subsection": "Gmail Sync",
+          "elements": [
+            {
+              "element": "Enable Gmail Sync Toggle",
+              "component": "Custom toggle switch",
+              "disabled": true,
+              "tooltip": "Coming soon - Gmail sync preferences"
+            },
+            {
+              "element": "Sync Frequency Dropdown",
+              "options": ["5 minutes", "15 minutes", "30 minutes", "1 hour"],
+              "disabled": true
+            },
+            {
+              "element": "Folder Selection",
+              "component": "Multi-select dropdown",
+              "disabled": true
+            }
+          ]
+        },
+        {
+          "subsection": "Calendar Integration",
+          "elements": [
+            {
+              "element": "Enable Calendar Sync Toggle",
+              "disabled": true
+            },
+            {
+              "element": "Calendar Selection Dropdown",
+              "disabled": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section": "Token Management & Error Recovery",
+      "elements": [
+        {
+          "element": "Token Expiry Display",
+          "format": "Expires in X hours/days",
+          "warning_threshold": "24 hours",
+          "styling": {
+            "normal": "text-sm text-gray-600",
+            "warning": "text-sm text-yellow-600 font-medium"
+          }
+        },
+        {
+          "element": "Manual Refresh Button",
+          "styling": "text-sm text-primary-600 hover:text-primary-800 underline",
+          "loading_state": "LoadingSpinner component"
+        },
+        {
+          "element": "Error Display",
+          "component": "Alert box",
+          "styling": "bg-red-50 border border-red-200 rounded-lg p-4",
+          "elements": [
+            "Error icon (AlertCircle)",
+            "Error message text",
+            "Actionable recovery steps"
+          ]
+        }
+      ]
+    }
+  ],
+
+  "styling_specifications": {
+    "card_container": "bg-white rounded-lg shadow p-6 space-y-6",
+    "section_header": "text-lg font-semibold text-gray-900 mb-4",
+    "section_divider": "border-t border-gray-200 my-6",
+    "input_field": "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+    "toggle_switch": {
+      "container": "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+      "enabled": "bg-primary-600",
+      "disabled": "bg-gray-300 cursor-not-allowed opacity-50",
+      "knob": "inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+    },
+    "badge": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+    "button_primary": "px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
+    "button_secondary": "px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
+    "button_danger": "px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+  },
+
+  "user_flows": {
+    "initial_load": [
+      "Component mounts",
+      "Show loading spinner",
+      "Fetch OAuth status from backend",
+      "Update UI based on connection state",
+      "Display appropriate status badge"
+    ],
+    "disconnect_flow": [
+      "User clicks Disconnect button",
+      "Show confirmation modal",
+      "User confirms",
+      "Call disconnect API",
+      "Show loading state",
+      "Clear OAuth state in store",
+      "Show success toast",
+      "Update UI to disconnected state"
+    ],
+    "reconnect_flow": [
+      "User clicks Reconnect/Re-authenticate",
+      "Redirect to Google OAuth URL",
+      "User grants permissions",
+      "Callback handler processes tokens",
+      "Update OAuth status",
+      "Show success toast",
+      "Refresh component state"
+    ],
+    "token_refresh_flow": [
+      "User clicks Manual Refresh or automatic trigger",
+      "Show loading spinner on button",
+      "Call refresh token API",
+      "Update token expiry in state",
+      "Show success/error toast",
+      "Update UI"
+    ],
+    "error_recovery_flow": [
+      "Detect error (expired token, network error, etc.)",
+      "Display error message with icon",
+      "Show actionable recovery steps",
+      "Provide Manual Refresh button",
+      "Provide Reconnect button if needed",
+      "Log error details for debugging"
+    ]
+  },
+
+  "accessibility": {
+    "aria_labels": {
+      "main_section": "OAuth configuration settings",
+      "status_badge": "Connection status: {connected|disconnected|needs reauth}",
+      "disconnect_button": "Disconnect Google account",
+      "reconnect_button": "Reconnect to Google account",
+      "test_button": "Test OAuth connection",
+      "refresh_button": "Manually refresh access token"
+    },
+    "keyboard_navigation": [
+      "All buttons focusable with Tab",
+      "Enter/Space to activate buttons",
+      "Escape to close confirmation modals",
+      "Focus visible styles (ring-2 ring-primary-500)"
+    ],
+    "screen_reader": [
+      "Status announcements via aria-live regions",
+      "Loading state announcements",
+      "Error messages with role=alert",
+      "Descriptive button labels"
+    ],
+    "color_contrast": "WCAG 2.1 AA compliant - minimum 4.5:1 for text"
+  },
+
+  "loading_states": {
+    "initial_load": "Full card skeleton or centered LoadingSpinner",
+    "token_refresh": "Spinner on refresh button, rest of UI enabled",
+    "disconnect": "Spinner on disconnect button, other buttons disabled",
+    "reconnect": "Full page redirect (handled by OAuth flow)",
+    "test_connection": "Spinner on test button"
+  },
+
+  "error_handling": {
+    "network_errors": {
+      "display": "Unable to connect to server. Please check your internet connection.",
+      "actions": ["Retry button", "Check connection status"]
+    },
+    "token_expired": {
+      "display": "Your session has expired. Please reconnect your account.",
+      "actions": ["Reconnect button"]
+    },
+    "insufficient_permissions": {
+      "display": "Missing required permissions. Please reconnect to grant access.",
+      "actions": ["Reconnect button", "View required scopes"]
+    },
+    "revoked_token": {
+      "display": "Access has been revoked. Please reconnect your account.",
+      "actions": ["Reconnect button"]
+    }
+  },
+
+  "responsive_design": {
+    "mobile": "Stack elements vertically, full-width buttons",
+    "tablet": "2-column layout for some sections",
+    "desktop": "Full layout with side-by-side elements",
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px"
+    }
+  },
+
+  "integration_notes": {
+    "backend_apis_needed": [
+      "GET /api/oauth/status - Get current OAuth status",
+      "POST /api/oauth/refresh - Manually refresh access token",
+      "POST /api/oauth/disconnect - Revoke tokens and disconnect",
+      "GET /api/oauth/reconnect - Generate new OAuth URL",
+      "GET /api/oauth/test - Test current connection"
+    ],
+    "future_apis": [
+      "PUT /api/oauth/preferences - Update sync preferences",
+      "GET /api/oauth/calendars - List available calendars",
+      "GET /api/oauth/folders - List Gmail folders/labels"
+    ]
+  },
+
+  "testing_requirements": {
+    "unit_tests": [
+      "Component renders correctly",
+      "Status badge displays correct state",
+      "Disconnect confirmation works",
+      "Loading states display properly",
+      "Error messages render correctly"
+    ],
+    "integration_tests": [
+      "OAuth status fetched on mount",
+      "Disconnect API called correctly",
+      "Token refresh updates state",
+      "Error handling works end-to-end"
+    ],
+    "e2e_tests": [
+      "Full disconnect flow",
+      "Full reconnect flow",
+      "Token refresh flow",
+      "Error recovery scenarios"
+    ]
+  }
+}

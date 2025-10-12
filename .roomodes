@@ -1,0 +1,74 @@
+{
+  "version": "1.0.0",
+  "sparc_enabled": true,
+  "mcp_integration": true,
+  "max_agents": 12,
+  "topology": "hierarchical",
+  "customModes": [
+    {
+      "name": "orchestrator",
+      "description": "Multi-agent task orchestration and coordination",
+      "category": "core-orchestration",
+      "capabilities": [
+        "task-decomposition",
+        "agent-coordination",
+        "progress-tracking",
+        "resource-allocation",
+        "result-synthesis"
+      ],
+      "path": ".roo/modes/orchestrator.md"
+    },
+    {
+      "name": "analyzer",
+      "description": "Code and error analysis specialist",
+      "category": "analysis",
+      "capabilities": [
+        "error-analysis",
+        "code-review",
+        "performance-analysis",
+        "security-audit",
+        "dependency-analysis"
+      ],
+      "path": ".roo/modes/analyzer.md"
+    },
+    {
+      "name": "architect",
+      "description": "System and UI/UX design specialist",
+      "category": "development",
+      "capabilities": [
+        "system-design",
+        "ui-ux-design",
+        "component-planning",
+        "api-design",
+        "technology-selection"
+      ],
+      "path": ".roo/modes/architect.md"
+    },
+    {
+      "name": "coder",
+      "description": "Implementation specialist for high-quality code",
+      "category": "development",
+      "capabilities": [
+        "feature-implementation",
+        "code-refactoring",
+        "bug-fixing",
+        "test-writing",
+        "documentation"
+      ],
+      "path": ".roo/modes/coder.md"
+    },
+    {
+      "name": "tester",
+      "description": "Comprehensive testing and QA specialist",
+      "category": "support",
+      "capabilities": [
+        "test-planning",
+        "unit-testing",
+        "integration-testing",
+        "e2e-testing",
+        "test-automation"
+      ],
+      "path": ".roo/modes/tester.md"
+    }
+  ]
+}
