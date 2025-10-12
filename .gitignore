@@ -189,9 +189,11 @@ memory/sessions/*
 !memory/sessions/README.md
 memory/agents/*
 !memory/agents/README.md
-coordination/memory_bank/*
+# Swarm coordination files (keep orchestration docs, ignore runtime data)
+coordination/memory_bank/sessions/*
 coordination/subtasks/*
-coordination/orchestration/*
+!coordination/memory_bank/swarm-session-template.json
+!coordination/orchestration/*.md
 *.db
 *.db-journal
 *.db-wal

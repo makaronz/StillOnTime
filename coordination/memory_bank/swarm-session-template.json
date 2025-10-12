@@ -1,0 +1,66 @@
+{
+  "sessionId": "swarm-stillontime-{{timestamp}}",
+  "version": "1.0.0",
+  "createdAt": "{{iso-timestamp}}",
+  "topology": {
+    "type": "adaptive-mesh",
+    "maxAgents": 12,
+    "coordinator": "adaptive-coordinator",
+    "memoryManager": "swarm-memory-manager"
+  },
+  "agents": {
+    "active": [],
+    "spawned": [],
+    "terminated": []
+  },
+  "tasks": {
+    "pending": [],
+    "inProgress": [],
+    "completed": [],
+    "failed": []
+  },
+  "metrics": {
+    "tasksCompleted": 0,
+    "tasksF ailed": 0,
+    "avgCompletionTime": 0,
+    "coordinationOverhead": 0,
+    "tokenUsage": 0
+  },
+  "strategy": {
+    "current": null,
+    "phase": null,
+    "successCriteria": []
+  },
+  "memory": {
+    "shared": {
+      "apiContracts": {},
+      "databaseSchema": {},
+      "componentLibrary": {},
+      "testScenarios": {}
+    },
+    "coordination": {
+      "taskDistribution": {},
+      "progressTracking": {},
+      "bottlenecks": []
+    }
+  },
+  "constitution": {
+    "securityGatesEnforced": true,
+    "performanceTargetsActive": true,
+    "tddMandatory": true,
+    "domainTerminologyValidated": true
+  },
+  "hooks": {
+    "preTaskExecutions": 0,
+    "postEditExecutions": 0,
+    "postTaskExecutions": 0,
+    "notificationsSet": 0
+  },
+  "neuralLearning": {
+    "patternsCollected": [],
+    "successfulCollaborations": [],
+    "optimizationsDiscovered": []
+  },
+  "status": "initialized"
+}
+
