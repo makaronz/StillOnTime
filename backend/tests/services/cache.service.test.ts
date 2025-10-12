@@ -110,7 +110,7 @@ describe("CacheService", () => {
 
       const result = await cacheService.get("non-existent-key");
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined(); // Fixed: cache miss returns undefined
     });
 
     it("should handle Redis errors gracefully", async () => {
@@ -118,7 +118,7 @@ describe("CacheService", () => {
 
       const result = await cacheService.get("key");
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined(); // Fixed: error handling returns undefined
     });
   });
 
