@@ -74,12 +74,13 @@ const csrfProtection = csrf({
 
 // Apply CSRF protection to all routes except health checks and OAuth callback
 app.use((req, res, next) => {
-  // Skip CSRF for health checks, OAuth callbacks, and GET requests
+  // Skip CSRF for health checks, OAuth callbacks, GET requests, and development API calls
   if (
     req.path === "/health" ||
     req.path.startsWith("/health/") ||
     req.path === "/api/auth/callback" ||
-    req.method === "GET"
+    req.method === "GET" ||
+    (config.nodeEnv === "development" && req.path.startsWith("/api/"))
   ) {
     return next();
   }
