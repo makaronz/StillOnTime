@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { oauthSettingsController } from "@/controllers/oauth-settings.controller";
-import { authenticate } from "@/middleware/auth";
+import { authenticateToken } from "@/middleware/auth.middleware";
 
 const router = Router();
 
@@ -11,27 +11,27 @@ const router = Router();
  */
 
 // Get current OAuth status
-router.get("/status", authenticate, (req, res) =>
+router.get("/status", authenticateToken, (req, res) =>
   oauthSettingsController.getStatus(req, res)
 );
 
 // Manually refresh access token
-router.post("/refresh", authenticate, (req, res) =>
+router.post("/refresh", authenticateToken, (req, res) =>
   oauthSettingsController.refreshToken(req, res)
 );
 
 // Disconnect OAuth account
-router.post("/disconnect", authenticate, (req, res) =>
+router.post("/disconnect", authenticateToken, (req, res) =>
   oauthSettingsController.disconnect(req, res)
 );
 
 // Get reconnection URL
-router.get("/reconnect", authenticate, (req, res) =>
+router.get("/reconnect", authenticateToken, (req, res) =>
   oauthSettingsController.reconnect(req, res)
 );
 
 // Test OAuth connection
-router.get("/test", authenticate, (req, res) =>
+router.get("/test", authenticateToken, (req, res) =>
   oauthSettingsController.testConnection(req, res)
 );
 
