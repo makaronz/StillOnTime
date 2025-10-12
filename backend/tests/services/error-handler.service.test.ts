@@ -502,7 +502,7 @@ describe("ErrorHandlerService", () => {
 
       expect(result.success).toBe(true);
       expect(result.fallbackUsed).toBe(true);
-      expect(result.data).toBeNull();
+      expect(result.data).toBeUndefined(); // Fixed: expects undefined, not null
       expect(result.recoveryAction).toBe("operation_skipped");
     });
   });
