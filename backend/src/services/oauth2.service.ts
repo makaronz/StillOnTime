@@ -354,38 +354,66 @@ export class OAuth2Service {
   }
 
   /**
-   * Encrypt sensitive token data
+   * Encrypt sensitive token data using AES-256-GCM with unique salt
+   * Format: salt:iv:authTag:encrypted
    */
   private encryptToken(token: string): string {
-    const algorithm = "aes-256-cbc";
-    const key = crypto.scryptSync(config.jwtSecret, "salt", 32);
+    const algorithm = "aes-256-gcm";
+    
+    // Generate unique salt per token (not hardcoded)
+    const salt = crypto.randomBytes(16);
+    const key = crypto.scryptSync(config.jwtSecret, salt, 32);
     const iv = crypto.randomBytes(16);
 
     const cipher = crypto.createCipheriv(algorithm, key, iv);
 
     let encrypted = cipher.update(token, "utf8", "hex");
     encrypted += cipher.final("hex");
+    
+    // Get authentication tag for GCM mode
+    const authTag = cipher.getAuthTag();
 
-    return `${iv.toString("hex")}:${encrypted}`;
+    // Store: salt:iv:authTag:encrypted
+    return `${salt.toString("hex")}:${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
   }
 
   /**
-   * Decrypt sensitive token data
+   * Decrypt sensitive token data using AES-256-GCM
+   * Expected format: salt:iv:authTag:encrypted
    */
   private decryptToken(encryptedToken: string): string {
     try {
-      const algorithm = "aes-256-cbc";
-      const key = crypto.scryptSync(config.jwtSecret, "salt", 32);
+      const algorithm = "aes-256-gcm";
 
       const parts = encryptedToken.split(":");
-      if (parts.length !== 2) {
-        throw new Error("Invalid encrypted token format");
+      
+      // Support both old format (iv:encrypted) and new format (salt:iv:authTag:encrypted)
+      if (parts.length === 2) {
+        // Old format - fallback to old decryption for backward compatibility
+        logger.warn("Decrypting token using legacy format - token should be re-encrypted");
+        const key = crypto.scryptSync(config.jwtSecret, "salt", 32);
+        const iv = Buffer.from(parts[0], "hex");
+        const encrypted = parts[1];
+        const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+        let decrypted = decipher.update(encrypted, "hex", "utf8");
+        decrypted += decipher.final("utf8");
+        return decrypted;
+      }
+      
+      if (parts.length !== 4) {
+        throw new Error("Invalid encrypted token format (expected salt:iv:authTag:encrypted)");
       }
 
-      const iv = Buffer.from(parts[0], "hex");
-      const encrypted = parts[1];
+      const salt = Buffer.from(parts[0], "hex");
+      const iv = Buffer.from(parts[1], "hex");
+      const authTag = Buffer.from(parts[2], "hex");
+      const encrypted = parts[3];
+
+      // Derive key using the same salt that was used for encryption
+      const key = crypto.scryptSync(config.jwtSecret, salt, 32);
 
       const decipher = crypto.createDecipheriv(algorithm, key, iv);
+      decipher.setAuthTag(authTag);
 
       let decrypted = decipher.update(encrypted, "hex", "utf8");
       decrypted += decipher.final("utf8");
