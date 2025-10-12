@@ -1,6 +1,5 @@
 ---
-alwaysApply: true
-description: Guardrails for /specify → /plan → /tasks → /analyze flow.
+alwaysApply: false
 ---
 # Feature Flow Guardrails
 
