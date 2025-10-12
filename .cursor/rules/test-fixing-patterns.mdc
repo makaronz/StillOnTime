@@ -1,0 +1,251 @@
+---
+description: Common test failure patterns and fix strategies for StillOnTime backend tests
+globs: **/tests/**/*.test.ts,**/tests/**/*.spec.ts
+---
+
+# Test Fixing Patterns - StillOnTime Backend
+
+## Current Test Status
+
+**Total Tests**: 717 (43 suites)  
+**Passing**: 340 (47.4%)  
+**Failing**: 377 (52.6%)  
+**Failed Suites**: 39
+
+**Documentation**: [backend/TEST_FAILURE_ANALYSIS.md](mdc:backend/TEST_FAILURE_ANALYSIS.md)  
+**Strategy**: [coordination/subtasks/bug-fixing-test-failures-20251012.md](mdc:coordination/subtasks/bug-fixing-test-failures-20251012.md)
+
+---
+
+## Common Failure Patterns & Fixes
+
+### Pattern 1: Null vs Undefined (25+ occurrences)
+
+**Symptom**:
+```typescript
+expect(result.data).toBeNull();
+// Received: undefined
+```
+
+**Root Cause**: Services return `undefined` but tests expect `null`
+
+**When to Use Each**:
+- **`null`**: Database queries (Prisma returns `null` for not found)
+- **`undefined`**: Optional fields, cache misses, skipped operations, error fallbacks
+
+**Fix Strategy**:
+```typescript
+// Option A: Change test expectation (if service is correct)
+expect(result.data).toBeUndefined();
+
+// Option B: Fix service to return null (if service should return null)
+return { ...result, data: null };
+
+// Option C: Accept both (if either is acceptable)
+expect(result.data).toBeFalsy();
+expect(result.data).not.toBeDefined();
+```
+
+**Fixed Examples**:
+- `tests/services/error-handler.service.test.ts:505` ✅
+- `tests/services/fallback.service.test.ts:140` ✅
+- `tests/services/cache.service.test.ts:113,121` ✅
+
+**Remaining to Fix**:
+- Repositories: 9 occurrences (likely OK - Prisma returns `null`)
+- Services: ~6 occurrences (need review)
+- Integration: 3 occurrences (need review)
+
+---
+
+### Pattern 2: Async Timeout Errors
+
+**Symptom**:
+```
+Exceeded timeout of 10000 ms for a test
+```
+
+**Common Causes**:
+1. Promise not resolving (missing `mockResolvedValue`)
+2. Missing `await` on async operation
+3. Real network call instead of mock
+4. Circular dependency in async chain
+5. Missing `done()` callback (for older Jest style)
+
+**Fix Strategy**:
+```typescript
+// ✅ CORRECT: Ensure mocks return promises
+beforeEach(() => {
+  mockGoogleCalendar.events.insert.mockResolvedValue({
+    data: { id: 'event-123' }
+  });
+  
+  mockWeatherService.getWeather.mockResolvedValue(weatherData);
+});
+
+it('should process schedule', async () => {
+  // All async calls properly mocked above
+  const result = await scheduleService.process(scheduleData);
+  
+  expect(result).toBeDefined();
+  expect(mockGoogleCalendar.events.insert).toHaveBeenCalled();
+}, 15000); // Increase timeout if operation is legitimately slow
+```
+
+**Debugging Tips**:
+1. Check if all external service calls are mocked
+2. Verify mock returns promise (use `mockResolvedValue` not `mockReturnValue`)
+3. Look for missing `await` keywords
+4. Check for `done` callback usage (convert to async/await)
+5. Add console.log to track where it hangs
+
+**Files with Timeouts**:
+- `tests/services/weather-monitoring.service.test.ts`
+- Multiple service and integration tests
+
+---
+
+### Pattern 3: Mock Configuration Issues
+
+**Symptom**:
+- Tests fail with "method not defined"
+- Tests fail with "cannot read property of undefined"
+- Mocks not being called
+
+**Fix Pattern**:
+```typescript
+// ❌ WRONG: Incomplete mock
+jest.mock('@/services/calendar.service');
+
+// ✅ CORRECT: Complete mock with implementation
+jest.mock('@/services/calendar.service', () => ({
+  CalendarService: jest.fn().mockImplementation(() => ({
+    createEvent: jest.fn().mockResolvedValue({ id: 'event-123' }),
+    updateEvent: jest.fn().mockResolvedValue({ id: 'event-123' }),
+    deleteEvent: jest.fn().mockResolvedValue(true),
+  })),
+}));
+
+// ✅ CORRECT: Mock with proper return types
+const mockCalendarService = {
+  createEvent: jest.fn<Promise<CalendarEvent>, [EventData]>(),
+  updateEvent: jest.fn<Promise<CalendarEvent>, [string, EventData]>(),
+};
+```
+
+---
+
+## Test Suite Categories & Status
+
+### Services (11 suites, ~300 tests)
+- ❌ `calendar.service.test.ts` - Google Calendar API mocks
+- ❌ `weather-monitoring.service.test.ts` - Weather updates, timeouts
+- ❌ `job-processor.service.test.ts` - Bull queue mocks
+- ❌ `notification.service.test.ts` - SMS/notification mocks
+- ❌ `calendar-manager.service.test.ts` - Calendar management
+- ❌ `weather.service.test.ts` - Weather API mocks
+- ✅ `error-handler.service.test.ts` - 1 fix applied, more needed
+- ✅ `fallback.service.test.ts` - 1 fix applied
+- ✅ `cache.service.test.ts` - 2 fixes applied
+- ❌ `sms.service.test.ts` - null/undefined issues
+- ❌ `pdf-parser.service.test.ts` - null/undefined issues
+
+### Controllers (5 suites, ~80 tests)
+- ❌ `calendar.controller.test.ts` - Request/response mocks
+- ❌ `health.controller.test.ts` - Health check mocks
+- ❌ `schedule.controller.test.ts` - Schedule endpoint mocks
+- ❌ `email.controller.test.ts` - Email endpoint mocks
+- ❌ `auth.controller.test.ts` - Auth flow mocks
+
+### Repositories (8 suites, ~60 tests)
+- ❌ `weather-data.repository.test.ts` - Prisma mocks
+- ❌ `schedule-data.repository.test.ts` - Prisma mocks
+- ❌ `calendar-event.repository.test.ts` - Prisma mocks
+- ❌ `route-plan.repository.test.ts` - Prisma mocks
+- ❌ `notification.repository.test.ts` - Prisma mocks
+- ❌ `summary.repository.test.ts` - Prisma mocks
+- ❌ `user.repository.test.ts` - Prisma mocks
+- ❌ `processed-email.repository.test.ts` - Prisma mocks, null issues
+
+### Integration (3 suites, ~50 tests)
+- ❌ `calendar-endpoints.test.ts` - Full stack integration
+- ❌ `schedule-endpoints.test.ts` - Full stack integration
+- ❌ `sms-endpoints.test.ts` - SMS flow integration
+
+### Utils & Middleware (2 suites, ~7 tests)
+- ❌ `retry.test.ts` - Retry logic timeouts
+- ❌ `monitoring.middleware.test.ts` - Middleware mocks
+
+---
+
+## Recommended Fix Order (By Impact)
+
+### Phase 1: Quick Wins (50-100 tests, 1-2h)
+1. ✅ Null vs undefined in services (4 fixed, ~6 remain)
+2. ⏳ Null vs undefined in cache/weather services
+3. ⏳ Simple mock return value fixes
+
+**Impact**: Easiest to fix, high test count
+
+### Phase 2: Services (150-200 tests, 3-4h)
+1. ⏳ CalendarService - Fix Google Calendar API mocks
+2. ⏳ WeatherService - Fix async timeouts
+3. ⏳ JobProcessorService - Fix Bull queue mocks
+4. ⏳ NotificationService - Fix SMS mocks
+
+**Impact**: Core business logic validation
+
+### Phase 3: Controllers & Integration (100-150 tests, 2-3h)
+1. ⏳ All controllers - Request/response mocking
+2. ⏳ Integration tests - Database setup/teardown
+
+**Impact**: API contract validation
+
+### Phase 4: Repositories (60 tests, 1-2h)
+1. ⏳ All repositories - Prisma mock configuration
+
+**Impact**: Data layer validation
+
+---
+
+## Commands for Next Session
+
+### Run Tests
+```bash
+# Full suite
+cd backend && npm test
+
+# Specific suite
+cd backend && npm test -- tests/services/calendar.service.test.ts
+
+# With coverage
+cd backend && npm test -- --coverage
+
+# Watch mode
+cd backend && npm test -- --watch
+```
+
+### Deploy Bug Fixing Strategy
+```bash
+# See coordination/subtasks/bug-fixing-test-failures-20251012.md
+# for complete 6-agent deployment commands
+```
+
+---
+
+## Success Criteria
+
+- ✅ Test pass rate >80% (573+ tests passing)
+- ✅ No timeout errors
+- ✅ All null/undefined issues resolved
+- ✅ All mocks properly configured
+- ✅ Critical path tests all passing
+- ✅ Test coverage >80% on critical services
+
+**Current**: 47.4% pass rate  
+**Target**: >80% pass rate  
+**Gap**: 233 tests to fix
+
+---
+
+**Reference**: [Bug Fixing Strategy](mdc:coordination/orchestration/swarm-strategies.md) for complete swarm approach
