@@ -44,8 +44,21 @@ export type CreateCalendarEventInput = Prisma.CalendarEventCreateInput;
 export type UpdateCalendarEventInput = Prisma.CalendarEventUpdateInput;
 export type CreateUserConfigInput = Prisma.UserConfigCreateInput;
 export type UpdateUserConfigInput = Prisma.UserConfigUpdateInput;
-export type CreateNotificationInput = Prisma.NotificationCreateInput;
-export type UpdateNotificationInput = Prisma.NotificationUpdateInput;
+// Kysely-compatible notification types
+export type CreateNotificationInput = {
+  userId: string;
+  channel: string;
+  template: string;
+  subject: string;
+  message: string;
+  data?: any;
+  scheduledFor?: Date | null;
+  sentAt?: Date | null;
+  status?: string;
+  error?: string | null;
+  retryCount?: number;
+};
+export type UpdateNotificationInput = Partial<Omit<CreateNotificationInput, 'userId'>>;
 export type CreateSummaryInput = Prisma.SummaryCreateInput;
 export type UpdateSummaryInput = Prisma.SummaryUpdateInput;
 

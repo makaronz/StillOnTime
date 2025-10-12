@@ -333,7 +333,7 @@ export class NotificationService {
     );
 
     return this.notificationRepository.create({
-      user: { connect: { id: userId } },
+      userId,
       channel,
       template,
       subject,

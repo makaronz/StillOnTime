@@ -26,7 +26,7 @@ export const csrfErrorHandler = (
   res: Response,
   next: NextFunction
 ): void => {
-  if (err.code === "EBADCSRFTOKEN") {
+  if ((err as any).code === "EBADCSRFTOKEN") {
     logger.warn("CSRF token validation failed", {
       path: req.path,
       method: req.method,

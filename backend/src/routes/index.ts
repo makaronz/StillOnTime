@@ -9,6 +9,7 @@ import { routePlanningRoutes } from "./route-planning.routes";
 import smsRoutes from "./sms.routes";
 import { createMonitoringRoutes } from "./monitoring.routes";
 import enhancedRoutes from "./enhanced.routes";
+import { analyticsRoutes } from "./analytics.routes";
 import { HealthController } from "../controllers/health.controller";
 import { MonitoringMiddleware } from "../middleware/monitoring.middleware";
 
@@ -47,6 +48,9 @@ router.use("/sms", smsRoutes);
 
 // Enhanced services routes - /api/enhanced/*
 router.use("/enhanced", enhancedRoutes);
+
+// Analytics routes - /api/analytics/*
+router.use("/analytics", analyticsRoutes);
 
 // Monitoring and health routes - /api/monitoring/*
 // Note: These will be initialized in the main app with proper dependencies
