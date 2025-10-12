@@ -439,6 +439,124 @@ export class AuthController {
       });
     }
   }
+
+  /**
+   * Test OAuth connection by making a simple Gmail API call
+   * GET /auth/test
+   */
+  async testConnection(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          error: "Unauthorized",
+          message: "Authentication required",
+          code: "NOT_AUTHENTICATED",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+        });
+        return;
+      }
+
+      const userId = (req.user as any).userId;
+
+      logger.info("Testing OAuth connection", { userId });
+
+      // Get OAuth status first
+      const oauthStatus = await services.oauth2.getOAuthStatus(userId);
+
+      if (!oauthStatus.isAuthenticated) {
+        res.status(401).json({
+          success: false,
+          connection: "failed",
+          error: "OAuth not authenticated",
+          message: "User needs to authenticate with Google",
+          code: "OAUTH_NOT_AUTHENTICATED",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          oauth: oauthStatus,
+        });
+        return;
+      }
+
+      // Test Gmail API connection with a simple profile call
+      try {
+        const oauth2Client = await services.oauth2.getGoogleClient(userId);
+        const { google } = await import("googleapis");
+        const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+        // Make a simple API call to test the connection
+        const profile = await gmail.users.getProfile({ userId: "me" });
+
+        logger.info("OAuth connection test successful", {
+          userId,
+          emailAddress: profile.data.emailAddress,
+          messagesTotal: profile.data.messagesTotal,
+        });
+
+        res.json({
+          success: true,
+          connection: "active",
+          message: "OAuth connection is working correctly",
+          gmail: {
+            emailAddress: profile.data.emailAddress,
+            messagesTotal: profile.data.messagesTotal,
+            threadsTotal: profile.data.threadsTotal,
+          },
+          oauth: {
+            isAuthenticated: oauthStatus.isAuthenticated,
+            scopes: oauthStatus.scopes,
+            tokenExpiry: oauthStatus.tokenExpiry,
+            needsReauth: oauthStatus.needsReauth,
+          },
+          timestamp: new Date().toISOString(),
+        });
+      } catch (gmailError) {
+        const errorMessage =
+          gmailError instanceof Error ? gmailError.message : "Unknown error";
+
+        logger.error("Gmail API connection test failed", {
+          userId,
+          error: errorMessage,
+        });
+
+        // Check if error indicates token expiry or revocation
+        const needsReauth =
+          errorMessage.includes("invalid_grant") ||
+          errorMessage.includes("Token has been expired or revoked") ||
+          errorMessage.includes("re-authenticate");
+
+        res.status(needsReauth ? 401 : 500).json({
+          success: false,
+          connection: needsReauth ? "expired" : "error",
+          error: errorMessage,
+          message: needsReauth
+            ? "OAuth tokens expired or revoked - re-authentication required"
+            : "Failed to connect to Gmail API",
+          code: needsReauth ? "OAUTH_EXPIRED" : "GMAIL_API_ERROR",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          oauth: {
+            ...oauthStatus,
+            needsReauth: true,
+          },
+        });
+      }
+    } catch (error) {
+      const userId = (req.user as any)?.userId;
+      logger.error("OAuth connection test failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId,
+      });
+
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to test OAuth connection",
+        code: "CONNECTION_TEST_FAILED",
+        timestamp: new Date().toISOString(),
+        path: req.path,
+      });
+    }
+  }
 }
 
 // Export singleton instance
