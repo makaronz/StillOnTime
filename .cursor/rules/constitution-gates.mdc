@@ -1,39 +1,127 @@
 ---
 alwaysApply: true
-description: Enforce project constitution gates (security, performance, TDD, film domain) across all prompts.
+description: Enforce project constitution gates (security, performance, TDD, film domain, CodeNet RAG) across all prompts.
 ---
 # Constitution Gates (StillOnTime)
 
 Use these non‑negotiable gates for any proposal, code, or plan. If a suggestion
 violates a MUST, stop and adjust the suggestion instead of diluting the rule.
-Source: [.specify/memory/constitution.md](mdc:.specify/memory/constitution.md)
+Source: [.cursor/.specify/memory/constitution.md](mdc:.cursor/.specify/memory/constitution.md)
 
-## Security & Compliance (MUST)
-- OAuth 2.0 with PKCE for all external integrations
-- Secrets encrypted and stored securely; no plaintext keys in repo
-- GDPR: enable deletion capabilities and avoid persistent storage of email content; delete temp PDFs within 1 hour
-- Circuit breakers + exponential backoff + fallbacks for external APIs
+## I. Security & Compliance (MUST)
+- **OAuth 2.0**: PKCE flow for all external integrations (Google APIs, Twilio)
+- **Secrets**: Encrypted storage; environment variables only; no plaintext keys in repo
+- **GDPR**: Data deletion capabilities; no persistent email content storage; temp PDFs deleted within 1 hour
+- **API Resilience**: Circuit breakers + exponential backoff + fallbacks for all external APIs
+- **Input Validation**: Validate and sanitize all user inputs; use express-validator
+- **Rate Limiting**: Implement on all public endpoints; per-user quotas
+- **CSRF Protection**: Enable for all state-changing operations
+- **HTTPS Only**: Production must enforce HTTPS; secure cookies with httpOnly and sameSite
 
-## Real‑Time Performance (MUST)
-- Email processing ≤ 2 min; PDF parsing ≤ 30 s; route calc ≤ 15 s; calendar event ≤ 10 s
-- Uptime target 99% during 06:00–22:00 CET; include monitoring and fallbacks
+## II. Real‑Time Performance (MUST)
+- **Email processing**: ≤ 2 minutes end-to-end
+- **PDF parsing**: ≤ 30 seconds per document
+- **Route calculation**: ≤ 15 seconds with traffic data
+- **Calendar event creation**: ≤ 10 seconds
+- **Dashboard load time**: ≤ 2 seconds initial render
+- **API response time**: p95 < 500ms for all endpoints
+- **Uptime target**: 99% during 06:00–22:00 CET
+- **Monitoring**: Real-time metrics; alerting on degradation
 
-## TDD & Code Quality (MUST)
-- Tests first, then implementation (Red‑Green‑Refactor)
-- Coverage > 80% for critical paths; include unit, integration, and e2e tests
-- TypeScript strict mode
+## III. TDD & Code Quality (MUST)
+- **Tests First**: Red‑Green‑Refactor cycle; write failing tests before implementation
+- **Coverage**: > 80% for critical paths (email processing, route planning, calendar integration)
+- **Test Types**: Unit tests (services, utilities), integration tests (API, database), E2E tests (Playwright)
+- **TypeScript Strict**: Explicit return types for all exported functions; no `any` types
+- **Linting**: Backend strict (explicit return types), Frontend standard
+- **Error Handling**: Hierarchical error classes; structured logging only (no console.log)
+- **Code Review**: All changes reviewed; constitution compliance verified
 
-## Film Industry Domain (MUST)
-- Reflect production terminology (call sheets, schedules, logistics)
-- Include industry time buffers (car change, parking, entry, traffic, morning routine, equipment loading)
-- Weather‑based equipment recommendations
-- Handle multi‑location shoots and complex scheduling
-- Ensure manual override capabilities
+## IV. CodeNet RAG & Pattern-Driven Development (MUST)
+- **Mandatory RAG Check**: Query CodeNet before implementing TypeScript, JavaScript, or Python code
+- **Pattern Analysis**: Extract and apply patterns from top-5 similar examples
+- **Pattern Compliance**: Use async-await (82%), error-handling (78%), retry-logic (65%), circuit-breaker (58%)
+- **Exemption Protocol**: Document `CODENET_EXEMPTION` with reason when RAG unavailable
+- **Pattern Documentation**: Auto-generate systemPatterns.md from CodeNet analysis
+- **Quality Scoring**: Prefer high-quality examples (comments, patterns, structure)
+- **Reference**: [codenet-rag-mandatory.mdc](mdc:.cursor/rules/codenet-rag-mandatory.mdc)
+
+## V. Film Industry Domain (MUST)
+- **Production Terminology**: Use call sheets, schedules, crew positions, logistics terminology
+- **Time Buffers**: 
+  - Morning routine: 30 min
+  - Car change: 15 min
+  - Parking: 10 min
+  - Entry to Panavision: 5 min
+  - Traffic buffer: 15 min
+  - Equipment loading: 20 min
+- **Weather Integration**: Equipment recommendations based on weather (rain gear, sun protection, heating/cooling)
+- **Multi-location**: Handle complex schedules with multiple locations per day
+- **Manual Overrides**: All automation can be manually adjusted by production crew
+- **Notifications**: SMS alerts for schedule changes and weather warnings
+
+## VI. Architecture & Resilience (MUST)
+- **Monorepo**: Backend + Frontend with independent dependencies
+- **Circuit Breakers**: [circuit-breaker.ts](mdc:backend/src/utils/circuit-breaker.ts) for all external services
+- **Retry Logic**: [@withRetry decorator](mdc:backend/src/utils/retry.ts) with exponential backoff
+- **Hierarchical Errors**: [errorHandler.ts](mdc:backend/src/middleware/errorHandler.ts) with structured logging
+- **Caching**: Redis for routes, weather, frequent queries (24h TTL)
+- **Queue Processing**: Bull for background jobs (email processing, PDF parsing)
+- **Database**: PostgreSQL with Prisma ORM; migrations reversible
+- **Vector DB**: Qdrant for CodeNet RAG embeddings
+
+## VII. Data Layer Standards (MUST)
+- **Prisma ORM**: All database access through Prisma client
+- **Repository Pattern**: Type-safe repositories in [repositories/](mdc:backend/src/repositories)
+- **Migrations**: Prisma migrations only; reversible; tested before deploy
+- **Redis Caching**: Namespaced keys (route:, weather:, user:); TTL on all cached data
+- **No PII in Logs**: Sanitize personal data; GDPR-compliant logging
+- **Connection Pooling**: Max 20 connections; 10s timeout
+
+## VIII. API Design (MUST)
+- **RESTful**: Standard HTTP methods (GET, POST, PUT, DELETE)
+- **Versioning**: API version in URL path if breaking changes needed
+- **Authentication**: JWT tokens; Bearer auth header
+- **Error Responses**: Consistent format with error codes, messages, timestamps
+- **Rate Limiting**: Global (100 req/min), Auth (10 req/min)
+- **CORS**: Configured for frontend URL only
+- **OpenAPI**: Document all endpoints in Swagger/OpenAPI format
 
 ## Review Checklist (apply to every change)
-- Meets all gates above
-- Clear error handling and structured logging
-- No console.log in production; use centralized logger
-- Swagger/OpenAPI for endpoints when applicable
+- ✅ Meets all constitution gates (I-VIII)
+- ✅ CodeNet RAG consulted for code patterns (if TS/JS/Python)
+- ✅ Tests written first (TDD)
+- ✅ Coverage >80% for critical paths
+- ✅ Error handling with hierarchical classes
+- ✅ Structured logging (no console.log in production)
+- ✅ Circuit breakers for external APIs
+- ✅ TypeScript strict mode compliance
+- ✅ Film industry terminology preserved
+- ✅ Performance targets validated
 
-If any gate cannot be satisfied, explicitly document a simpler alternative and revisit scope rather than adding complexity.
+## Exemptions Protocol
+
+If any gate cannot be satisfied:
+1. **Document**: Explicitly state which gate and why
+2. **Justify**: Explain technical/business constraint
+3. **Alternative**: Propose simpler approach
+4. **Review**: Escalate to architecture review
+5. **Track**: Add to technical debt backlog
+
+**Example**:
+```
+CONSTITUTION_EXEMPTION: Performance Gate (Email processing)
+Gate: Email processing ≤ 2 min
+Actual: 3 min average
+Reason: External Gmail API latency (1.5 min avg)
+Alternative: Async processing with notification on completion
+Mitigation: Circuit breaker + retry; alert if >5 min
+Review: Approved by system architect (2025-10-12)
+```
+
+---
+
+**Version**: 2.0.0  
+**Ratified**: 2025-10-12  
+**Last Amended**: 2025-10-14 (Added CodeNet RAG gate)  
+**Compliance**: Mandatory for all code, architecture, and planning decisions
