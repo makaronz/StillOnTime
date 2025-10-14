@@ -12,16 +12,21 @@ Claude-Flow provides sophisticated workflow orchestration for StillOnTime with 5
 ### Essential Claude-Flow Commands
 ```bash
 # Initialize Claude-Flow workspace
-npx claude-flow@alpha init --project stillontime --type full-stack
+npx claude-flow@alpha init
+npx claude-flow@alpha init --monitoring  # With token usage tracking
+
+# Hive Mind Interactive Setup (RECOMMENDED)
+npx claude-flow@alpha hive-mind wizard
 
 # Check system status
-npx claude-flow@alpha status --detailed
-npx claude-flow@alpha agents list --available
-npx claude-flow@alpha workflows list --templates
+npx claude-flow@alpha status
+npx claude-flow@alpha hive-mind status
+npx claude-flow@alpha hive-mind metrics
 
-# Session management
-npx claude-flow@alpha session create --name "stillontime-dev" --persistent
-npx claude-flow@alpha session restore --session-id "stillontime-dev"
+# Agent management
+npx claude-flow@alpha agent list
+npx claude-flow@alpha agent spawn <type>
+npx claude-flow@alpha agent terminate <id>
 ```
 
 ## Advanced Workflow Orchestration
@@ -30,17 +35,15 @@ npx claude-flow@alpha session restore --session-id "stillontime-dev"
 **Purpose**: Complete application analysis, visual testing, error detection, and automatic fixing.
 
 ```bash
-# Execute comprehensive application analysis workflow
-npx claude-flow@alpha workflow execute \
-  --template "application-analysis-autofix" \
-  --config '{
-    "project": "stillontime",
-    "scope": "full-stack",
-    "autoFix": true,
-    "visualTesting": true,
-    "launchAfterFix": true,
-    "testingSuite": "comprehensive"
-  }'
+# Using Hive Mind for intelligent application analysis
+npx claude-flow@alpha hive-mind spawn "Analyze StillOnTime application, perform visual testing, detect and fix all errors, then launch the application" --claude
+
+# Alternative: Direct swarm orchestration
+npx claude-flow@alpha swarm "Complete application analysis: scan codebase for errors, run visual tests with Playwright, automatically fix detected issues, validate fixes, and deploy application"
+
+# With specific agent coordination
+npx claude-flow@alpha start --swarm
+# Then use agent commands for specialized tasks
 ```
 
 **Workflow Stages:**
@@ -53,46 +56,43 @@ npx claude-flow@alpha workflow execute \
 
 ### 2. Multi-Agent Development Strategy
 ```bash
-# Spawn development swarm with specialized roles
-npx claude-flow@alpha strategy execute \
-  --name "full-stack-development" \
-  --agents '{
-    "coordinators": ["hierarchical-coordinator", "adaptive-coordinator"],
-    "backend": ["backend-dev", "api-architect", "database-specialist"],
-    "frontend": ["coder", "ui-developer", "state-manager"],
-    "testing": ["tdd-london-swarm", "e2e-specialist", "performance-tester"],
-    "devops": ["cicd-engineer", "deployment-specialist"],
-    "quality": ["code-reviewer", "security-auditor", "performance-analyst"]
-  }' \
-  --parallel true \
-  --coordination "mesh-topology"
+# Spawn development swarm with specialized roles using Hive Mind
+npx claude-flow@alpha hive-mind spawn "Full-stack development: backend API, frontend React components, database schema, testing suite, and deployment automation" --claude
+
+# Parallel agent spawning (NEW in v2.5.0 - 10-20x faster)
+# Available via MCP after installing:
+# claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Then use: mcp__claude-flow__agents_spawn_parallel
+
+# Traditional sequential agent spawning
+npx claude-flow@alpha agent spawn backend-dev
+npx claude-flow@alpha agent spawn coder
+npx claude-flow@alpha agent spawn tdd-london-swarm
+npx claude-flow@alpha agent spawn cicd-engineer
+npx claude-flow@alpha agent spawn security-auditor
+
+# Coordinated swarm execution
+npx claude-flow@alpha coordination spawn --topology mesh --agents "backend-dev,coder,tester,reviewer"
 ```
 
 ### 3. Continuous Integration Workflow
 ```bash
 # Advanced CI/CD pipeline with automated quality gates
-npx claude-flow@alpha workflow create \
-  --name "stillontime-ci-advanced" \
-  --triggers '["git-push", "schedule", "manual"]' \
-  --stages '{
-    "analysis": {
-      "agents": ["code-analyzer", "dependency-auditor", "security-scanner"],
-      "parallel": true,
-      "timeout": 300
-    },
-    "testing": {
-      "agents": ["tdd-london-swarm", "e2e-specialist", "performance-benchmarker"],
-      "depends": ["analysis"],
-      "parallel": true,
-      "timeout": 900
-    },
-    "deployment": {
-      "agents": ["deployment-specialist", "infrastructure-manager"],
-      "depends": ["testing"],
-      "conditions": ["all-tests-pass", "security-approved"],
-      "timeout": 600
-    }
-  }'
+npx claude-flow@alpha github pr-enhance --mode comprehensive
+
+# GitHub workflow automation (6 modes available)
+npx claude-flow@alpha github code-review --pr <number>
+npx claude-flow@alpha github issue-triage --auto-label
+npx claude-flow@alpha github release-manager --version <version>
+
+# Automated testing workflow
+npx claude-flow@alpha task create "Run complete test suite: unit, integration, E2E, and security scans"
+npx claude-flow@alpha automation workflow --name "ci-pipeline" --trigger "git-push"
+
+# Hooks for automated quality gates
+npx claude-flow@alpha hooks register pre-commit "code-analysis"
+npx claude-flow@alpha hooks register pre-push "test-suite"
+npx claude-flow@alpha hooks register post-merge "integration-test"
 ```
 
 ## Specialized StillOnTime Workflows
@@ -100,19 +100,15 @@ npx claude-flow@alpha workflow create \
 ### 4. Film Industry Domain Validation Workflow
 ```bash
 # Validate film industry compliance across codebase
-npx claude-flow@alpha workflow execute \
-  --template "domain-validation" \
-  --config '{
-    "domain": "film-production",
-    "validationRules": [
-      "terminology-compliance",
-      "time-buffer-validation", 
-      "workflow-alignment",
-      "user-experience-validation"
-    ],
-    "autoCorrect": true,
-    "generateReport": true
-  }'
+npx claude-flow@alpha swarm "Validate StillOnTime codebase for film industry compliance: check terminology (call sheet, call time, shooting location), validate time buffers (morning routine 30min, parking 10min), ensure UI/API alignment with production workflows"
+
+# Using SPARC methodology for domain analysis
+npx claude-flow@alpha sparc run specification "Analyze StillOnTime for film production domain alignment"
+npx claude-flow@alpha sparc run architecture "Review domain model and entity relationships"
+
+# Code analysis with domain focus
+npx claude-flow@alpha agent spawn code-analyzer
+npx claude-flow@alpha task create "Scan all TypeScript files for generic terms that should use film industry terminology"
 ```
 
 **Validation Agents:**
@@ -124,47 +120,39 @@ npx claude-flow@alpha workflow execute \
 ### 5. CodeNet RAG Pattern Enforcement
 ```bash
 # Enforce CodeNet RAG usage across development
-npx claude-flow@alpha workflow create \
-  --name "codenet-enforcement" \
-  --hooks "pre-commit,pre-merge" \
-  --agents '{
-    "pattern-analyzer": {
-      "task": "Scan code for missing CodeNet RAG queries",
-      "scope": "*.ts,*.js,*.py"
-    },
-    "pattern-injector": {
-      "task": "Insert CodeNet RAG queries before implementation",
-      "autoFix": true
-    },
-    "compliance-reporter": {
-      "task": "Generate CodeNet usage compliance report",
-      "output": "reports/codenet-compliance.md"
-    }
-  }'
+npx claude-flow@alpha swarm "Analyze StillOnTime codebase for CodeNet RAG compliance: scan TypeScript files for async-await patterns (82%), error-handling (78%), retry-logic (65%), circuit-breaker (58%) - report missing patterns and suggest fixes"
+
+# Memory system for pattern learning
+npx claude-flow@alpha agent memory init
+npx claude-flow@alpha agent memory status
+
+# Training system for CodeNet patterns
+npx claude-flow@alpha training model-update --patterns "codenet-rag"
+npx claude-flow@alpha training pattern-learn --source "backend/src"
+
+# Hooks for pre-commit CodeNet validation
+npx claude-flow@alpha hooks register pre-commit "codenet-validation"
+npx claude-flow@alpha hooks execute pre-edit --file "src/**/*.ts"
 ```
 
 ### 6. Performance Optimization Mega-Workflow
 ```bash
 # Comprehensive performance analysis and optimization
-npx claude-flow@alpha mega-workflow execute \
-  --name "performance-optimization-suite" \
-  --config '{
-    "targets": {
-      "emailProcessing": "120s",
-      "pdfParsing": "30s", 
-      "routeCalculation": "15s",
-      "calendarEvents": "10s",
-      "apiResponseP95": "500ms"
-    },
-    "optimization": {
-      "database": true,
-      "caching": true,
-      "algorithms": true,
-      "infrastructure": true,
-      "frontend": true
-    },
-    "monitoring": "real-time"
-  }'
+npx claude-flow@alpha swarm "Optimize StillOnTime performance to meet targets: email processing ≤120s, PDF parsing ≤30s, route calculation ≤15s, calendar events ≤10s, API p95 <500ms. Analyze database queries, implement caching, optimize algorithms, improve infrastructure"
+
+# Performance analysis and monitoring
+npx claude-flow@alpha analysis token-usage --detailed
+npx claude-flow@alpha analysis performance --benchmark
+npx claude-flow@alpha monitoring start --metrics "performance,latency,throughput"
+
+# Agent Booster for ultra-fast optimization (352x faster)
+npx claude-flow@alpha agent booster edit backend/src/services/email.service.ts
+npx claude-flow@alpha agent booster batch "backend/src/**/*.ts"
+npx claude-flow@alpha agent booster benchmark
+
+# Optimization automation
+npx claude-flow@alpha optimization topology --algorithm "adaptive"
+npx claude-flow@alpha optimization bottleneck-detect --threshold 500ms
 ```
 
 ## Advanced Automation Patterns
@@ -172,264 +160,115 @@ npx claude-flow@alpha mega-workflow execute \
 ### 7. Self-Healing Application Workflow
 ```bash
 # Autonomous error detection and correction system
-npx claude-flow@alpha workflow create \
-  --name "self-healing-system" \
-  --persistent true \
-  --monitoring "continuous" \
-  --agents '{
-    "health-monitor": {
-      "interval": "30s",
-      "checks": ["api-health", "database-connections", "external-services"]
-    },
-    "error-detector": {
-      "triggers": ["health-degradation", "error-logs", "performance-drop"],
-      "analysis": "real-time"
-    },
-    "auto-healer": {
-      "actions": ["restart-services", "clear-caches", "failover-database"],
-      "escalation": "human-intervention-after-3-attempts"
-    }
-  }'
+npx claude-flow@alpha monitoring start --continuous --alerts "health-degradation,error-spike,performance-drop"
+
+# Hive Mind autonomous healing
+npx claude-flow@alpha hive-mind spawn "Monitor StillOnTime health continuously, detect errors in real-time, automatically fix issues (restart services, clear caches, failover database), escalate to humans after 3 failed attempts" --persistent
+
+# Automated health monitoring
+npx claude-flow@alpha automation health-check --interval 30s --services "backend,database,redis,qdrant"
+npx claude-flow@alpha automation auto-fix --triggers "api-timeout,connection-error,memory-leak"
+
+# Truth verification for reliability
+npx claude-flow@alpha verify system --threshold 0.95
+npx claude-flow@alpha truth --show-reliability
 ```
 
 ### 8. Intelligent Code Generation Workflow
 ```bash
 # AI-powered code generation with domain expertise
-npx claude-flow@alpha workflow execute \
-  --template "intelligent-code-generation" \
-  --config '{
-    "codeGeneration": {
-      "useCodeNetRAG": true,
-      "domainContext": "film-production",
-      "patterns": ["tdd", "circuit-breaker", "error-handling"],
-      "testGeneration": "automatic",
-      "documentationGeneration": "inline-and-external"
-    },
-    "qualityGates": {
-      "typescriptStrict": true,
-      "testCoverage": 80,
-      "performanceTargets": true,
-      "securityScan": true
-    }
-  }'
+npx claude-flow@alpha swarm "Generate code for StillOnTime with: CodeNet RAG patterns (async-await, error-handling, retry, circuit-breaker), film production domain context, TDD approach with 80% coverage, TypeScript strict mode, automatic documentation generation, security scanning"
+
+# SPARC methodology for systematic development
+npx claude-flow@alpha sparc run spec-pseudocode "Define email processing service specification"
+npx claude-flow@alpha sparc run architect "Design service architecture with CodeNet patterns"
+npx claude-flow@alpha sparc tdd "Implement with test-driven development"
+npx claude-flow@alpha sparc run integration "Integrate with existing system"
+
+# Collaborative development with verification
+npx claude-flow@alpha pair --start
+npx claude-flow@alpha verify code --threshold 0.95
+
+# Memory-enhanced development (46% faster)
+npx claude-flow@alpha agent memory init
+npx claude-flow@alpha agent memory list
 ```
 
 ## The Ultimate Application Analysis & Auto-Fix Workflow
 
 ### Comprehensive Application Lifecycle Workflow
+
+**The Complete 9-Phase Workflow**: Application Discovery → Static Analysis → Visual Testing → Integration Testing → Error Aggregation → Automated Fixing → Post-Fix Validation → Deployment Prep → Launch
+
 ```bash
-# The requested workflow: analyze -> test -> fix -> launch
-npx claude-flow@alpha mega-workflow create \
-  --name "comprehensive-app-lifecycle" \
-  --description "Complete application analysis, visual testing, auto-fixing, and launch" \
-  --config '{
-    "phases": {
-      "1-discovery": {
-        "agents": ["system-architect", "code-analyzer", "dependency-mapper"],
-        "tasks": [
-          "Map application architecture",
-          "Analyze codebase structure", 
-          "Identify dependencies and integrations",
-          "Document current state"
-        ],
-        "outputs": ["architecture-map.md", "dependency-graph.json", "codebase-analysis.md"],
-        "parallel": true,
-        "timeout": 300
-      },
-      
-      "2-static-analysis": {
-        "agents": ["static-analyzer", "security-scanner", "performance-profiler"],
-        "depends": ["1-discovery"],
-        "tasks": [
-          "Static code analysis for bugs",
-          "Security vulnerability scanning",
-          "Performance bottleneck identification",
-          "Code quality assessment"
-        ],
-        "outputs": ["static-analysis.json", "security-report.json", "performance-issues.json"],
-        "parallel": true,
-        "timeout": 600
-      },
+# ULTIMATE WORKFLOW: Analyze -> Test -> Fix -> Launch
+npx claude-flow@alpha hive-mind spawn "Execute complete StillOnTime application lifecycle: (1) discover and map architecture, (2) static analysis for bugs/security/performance, (3) visual testing with Playwright across browsers, (4) integration testing of APIs/database/external services, (5) aggregate and prioritize all errors, (6) automatically fix detected issues with parallel agents, (7) validate all fixes with regression tests, (8) prepare deployment with monitoring, (9) launch application with real-time health tracking" --claude
 
-      "3-visual-testing": {
-        "agents": ["e2e-specialist", "visual-regression-tester", "accessibility-auditor"],
-        "depends": ["1-discovery"],
-        "tasks": [
-          "Launch application in test environment",
-          "Execute visual regression tests",
-          "Perform accessibility audits",
-          "Cross-browser compatibility testing",
-          "Mobile responsiveness testing"
-        ],
-        "browsers": ["chromium", "firefox", "webkit"],
-        "viewports": ["desktop", "tablet", "mobile"],
-        "outputs": ["visual-test-results/", "accessibility-report.json", "compatibility-matrix.json"],
-        "parallel": false,
-        "timeout": 1200
-      },
+# Alternative: Step-by-step execution with coordination
+npx claude-flow@alpha coordination init --topology adaptive --max-agents 20
 
-      "4-integration-testing": {
-        "agents": ["integration-tester", "api-tester", "database-tester"],
-        "depends": ["2-static-analysis"],
-        "tasks": [
-          "Test all API endpoints",
-          "Validate database operations", 
-          "Test external service integrations",
-          "Performance load testing"
-        ],
-        "testSuites": ["api-tests", "database-tests", "integration-tests", "load-tests"],
-        "outputs": ["integration-results.json", "api-test-report.json", "load-test-results.json"],
-        "parallel": true,
-        "timeout": 900
-      },
+# Phase 1-2: Discovery & Static Analysis (parallel)
+npx claude-flow@alpha swarm "Phase 1-2: Analyze StillOnTime architecture, scan for bugs, security vulnerabilities, and performance issues" &
 
-      "5-error-aggregation": {
-        "agents": ["error-aggregator", "priority-analyzer", "impact-assessor"],
-        "depends": ["2-static-analysis", "3-visual-testing", "4-integration-testing"],
-        "tasks": [
-          "Aggregate all detected issues",
-          "Prioritize by severity and impact",
-          "Group related errors",
-          "Generate fix strategy"
-        ],
-        "outputs": ["consolidated-issues.json", "fix-strategy.md", "priority-matrix.json"],
-        "parallel": false,
-        "timeout": 180
-      },
+# Phase 3: Visual Testing with Playwright (after analysis)
+npx claude-flow@alpha swarm "Phase 3: Run Playwright E2E tests across Chromium/Firefox/WebKit, check visual regression, accessibility, mobile responsiveness" &
 
-      "6-automated-fixing": {
-        "agents": [
-          "backend-dev", 
-          "coder",
-          "database-fixer",
-          "security-fixer", 
-          "performance-optimizer",
-          "test-fixer",
-          "dependency-updater",
-          "config-corrector"
-        ],
-        "depends": ["5-error-aggregation"],
-        "tasks": [
-          "Apply automated code fixes",
-          "Update dependencies to secure versions",
-          "Optimize database queries",
-          "Fix security vulnerabilities",
-          "Resolve performance issues",
-          "Update configuration files",
-          "Generate missing tests",
-          "Update documentation"
-        ],
-        "strategy": "parallel-by-category",
-        "coordination": "mesh-topology",
-        "outputs": ["fix-log.json", "updated-files.json", "test-additions.json"],
-        "rollback": "automatic-on-failure",
-        "timeout": 1800
-      },
+# Phase 4: Integration Testing (parallel with visual)
+npx claude-flow@alpha swarm "Phase 4: Test all API endpoints, database operations, external service integrations (Google APIs, Twilio), performance load testing" &
 
-      "7-post-fix-validation": {
-        "agents": ["regression-tester", "smoke-tester", "health-checker"],
-        "depends": ["6-automated-fixing"],
-        "tasks": [
-          "Run full test suite",
-          "Execute smoke tests",
-          "Validate all fixes applied correctly",
-          "Check for new regressions"
-        ],
-        "testSuites": ["unit", "integration", "e2e", "smoke"],
-        "outputs": ["post-fix-test-results.json", "regression-check.json"],
-        "parallel": true,
-        "timeout": 900,
-        "failureHandling": "rollback-and-escalate"
-      },
+wait  # Wait for all analysis phases to complete
 
-      "8-deployment-prep": {
-        "agents": ["deployment-specialist", "infrastructure-manager", "monitoring-setup"],
-        "depends": ["7-post-fix-validation"],
-        "tasks": [
-          "Prepare deployment artifacts",
-          "Configure monitoring and alerts", 
-          "Setup health checks",
-          "Prepare rollback procedures"
-        ],
-        "outputs": ["deployment-config/", "monitoring-config.yml", "rollback-plan.md"],
-        "parallel": true,
-        "timeout": 300
-      },
+# Phase 5: Error Aggregation
+npx claude-flow@alpha swarm "Phase 5: Aggregate all detected issues, prioritize by severity and impact, group related errors, generate fix strategy"
 
-      "9-application-launch": {
-        "agents": ["deployment-executor", "health-monitor", "performance-monitor"],
-        "depends": ["8-deployment-prep"],
-        "tasks": [
-          "Deploy to staging environment",
-          "Execute final smoke tests",
-          "Deploy to production",
-          "Monitor application health",
-          "Performance baseline establishment"
-        ],
-        "environments": ["staging", "production"],
-        "monitoring": "real-time",
-        "outputs": ["deployment-log.json", "health-metrics.json", "performance-baseline.json"],
-        "parallel": false,
-        "timeout": 1200,
-        "rollback": "automatic-on-critical-failure"
-      }
-    },
-    
-    "globalConfig": {
-      "project": "stillontime",
-      "environment": "development",
-      "persistence": true,
-      "reporting": {
-        "realTime": true,
-        "formats": ["json", "markdown", "html"],
-        "destinations": ["console", "file", "webhook"]
-      },
-      "notifications": {
-        "phases": ["completion", "failure", "manual-intervention-required"],
-        "channels": ["console", "webhook", "email"]
-      },
-      "recovery": {
-        "checkpoints": true,
-        "rollback": "automatic",
-        "manualOverride": true
-      }
-    }
-  }'
+# Phase 6: Automated Fixing (parallel agent coordination)
+npx claude-flow@alpha hive-mind spawn "Phase 6: Fix all detected issues using specialized agents: backend fixes, frontend fixes, database optimization, security patches, performance improvements, test additions, dependency updates, config corrections" --claude
+
+# Phase 7: Post-Fix Validation
+npx claude-flow@alpha swarm "Phase 7: Run full test suite (unit, integration, E2E, smoke), validate fixes, check for regressions"
+
+# Phase 8-9: Deployment & Launch
+npx claude-flow@alpha swarm "Phase 8-9: Prepare deployment artifacts, configure monitoring/alerts, deploy to staging, run final smoke tests, deploy to production, establish performance baseline"
 ```
 
-### Execute the Ultimate Workflow
+### Simplified One-Command Execution
 ```bash
-# Run the complete analysis -> test -> fix -> launch workflow
-npx claude-flow@alpha mega-workflow execute \
-  --workflow "comprehensive-app-lifecycle" \
-  --session-id "stillontime-autofix-$(date +%s)" \
-  --monitoring "detailed" \
-  --notifications "all" \
-  --dry-run false
+# Execute everything in one powerful command
+npx claude-flow@alpha hive-mind spawn "Complete StillOnTime application lifecycle with 9 phases: discover architecture, static analysis, visual testing (Playwright), integration testing, error aggregation, automated fixing, validation, deployment prep, launch with monitoring"
+
+# With explicit Claude Code CLI integration
+npx claude-flow@alpha hive-mind spawn "Execute 9-phase application lifecycle for StillOnTime" --claude
+
+# Monitor execution progress
+npx claude-flow@alpha hive-mind status
+npx claude-flow@alpha hive-mind metrics
 ```
 
 ## Advanced Monitoring & Reporting
 
-### Real-Time Workflow Dashboard
+### Real-Time System Monitoring
 ```bash
-# Launch interactive workflow monitoring
-npx claude-flow@alpha dashboard launch \
-  --workflows "all" \
-  --real-time true \
-  --port 8080 \
-  --features "metrics,logs,agent-status,task-progress,performance"
+# Start monitoring system with alerts
+npx claude-flow@alpha monitoring start --continuous --alerts "all"
+npx claude-flow@alpha monitoring metrics --detailed
+npx claude-flow@alpha monitoring health --check-interval 30s
 
-# Access at: http://localhost:8080/claude-flow-dashboard
+# Performance and token usage analysis
+npx claude-flow@alpha analysis token-usage --detailed --export
+npx claude-flow@alpha analysis performance --benchmark --compare
+npx claude-flow@alpha analysis bottleneck --threshold 500ms
 ```
 
-### Automated Report Generation
+### Status and Metrics Reporting
 ```bash
-# Generate comprehensive workflow reports
-npx claude-flow@alpha reports generate \
-  --type "comprehensive" \
-  --format "html,pdf,json" \
-  --include "metrics,logs,agent-performance,task-results,recommendations" \
-  --output-dir "./reports/claude-flow/"
+# System status and health
+npx claude-flow@alpha status --verbose
+npx claude-flow@alpha hive-mind status --show-metrics
+npx claude-flow@alpha hive-mind metrics --export ./reports/
+
+# Truth verification and reliability
+npx claude-flow@alpha truth --show-reliability --threshold 0.95
+npx claude-flow@alpha verify system --comprehensive
 ```
 
 ## Integration with StillOnTime Development
@@ -437,10 +276,17 @@ npx claude-flow@alpha reports generate \
 ### Git Hook Integration
 ```bash
 # Setup Claude-Flow git hooks for automated workflows
-npx claude-flow@alpha hooks install \
-  --pre-commit "code-analysis,security-scan" \
-  --pre-push "test-suite,performance-check" \
-  --post-merge "dependency-update,integration-test"
+npx claude-flow@alpha hooks register pre-commit "code-analysis"
+npx claude-flow@alpha hooks register pre-commit "security-scan"
+npx claude-flow@alpha hooks register pre-push "test-suite"
+npx claude-flow@alpha hooks register post-merge "integration-test"
+
+# Lifecycle hooks
+npx claude-flow@alpha hooks execute pre-edit --file "src/**/*.ts"
+npx claude-flow@alpha hooks execute post-edit --file "backend/src/services/email.service.ts"
+
+# Migrate hooks to Claude Code 1.0.51+ format
+npx claude-flow@alpha migrate-hooks
 ```
 
 ### VS Code Integration  
@@ -452,14 +298,26 @@ npx claude-flow@alpha hooks install \
     {
       "label": "Claude-Flow: Quick Analysis",
       "type": "shell", 
-      "command": "npx claude-flow@alpha workflow execute --template quick-analysis --project stillontime",
+      "command": "npx claude-flow@alpha swarm 'Analyze current file for issues and suggest improvements'",
       "group": "build"
     },
     {
-      "label": "Claude-Flow: Auto-Fix Current File",
+      "label": "Claude-Flow: Ultra-Fast Edit (Agent Booster)",
       "type": "shell",
-      "command": "npx claude-flow@alpha agent spawn --type code-fixer --target ${file} --auto-execute",
+      "command": "npx claude-flow@alpha agent booster edit ${file}",
       "group": "build"
+    },
+    {
+      "label": "Claude-Flow: Hive Mind Wizard",
+      "type": "shell",
+      "command": "npx claude-flow@alpha hive-mind wizard",
+      "group": "build"
+    },
+    {
+      "label": "Claude-Flow: SPARC TDD",
+      "type": "shell",
+      "command": "npx claude-flow@alpha sparc tdd 'Implement feature with tests'",
+      "group": "test"
     }
   ]
 }
@@ -470,16 +328,21 @@ npx claude-flow@alpha hooks install \
 ### Workflow Performance Tuning
 ```bash
 # Optimize Claude-Flow performance for StillOnTime
-npx claude-flow@alpha config optimize \
-  --project-type "full-stack" \
-  --agent-pool-size 20 \
-  --parallel-execution true \
-  --resource-limits '{
-    "memory": "8GB",
-    "cpu": "4cores", 
-    "timeout": "30m"
-  }' \
-  --caching "aggressive"
+npx claude-flow@alpha optimization topology --algorithm adaptive --max-agents 20
+npx claude-flow@alpha optimization bottleneck-detect --threshold 500ms
+npx claude-flow@alpha optimization parallel --enable --max-concurrent 10
+
+# Agent Booster for 352x faster code editing
+npx claude-flow@alpha agent booster benchmark
+npx claude-flow@alpha agent booster batch "backend/**/*.ts" --parallel
+
+# Memory system for 46% faster execution
+npx claude-flow@alpha agent memory init
+npx claude-flow@alpha memory store --key "stillontime-patterns" --value "CodeNet patterns for film industry"
+
+# MCP tools for 10-20x faster parallel agent spawning
+# claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Then use: mcp__claude-flow__agents_spawn_parallel
 ```
 
 ## Best Practices for Claude-Flow Integration
