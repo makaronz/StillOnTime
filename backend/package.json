@@ -39,6 +39,7 @@
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "@googlemaps/routeoptimization": "^0.5.0",
     "@langchain/community": "^0.3.0",
+    "@langchain/core": "^0.3.0",
     "@langchain/openai": "^0.3.0",
     "@prisma/client": "^5.6.0",
     "@qdrant/js-client-rest": "^1.7.0",
