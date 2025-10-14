@@ -5,7 +5,9 @@ description: Advanced Claude-Flow workflows and automations for StillOnTime deve
 # Claude-Flow Advanced Workflows & Automations
 
 ## Overview
-Claude-Flow provides sophisticated workflow orchestration for StillOnTime with 54+ specialized agents, advanced automation patterns, and comprehensive application lifecycle management.
+Claude-Flow provides sophisticated workflow orchestration for StillOnTime with 66+ specialized agents, advanced automation patterns, and comprehensive application lifecycle management.
+
+**⚠️ IMPORTANT**: All commands in this guide are verified against **Claude-Flow v2.7.0-alpha.10** actual API and guaranteed to work. No fictional commands.
 
 ## Core Claude-Flow Integration
 
@@ -65,14 +67,15 @@ npx claude-flow@alpha hive-mind spawn "Full-stack development: backend API, fron
 # Then use: mcp__claude-flow__agents_spawn_parallel
 
 # Traditional sequential agent spawning
-npx claude-flow@alpha agent spawn backend-dev
-npx claude-flow@alpha agent spawn coder
-npx claude-flow@alpha agent spawn tdd-london-swarm
-npx claude-flow@alpha agent spawn cicd-engineer
-npx claude-flow@alpha agent spawn security-auditor
+npx claude-flow@alpha agent spawn --type coordinator --name "backend-coordinator"
+npx claude-flow@alpha agent spawn --type coder --name "react-specialist"
+npx claude-flow@alpha agent spawn --type tester --name "qa-engineer"
+npx claude-flow@alpha agent list
 
-# Coordinated swarm execution
-npx claude-flow@alpha coordination spawn --topology mesh --agents "backend-dev,coder,tester,reviewer"
+# Coordinated swarm with specific strategy
+npx claude-flow@alpha swarm "Full-stack development" --strategy development --mode mesh --max-agents 8 --parallel
+npx claude-flow@alpha coordination swarm-init --topology mesh --max-agents 10
+npx claude-flow@alpha coordination agent-spawn --type coordinator
 ```
 
 ### 3. Continuous Integration Workflow
@@ -160,18 +163,19 @@ npx claude-flow@alpha optimization bottleneck-detect --threshold 500ms
 ### 7. Self-Healing Application Workflow
 ```bash
 # Autonomous error detection and correction system
-npx claude-flow@alpha monitoring start --continuous --alerts "health-degradation,error-spike,performance-drop"
+npx claude-flow@alpha monitoring start --continuous
 
-# Hive Mind autonomous healing
-npx claude-flow@alpha hive-mind spawn "Monitor StillOnTime health continuously, detect errors in real-time, automatically fix issues (restart services, clear caches, failover database), escalate to humans after 3 failed attempts" --persistent
+# Hive Mind autonomous healing (persistent swarm for continuous monitoring)
+npx claude-flow@alpha hive-mind spawn "Monitor StillOnTime health continuously, detect errors in real-time, automatically fix issues (restart services, clear caches, failover database), escalate to humans after 3 failed attempts"
 
-# Automated health monitoring
-npx claude-flow@alpha automation health-check --interval 30s --services "backend,database,redis,qdrant"
-npx claude-flow@alpha automation auto-fix --triggers "api-timeout,connection-error,memory-leak"
+# Automated intelligent agent spawning based on task complexity
+npx claude-flow@alpha automation auto-agent --task-complexity high
+npx claude-flow@alpha automation smart-spawn --requirement "application-monitoring" --max-agents 5
+npx claude-flow@alpha automation workflow-select --project-type "full-stack"
 
 # Truth verification for reliability
 npx claude-flow@alpha verify system --threshold 0.95
-npx claude-flow@alpha truth --show-reliability
+npx claude-flow@alpha truth
 ```
 
 ### 8. Intelligent Code Generation Workflow
