@@ -12,10 +12,32 @@
 import fs from 'fs';
 import path from 'path';
 import { OpenAIEmbeddings } from '@langchain/openai';
+import dotenv from 'dotenv';
+
+// Load environment first
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+// Must load config AFTER dotenv
 import { qdrantService } from '../src/services/qdrant.service';
-import { config } from '../src/config/config';
-import logger from '../src/utils/logger';
 import { CodeNetDocument } from '../src/types/codenet.types';
+
+// Simple logger
+const logger = {
+  info: (msg: string, meta?: any) => console.log(`[INFO] ${msg}`, meta || ''),
+  warn: (msg: string, meta?: any) => console.warn(`[WARN] ${msg}`, meta || ''),
+  error: (msg: string, meta?: any) => console.error(`[ERROR] ${msg}`, meta || ''),
+  debug: (msg: string, meta?: any) => console.log(`[DEBUG] ${msg}`, meta || '')
+};
+
+// Simple config
+const config = {
+  apis: {
+    openaiApiKey: process.env.OPENAI_API_KEY || ''
+  },
+  codenet: {
+    datasetPath: process.env.CODENET_DATASET_PATH || path.join(__dirname, '../data/codenet')
+  }
+};
 
 class QdrantIngestion {
   private embeddings: OpenAIEmbeddings;

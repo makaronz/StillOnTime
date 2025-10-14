@@ -12,9 +12,26 @@
 
 import fs from 'fs';
 import path from 'path';
-import { config } from '../src/config/config';
-import logger from '../src/utils/logger';
+import dotenv from 'dotenv';
 import { CodeNetDocument, CodePattern } from '../src/types/codenet.types';
+
+// Load environment variables
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+// Simple logger for scripts
+const logger = {
+  info: (msg: string, meta?: any) => console.log(`[INFO] ${msg}`, meta || ''),
+  warn: (msg: string, meta?: any) => console.warn(`[WARN] ${msg}`, meta || ''),
+  error: (msg: string, meta?: any) => console.error(`[ERROR] ${msg}`, meta || ''),
+  debug: (msg: string, meta?: any) => console.log(`[DEBUG] ${msg}`, meta || '')
+};
+
+// Simple config
+const config = {
+  codenet: {
+    datasetPath: process.env.CODENET_DATASET_PATH || path.join(__dirname, '../data/codenet')
+  }
+};
 
 class SystemPatternsGenerator {
   private inputDir: string;
