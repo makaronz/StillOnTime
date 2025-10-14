@@ -135,10 +135,42 @@ export class QdrantService {
    */
   private async upsertBatch(documents: CodeNetDocument[]): Promise<void> {
     return executeQdrantOperation(async () => {
-      const points = documents.map(doc => ({
-        id: doc.id,
-        vector: doc.embeddings || [],
+      // Filter out documents without valid embeddings
+      const validDocuments = documents.filter(doc => {
+        const isValid = doc.embeddings && 
+          Array.isArray(doc.embeddings) && 
+          doc.embeddings.length === 1536; // OpenAI ada-002 dimension
+        
+        if (!isValid) {
+          logger.debug(`Invalid embeddings for doc ${doc.id}`, {
+            hasEmbeddings: !!doc.embeddings,
+            isArray: Array.isArray(doc.embeddings),
+            length: doc.embeddings?.length || 0
+          });
+        }
+        return isValid;
+      });
+
+      if (validDocuments.length === 0) {
+        logger.warn('No valid documents with embeddings in batch');
+        return;
+      }
+
+      if (validDocuments.length < documents.length) {
+        logger.warn(`Skipping ${documents.length - validDocuments.length} documents without embeddings`);
+      }
+
+      logger.info(`Upserting ${validDocuments.length} valid documents`);
+
+      // Convert string IDs to UUIDs (v5 for deterministic generation)
+      const { v5: uuidv5 } = await import('uuid');
+      const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // Standard namespace UUID
+
+      const points = validDocuments.map(doc => ({
+        id: uuidv5(doc.id, namespace), // Generate UUID from string ID
+        vector: doc.embeddings!,
         payload: {
+          originalId: doc.id, // Store original ID in payload
           problemId: doc.problemId,
           language: doc.language,
           sourceCode: doc.sourceCode,
@@ -147,9 +179,19 @@ export class QdrantService {
         }
       }));
 
+      // Debug first point structure
+      if (points.length > 0) {
+        logger.debug('First point structure', {
+          id: points[0].id,
+          vectorLength: points[0].vector.length,
+          payloadKeys: Object.keys(points[0].payload)
+        });
+      }
+
+      // Upsert with points array (Qdrant v1.15+ format)
       await this.client.upsert(this.collectionName, {
-        wait: true,
-        points
+        points,
+        wait: true
       });
     }, 'upsertBatch');
   }
