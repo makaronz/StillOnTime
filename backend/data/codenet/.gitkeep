@@ -1,0 +1,10 @@
+# Project CodeNet Dataset Storage
+# This directory will contain downloaded and preprocessed code examples
+# 
+# Structure:
+# - metadata/ - CSV files from Project CodeNet
+# - javascript/ - JavaScript source files
+# - typescript/ - TypeScript source files  
+# - python/ - Python source files
+# - preprocessed/ - Processed documents ready for Qdrant ingestion
+

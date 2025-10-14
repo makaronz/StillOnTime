@@ -9,6 +9,7 @@ interface Config {
   frontendUrl: string;
   databaseUrl: string;
   redisUrl: string;
+  qdrantUrl: string;
   jwtSecret: string;
   google: {
     clientId: string;
@@ -18,6 +19,12 @@ interface Config {
   apis: {
     openWeatherApiKey: string;
     googleMapsApiKey: string;
+    openaiApiKey: string;
+  };
+  codenet: {
+    datasetPath: string;
+    maxExamples: number;
+    enableRAG: boolean;
   };
   enhancedServices: {
     enableEnhancedPDF: boolean;
@@ -56,6 +63,7 @@ export const config: Config = {
     "postgresql://user:password@localhost:5432/stillontime_automation"
   ),
   redisUrl: getRequiredEnvVar("REDIS_URL", "redis://localhost:6379"),
+  qdrantUrl: process.env.QDRANT_URL || "http://localhost:6333",
   jwtSecret: getRequiredEnvVar("JWT_SECRET"),
   google: {
     clientId: getRequiredEnvVar("GOOGLE_CLIENT_ID"),
@@ -66,6 +74,12 @@ export const config: Config = {
   apis: {
     openWeatherApiKey: getRequiredEnvVar("OPENWEATHER_API_KEY"),
     googleMapsApiKey: getRequiredEnvVar("GOOGLE_MAPS_API_KEY"),
+    openaiApiKey: process.env.OPENAI_API_KEY || "",
+  },
+  codenet: {
+    datasetPath: process.env.CODENET_DATASET_PATH || "/app/data/codenet",
+    maxExamples: parseInt(process.env.CODENET_MAX_EXAMPLES || "10000", 10),
+    enableRAG: process.env.CODENET_ENABLE_RAG === "true",
   },
   enhancedServices: {
     enableEnhancedPDF: process.env.ENABLE_ENHANCED_PDF !== "false",
