@@ -1,0 +1,403 @@
+---
+description: Deployment, Docker, and DevOps practices for StillOnTime
+---
+
+# Deployment & DevOps Practices
+
+## Docker Configuration
+
+### Development Docker Setup
+- **Main Config**: [docker-compose.yml](mdc:docker-compose.yml) - Local development stack
+- **Production Config**: [docker-compose.production.yml](mdc:docker-compose.production.yml) - Production optimized
+- **Backend Dockerfile**: [backend/Dockerfile.dev](mdc:backend/Dockerfile.dev) - Development image
+
+### Services Architecture:
+```yaml
+# docker-compose.yml structure
+services:
+  backend:          # Node.js API server
+  frontend:         # React Vite development server  
+  postgres:         # PostgreSQL database
+  redis:           # Redis cache/session store
+  qdrant:          # Vector database for CodeNet RAG
+```
+
+### Docker Commands:
+```bash
+# Development stack
+npm run docker:up      # Start all services
+npm run docker:down    # Stop all services  
+npm run docker:logs    # View service logs
+npm run docker:build   # Rebuild images
+
+# Individual service management
+docker-compose up postgres redis  # Start only database services
+docker-compose logs -f backend     # Follow backend logs
+```
+
+## Environment Configuration
+
+### Environment Files Structure:
+```
+├── .env                    # Local development (gitignored)
+├── .env.example           # Template with required variables
+├── backend/.env           # Backend-specific variables (gitignored)
+└── frontend/.env.local    # Frontend-specific variables (gitignored)
+```
+
+### Required Environment Variables:
+
+#### Backend Core:
+```bash
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/stillontime_dev
+TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/stillontime_test
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# JWT Authentication  
+JWT_SECRET=your-secure-random-string-here
+JWT_EXPIRES_IN=7d
+
+# External APIs
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=+1234567890
+
+# CodeNet RAG
+QDRANT_URL=http://localhost:6333
+OPENAI_API_KEY=sk-your-openai-api-key
+CODENET_ENABLE_RAG=true
+```
+
+#### Frontend:
+```bash
+VITE_API_BASE_URL=http://localhost:3001
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id
+VITE_APP_NAME=StillOnTime
+```
+
+## Deployment Strategies
+
+### Production Deployment (Zero-Downtime):
+```bash
+# 1. Build optimized images
+docker-compose -f docker-compose.production.yml build
+
+# 2. Run database migrations
+npm run prisma:migrate
+
+# 3. Deploy with rolling updates
+docker-compose -f docker-compose.production.yml up -d --scale backend=3
+
+# 4. Health check validation
+curl http://localhost:3001/api/v1/health
+```
+
+### Staging Deployment:
+```bash
+# Deploy to staging environment
+docker-compose -f docker-compose.staging.yml up -d
+
+# Run E2E tests against staging
+npm run test:e2e -- --baseURL=https://staging.stillontime.app
+```
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflow:
+```yaml
+# .github/workflows/ci-cd.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Backend tests
+      - name: Backend Tests
+        run: |
+          cd backend
+          npm ci
+          npm run test:coverage
+          
+      # Frontend tests  
+      - name: Frontend Tests
+        run: |
+          cd frontend
+          npm ci
+          npm run test
+          
+      # E2E tests
+      - name: E2E Tests
+        run: |
+          npm run docker:up -d
+          npm run test:e2e:smoke
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to Production
+        run: |
+          # Deployment script
+          ./scripts/deploy-production.sh
+```
+
+## Health Monitoring
+
+### Health Check Endpoints:
+```typescript
+// GET /api/v1/health - System health
+interface HealthCheckResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  timestamp: string;
+  services: {
+    database: ServiceHealth;
+    redis: ServiceHealth;
+    qdrant: ServiceHealth;
+    googleApis: ServiceHealth;
+    twilio: ServiceHealth;
+  };
+  performance: {
+    uptime: number;
+    memoryUsage: NodeJS.MemoryUsage;
+    responseTime: number;
+  };
+}
+
+// GET /api/v1/health/ready - Readiness probe
+// GET /api/v1/health/live - Liveness probe
+```
+
+### Logging & Monitoring:
+```typescript
+// Structured logging with correlation IDs
+export class RequestLogger {
+  logRequest(req: Request, res: Response, next: NextFunction): void {
+    const correlationId = uuidv4();
+    req.correlationId = correlationId;
+    
+    logger.info('Request started', {
+      correlationId,
+      method: req.method,
+      url: req.url,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip
+    });
+    
+    const startTime = Date.now();
+    
+    res.on('finish', () => {
+      const duration = Date.now() - startTime;
+      
+      logger.info('Request completed', {
+        correlationId,
+        statusCode: res.statusCode,
+        duration,
+        success: res.statusCode < 400
+      });
+    });
+    
+    next();
+  }
+}
+```
+
+## Database Management
+
+### Prisma Migrations:
+```bash
+# Development
+npm run prisma:migrate      # Apply pending migrations
+npm run prisma:reset        # Reset database and re-run migrations
+npm run prisma:studio       # Open Prisma Studio
+
+# Production
+npm run prisma:deploy       # Apply migrations without prompts
+npm run prisma:generate     # Generate Prisma client
+```
+
+### Backup Strategy:
+```bash
+# Automated database backup
+#!/bin/bash
+# scripts/backup-database.sh
+
+BACKUP_DIR="/backups/$(date +%Y-%m-%d)"
+mkdir -p "$BACKUP_DIR"
+
+# PostgreSQL backup
+pg_dump $DATABASE_URL > "$BACKUP_DIR/postgres-$(date +%H-%M-%S).sql"
+
+# Redis backup
+redis-cli --rdb "$BACKUP_DIR/redis-$(date +%H-%M-%S).rdb"
+
+# Upload to cloud storage
+aws s3 sync "$BACKUP_DIR" s3://stillontime-backups/$(date +%Y-%m-%d)/
+```
+
+## Security & Secrets Management
+
+### Secrets Rotation:
+```bash
+# Rotate JWT secret
+NEW_SECRET=$(openssl rand -base64 32)
+kubectl create secret generic jwt-secret --from-literal=secret="$NEW_SECRET"
+
+# Rotate API keys  
+./scripts/rotate-google-credentials.sh
+./scripts/rotate-twilio-credentials.sh
+```
+
+### Container Security:
+```dockerfile
+# backend/Dockerfile.production
+FROM node:18-alpine
+
+# Security: Don't run as root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Copy and install dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy application code
+COPY --chown=nodejs:nodejs . .
+
+# Switch to non-root user
+USER nodejs
+
+EXPOSE 3001
+CMD ["npm", "start"]
+```
+
+## Performance Optimization
+
+### Production Optimizations:
+```yaml
+# docker-compose.production.yml
+services:
+  backend:
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.production
+      args:
+        NODE_ENV: production
+        
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+```
+
+### Caching Strategy:
+```typescript
+// Redis caching with TTL
+export class CacheService {
+  async cacheRouteCalculation(key: string, route: RouteResult): Promise<void> {
+    await this.redis.setex(
+      `route:${key}`,
+      24 * 60 * 60, // 24 hours TTL
+      JSON.stringify(route)
+    );
+  }
+  
+  async cacheWeatherData(location: string, weather: WeatherData): Promise<void> {
+    await this.redis.setex(
+      `weather:${location}`,
+      4 * 60 * 60, // 4 hours TTL  
+      JSON.stringify(weather)
+    );
+  }
+}
+```
+
+## Kubernetes Deployment (Optional)
+
+### Kubernetes Manifests: [kubernetes/](mdc:kubernetes/)
+```yaml
+# kubernetes/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stillontime-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: stillontime-backend
+  template:
+    metadata:
+      labels:
+        app: stillontime-backend
+    spec:
+      containers:
+      - name: backend
+        image: stillontime/backend:latest
+        ports:
+        - containerPort: 3001
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: url
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health/live
+            port: 3001
+          initialDelaySeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health/ready
+            port: 3001
+          initialDelaySeconds: 5
+```
+
+All deployments must follow these patterns to ensure reliability, security, and maintainability in production environments.

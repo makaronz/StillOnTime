@@ -1,0 +1,104 @@
+---
+alwaysApply: true
+---
+
+# StillOnTime Code Standards & Quality Gates
+
+## TypeScript Strict Standards
+- **Backend**: MUST use explicit return types for all exported functions
+- **Frontend**: Standard TypeScript with less strict linting
+- **No `any` types**: Use proper typing or `unknown` with type guards
+- **Imports**: Use absolute imports when possible, relative for local files
+
+## Code Quality Requirements
+```typescript
+// ✅ CORRECT - Explicit return types (backend)
+export async function processEmail(emailId: string): Promise<EmailProcessResult> {
+  // implementation
+}
+
+// ✅ CORRECT - Proper error handling
+try {
+  const result = await riskyOperation();
+  return result;
+} catch (error) {
+  logger.error('Operation failed', { error, context: 'processEmail' });
+  throw new BusinessLogicError('Failed to process email', error);
+}
+
+// ❌ INCORRECT - Missing return type, generic Error
+export async function processEmail(emailId) {
+  throw new Error('Something went wrong');
+}
+```
+
+## Error Handling Pattern (MANDATORY)
+All errors must use hierarchical error classes from [backend/src/middleware/errorHandler.ts](mdc:backend/src/middleware/errorHandler.ts):
+
+```typescript
+// Use specific error types
+throw new APIError('External service failed', 503, originalError);
+throw new BusinessLogicError('Invalid schedule data', originalError);
+throw new ValidationError('Required field missing: startTime');
+```
+
+## Logging Standards
+- **Production**: Use structured logger from [backend/src/utils/logger.ts](mdc:backend/src/utils/logger.ts)
+- **Never console.log**: Use logger.info(), logger.error(), logger.warn()
+- **Include context**: Add relevant IDs, user info, operation context
+
+```typescript
+// ✅ CORRECT
+logger.info('Email processing started', { 
+  emailId, 
+  userId, 
+  processingType: 'schedule_extraction' 
+});
+
+// ❌ INCORRECT  
+console.log('Processing email:', emailId);
+```
+
+## Circuit Breaker & Resilience (MANDATORY)
+All external API calls MUST use resilience patterns:
+
+```typescript
+// Use circuit breaker from utils
+import { circuitBreaker } from '../utils/circuit-breaker';
+import { withRetry } from '../utils/retry';
+
+@withRetry({ maxAttempts: 3, backoff: 'exponential' })
+async function callExternalAPI(): Promise<Result> {
+  return circuitBreaker.execute(() => {
+    return externalService.call();
+  });
+}
+```
+
+## Testing Requirements
+- **TDD**: Write failing tests BEFORE implementation
+- **Coverage**: >80% for critical paths (email processing, route planning, calendar)
+- **Test Structure**: Unit tests in [backend/tests/](mdc:backend/tests/), E2E in [e2e-tests/](mdc:e2e-tests/)
+- **Test Naming**: Descriptive test names explaining the scenario
+
+## File Organization Rules
+- **Never save to root**: Use appropriate subdirectories
+- **Backend files**: Follow [backend/src/](mdc:backend/src/) structure
+- **Frontend files**: Follow [frontend/src/](mdc:frontend/src/) structure
+- **Tests**: Co-locate with source files or in dedicated test directories
+- **Documentation**: Use [docs/](mdc:docs/) for project docs
+
+## Performance Requirements
+These are HARD requirements from the constitution:
+- Email processing: ≤ 2 minutes end-to-end
+- PDF parsing: ≤ 30 seconds per document  
+- Route calculation: ≤ 15 seconds with traffic data
+- Calendar event creation: ≤ 10 seconds
+- API response time: p95 < 500ms
+
+## Security Standards (MANDATORY)
+- **OAuth 2.0**: PKCE flow for all external integrations
+- **Secrets**: Environment variables only, never hardcoded
+- **Input validation**: Use express-validator for all endpoints
+- **Rate limiting**: Implement on all public endpoints
+- **HTTPS only**: Production must enforce secure connections

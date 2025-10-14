@@ -1,0 +1,374 @@
+---
+globs: **/routes/**,**/controllers/**,**/services/**
+---
+
+# API Design & Integration Patterns
+
+## RESTful API Standards
+StillOnTime follows strict REST principles with film industry domain modeling.
+
+### API Structure
+```
+/api/v1/
+├── /schedules          # Call sheets and shooting schedules
+├── /locations          # Shooting locations
+├── /routes            # Route planning and navigation
+├── /notifications     # SMS and push notifications
+├── /calendar          # Calendar integration
+├── /auth             # Authentication and OAuth flows
+└── /health           # System health and monitoring
+```
+
+## Film Industry API Endpoints
+
+### Call Sheet Management:
+```typescript
+// POST /api/v1/schedules - Upload and process call sheet
+interface CreateScheduleRequest {
+  callSheetPdf?: File;           // PDF upload
+  emailContent?: string;         // Raw email text
+  shootingDate: string;          // ISO date
+  productionTitle?: string;      // Film/TV show name
+}
+
+interface ScheduleResponse {
+  id: string;
+  shootingDate: string;
+  productionTitle: string;
+  locations: ShootingLocation[];
+  callTimes: CallTime[];
+  extractionConfidence: number;   // AI confidence score
+  requiresManualReview: boolean;
+}
+
+// GET /api/v1/schedules/:id/call-times - Get crew call times
+// PUT /api/v1/schedules/:id/call-times/:callTimeId - Manual override
+// DELETE /api/v1/schedules/:id - Remove schedule (GDPR compliance)
+```
+
+### Route Planning:
+```typescript  
+// POST /api/v1/routes/calculate - Calculate route with film buffers
+interface RouteCalculationRequest {
+  origin: LocationInput;
+  destination: ShootingLocation;
+  departureTime: string;        // ISO datetime
+  crewPosition: string;         // For position-specific buffers
+  transportMode: 'driving' | 'transit' | 'walking';
+  includeTraffic: boolean;
+}
+
+interface RouteResponse {
+  route: RouteDetails;
+  suggestedDepartureTime: string;
+  callTimeRecommendation: string;
+  buffers: TimeBuffers;         // Film industry specific buffers
+  alternativeRoutes: RouteDetails[];
+  weatherConsiderations: WeatherImpact[];
+}
+```
+
+### Calendar Integration:
+```typescript
+// POST /api/v1/calendar/events - Create calendar event for call time  
+interface CalendarEventRequest {
+  scheduleId: string;
+  callTimeId: string;
+  calendarProvider: 'google' | 'outlook' | 'apple';
+  includeRoute: boolean;
+  includeWeatherForecast: boolean;
+  reminderMinutes: number[];    // Multiple reminders
+}
+
+// GET /api/v1/calendar/conflicts - Check for scheduling conflicts
+// PUT /api/v1/calendar/events/:id - Update event (when schedule changes)
+```
+
+## Authentication & Authorization
+
+### OAuth 2.0 PKCE Flow (MANDATORY):
+```typescript
+// GET /api/v1/auth/google/authorize - Start OAuth flow
+interface AuthorizeResponse {
+  authorizationUrl: string;
+  codeVerifier: string;        // Store securely client-side
+  state: string;               // CSRF protection
+}
+
+// POST /api/v1/auth/google/callback - Handle OAuth callback
+interface CallbackRequest {
+  code: string;
+  state: string;
+  codeVerifier: string;
+}
+
+interface AuthResponse {
+  accessToken: string;         // JWT token
+  refreshToken: string;        // For token refresh
+  expiresIn: number;          
+  user: UserProfile;
+  permissions: string[];       // Scopes granted
+}
+```
+
+### Protected Route Pattern:
+```typescript
+// All API routes except /auth and /health require authentication
+app.use('/api/v1', authenticateJWT);
+app.use('/api/v1/auth', authRoutes);      // Exclude auth routes
+app.use('/api/v1/health', healthRoutes);  // Exclude health checks
+
+// Example protected controller
+class ScheduleController {
+  @Authenticated
+  @ValidateBody(CreateScheduleSchema)
+  async createSchedule(req: AuthenticatedRequest): Promise<ScheduleResponse> {
+    const userId = req.user.id;  // From JWT token
+    const schedule = await this.scheduleService.create(req.body, userId);
+    return this.mapToResponse(schedule);
+  }
+}
+```
+
+## Error Handling Standards
+
+### Error Response Format:
+```typescript
+interface APIErrorResponse {
+  success: false;
+  error: {
+    code: string;              // Machine-readable error code
+    message: string;           // Human-readable message
+    details?: unknown;         // Additional error context
+    timestamp: string;         // ISO datetime
+    requestId: string;         // For debugging/support
+    suggestions?: string[];    // How to fix the error
+  };
+}
+
+// Standard error codes
+enum APIErrorCodes {
+  INVALID_CALL_SHEET = 'INVALID_CALL_SHEET',
+  PDF_PROCESSING_FAILED = 'PDF_PROCESSING_FAILED',
+  GOOGLE_API_UNAVAILABLE = 'GOOGLE_API_UNAVAILABLE',
+  LOCATION_NOT_FOUND = 'LOCATION_NOT_FOUND',
+  SCHEDULE_CONFLICT = 'SCHEDULE_CONFLICT',
+  INSUFFICIENT_PERMISSIONS = 'INSUFFICIENT_PERMISSIONS'
+}
+```
+
+### Hierarchical Error Mapping:
+```typescript
+// Map internal errors to API responses
+export class APIErrorHandler {
+  handleError(error: Error): APIErrorResponse {
+    if (error instanceof ValidationError) {
+      return {
+        success: false,
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: error.message,
+          details: error.validationErrors,
+          suggestions: ['Check input format', 'Validate required fields']
+        }
+      };
+    }
+    
+    if (error instanceof GoogleAPIError) {
+      return {
+        success: false,
+        error: {
+          code: 'GOOGLE_API_UNAVAILABLE',
+          message: 'Google services temporarily unavailable',
+          suggestions: ['Retry in a few minutes', 'Check internet connection']
+        }
+      };
+    }
+    
+    // Default to internal server error
+    return this.internalServerError(error);
+  }
+}
+```
+
+## Request Validation
+
+### Input Validation with express-validator:
+```typescript
+import { body, param, query } from 'express-validator';
+
+export const createScheduleValidation = [
+  body('shootingDate').isISO8601().withMessage('Invalid shooting date format'),
+  body('productionTitle').optional().isLength({ min: 1, max: 200 }),
+  body('callSheetPdf').optional().custom(validatePDFFile),
+  body('emailContent').optional().isString().isLength({ max: 50000 })
+];
+
+export const routeCalculationValidation = [
+  body('origin').isObject().withMessage('Origin location required'),
+  body('destination').isObject().withMessage('Destination location required'),
+  body('departureTime').isISO8601().withMessage('Invalid departure time'),
+  body('crewPosition').isIn(['Director', 'DP', 'Gaffer', 'Script Supervisor'])
+];
+```
+
+## External Service Integration
+
+### Google APIs with Circuit Breaker:
+```typescript
+export class GoogleIntegrationService {
+  private mapsCircuitBreaker: CircuitBreaker;
+  private calendarCircuitBreaker: CircuitBreaker;
+
+  @withRetry({ maxAttempts: 3, backoff: 'exponential' })
+  async calculateRoute(origin: Location, destination: Location): Promise<RouteResult> {
+    return this.mapsCircuitBreaker.execute(async () => {
+      const response = await this.googleMapsClient.directions({
+        origin: `${origin.lat},${origin.lng}`,
+        destination: `${destination.lat},${destination.lng}`,
+        mode: 'driving',
+        departure_time: 'now',
+        traffic_model: 'best_guess'
+      });
+      
+      return this.parseDirectionsResponse(response.data);
+    });
+  }
+  
+  @withRetry({ maxAttempts: 3, backoff: 'exponential' })
+  async createCalendarEvent(eventData: CalendarEventData): Promise<CalendarEvent> {
+    return this.calendarCircuitBreaker.execute(async () => {
+      const response = await this.googleCalendarClient.events.insert({
+        calendarId: 'primary',
+        requestBody: {
+          summary: `Call Time: ${eventData.productionTitle}`,
+          start: { dateTime: eventData.callTime },
+          end: { dateTime: eventData.estimatedWrapTime },
+          location: eventData.shootingLocation.address,
+          description: this.buildEventDescription(eventData)
+        }
+      });
+      
+      return response.data;
+    });
+  }
+}
+```
+
+### Twilio SMS with Fallback:
+```typescript
+export class NotificationService {
+  @withRetry({ maxAttempts: 2, backoff: 'linear' })
+  async sendSMSAlert(phoneNumber: string, message: string): Promise<SMSResult> {
+    try {
+      const response = await this.twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phoneNumber
+      });
+      
+      logger.info('SMS sent successfully', { 
+        messageId: response.sid, 
+        phoneNumber: this.maskPhoneNumber(phoneNumber)
+      });
+      
+      return { success: true, messageId: response.sid };
+    } catch (error) {
+      logger.error('SMS failed', { error, phoneNumber: this.maskPhoneNumber(phoneNumber) });
+      
+      // Fallback to email notification
+      return this.sendEmailFallback(phoneNumber, message);
+    }
+  }
+}
+```
+
+## Rate Limiting & Security
+
+### Rate Limiting Configuration:
+```typescript
+import rateLimit from 'express-rate-limit';
+
+// Global rate limiting
+export const globalRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 100,                   // 100 requests per window
+  message: 'Too many requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Strict rate limiting for auth endpoints
+export const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes  
+  max: 10,                    // 10 attempts per window
+  skipSuccessfulRequests: true
+});
+
+// Apply to routes
+app.use('/api/v1', globalRateLimit);
+app.use('/api/v1/auth', authRateLimit);
+```
+
+### CORS Configuration:
+```typescript
+export const corsOptions: CorsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'http://localhost:3000',           // Local development
+      'https://stillontime-frontend.vercel.app',  // Production frontend
+      process.env.FRONTEND_URL           // Environment-specific
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+```
+
+## API Documentation
+
+### OpenAPI/Swagger Integration:
+```typescript
+/**
+ * @swagger
+ * /api/v1/schedules:
+ *   post:
+ *     summary: Create shooting schedule from call sheet
+ *     tags: [Schedules]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               callSheetPdf:
+ *                 type: string
+ *                 format: binary
+ *               shootingDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       201:
+ *         description: Schedule created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ScheduleResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+```
+
+All API endpoints must follow these patterns to ensure consistency, security, and maintainability across the StillOnTime platform.

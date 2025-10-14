@@ -1,0 +1,77 @@
+---
+alwaysApply: true
+---
+
+# StillOnTime Project Structure Guide
+
+## Overview
+StillOnTime is a film industry logistics application with backend API, React frontend, and mobile support.
+
+## Core Architecture
+- **Monorepo Structure**: Independent backend/frontend with shared root scripts
+- **Backend**: [backend/](mdc:backend/) - Node.js/TypeScript with Express, Prisma ORM, PostgreSQL
+- **Frontend**: [frontend/](mdc:frontend/) - React/TypeScript with Vite, Zustand state management
+- **Mobile**: [mobile/](mdc:mobile/) - React Native implementation
+- **E2E Tests**: [e2e-tests/](mdc:e2e-tests/) - Playwright automation
+
+## Key Configuration Files
+- **Root Package**: [package.json](mdc:package.json) - Monorepo scripts and dependencies
+- **Backend Config**: [backend/package.json](mdc:backend/package.json) - Server dependencies
+- **Frontend Config**: [frontend/package.json](mdc:frontend/package.json) - UI dependencies
+- **Database Schema**: [backend/prisma/schema.prisma](mdc:backend/prisma/schema.prisma)
+- **Docker Setup**: [docker-compose.yml](mdc:docker-compose.yml), [docker-compose.production.yml](mdc:docker-compose.production.yml)
+
+## Backend Structure
+```
+backend/src/
+├── controllers/     # API route handlers
+├── services/        # Business logic layer
+├── middleware/      # Express middleware (auth, errors, logging)
+├── models/          # Data models and types
+├── utils/           # Utilities (circuit-breaker, retry, logger)
+├── repositories/    # Data access layer
+├── routes/          # API route definitions
+└── types/          # TypeScript type definitions
+```
+
+## Frontend Structure
+```
+frontend/src/
+├── components/      # React components
+├── pages/          # Route-level page components
+├── stores/         # Zustand state management
+├── services/       # API calls and business logic
+├── hooks/          # Custom React hooks
+├── utils/          # Utility functions
+└── types/          # TypeScript interfaces
+```
+
+## Important Documentation
+- **Constitution**: StillOnTime follows strict gates in always-applied workspace rules
+- **Development Guide**: [AGENTS.md](mdc:AGENTS.md)
+- **API Setup**: [claudedocs/API_SETUP_GUIDE.md](mdc:claudedocs/API_SETUP_GUIDE.md)
+- **Deployment**: [COMPLETE-DEPLOYMENT-GUIDE.md](mdc:COMPLETE-DEPLOYMENT-GUIDE.md)
+
+## External Integrations
+- **Google APIs**: Calendar, Maps, OAuth 2.0 with PKCE
+- **Twilio**: SMS notifications
+- **Redis**: Caching and session management
+- **PostgreSQL**: Primary database
+- **Qdrant**: Vector database for CodeNet RAG
+
+## Development Commands
+```bash
+# Root level
+npm run dev          # Start both backend + frontend
+npm run build        # Build all services
+npm run test         # Run all tests
+npm run docker:up    # Start Docker services
+
+# Backend specific
+cd backend && npm run dev        # Start backend only
+cd backend && npm run dev:simple # Backend without background workers
+
+# Frontend specific  
+cd frontend && npm run dev       # Start frontend only
+cd frontend && npm run test:ui   # Playwright UI mode
+```
