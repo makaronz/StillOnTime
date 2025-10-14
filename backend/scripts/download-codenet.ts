@@ -41,7 +41,9 @@ const defaultOptions: DownloadOptions = {
  */
 class CodeNetDownloader {
   private options: DownloadOptions;
-  private metadataUrl = 'https://dax-cdn.cdn.appdomain.cloud/dax-project-codenet/1.0.0';
+  private baseUrl = 'https://dax-cdn.cdn.appdomain.cloud/dax-project-codenet/1.0.0';
+  private dataUrl = 'https://dax-cdn.cdn.appdomain.cloud/dax-project-codenet/1.0.0/data';
+  private metadataUrl = 'https://dax-cdn.cdn.appdomain.cloud/dax-project-codenet/1.0.0/metadata';
 
   constructor(options: DownloadOptions) {
     this.options = options;
@@ -51,32 +53,44 @@ class CodeNetDownloader {
    * Main download process
    */
   async download(): Promise<void> {
-    logger.info('Starting CodeNet dataset download', {
+    logger.info('Starting CodeNet dataset download from IBM DAX', {
       limit: this.options.limit,
       languages: this.options.languages,
-      status: this.options.status
+      status: this.options.status,
+      baseUrl: this.baseUrl
     });
 
     try {
       // 1. Create directory structure
       await this.createDirectories();
 
-      // 2. Download metadata
-      logger.info('Downloading metadata from IBM DAX...');
-      await this.downloadMetadata();
+      // 2. Download problem list
+      logger.info('Downloading problem list from IBM DAX...');
+      const problems = await this.downloadProblemList();
+      logger.info(`Found ${problems.length} problems in CodeNet`);
 
-      // 3. Parse and filter metadata
+      // 3. Download metadata for selected problems
+      logger.info('Downloading problem metadata...');
+      const problemsToProcess = problems.slice(0, Math.min(100, problems.length)); // Start with first 100 problems
+      const allSubmissions = await this.downloadProblemMetadata(problemsToProcess);
+
+      // 4. Filter submissions
       logger.info('Filtering submissions...');
-      const filteredSubmissions = await this.filterSubmissions();
+      const filteredSubmissions = this.filterSubmissionsData(allSubmissions);
+      logger.info(`Filtered to ${filteredSubmissions.length} submissions from ${allSubmissions.length} total`);
 
-      logger.info(`Filtered to ${filteredSubmissions.length} submissions`);
+      // Limit to requested amount
+      const submissionsToDownload = filteredSubmissions.slice(0, this.options.limit);
+      logger.info(`Will download ${submissionsToDownload.length} source files`);
 
-      // 4. Download source files
-      logger.info('Downloading source files...');
-      await this.downloadSourceFiles(filteredSubmissions);
+      // 5. Download source files
+      logger.info('Downloading source files from IBM DAX...');
+      await this.downloadSourceFilesFromDAX(submissionsToDownload);
 
       logger.info('Download complete!', {
-        totalDownloaded: filteredSubmissions.length
+        totalDownloaded: submissionsToDownload.length,
+        totalFiltered: filteredSubmissions.length,
+        totalProcessed: allSubmissions.length
       });
 
     } catch (error) {
@@ -107,242 +121,241 @@ class CodeNetDownloader {
   }
 
   /**
-   * Download metadata CSV files
+   * Download problem list from IBM DAX
    */
-  private async downloadMetadata(): Promise<void> {
-    // In real implementation, download from IBM DAX
-    // For PoC, we'll create a mock metadata file
-    
-    logger.warn('Using mock metadata for PoC. In production, download from IBM DAX.');
-    
-    const mockMetadata = this.generateMockMetadata();
-    const metadataPath = path.join(this.options.outputDir, 'metadata', 'submissions.csv');
-    
-    fs.writeFileSync(metadataPath, mockMetadata);
-    logger.info(`Mock metadata saved to ${metadataPath}`);
+  private async downloadProblemList(): Promise<string[]> {
+    try {
+      const url = `${this.metadataUrl}/problem_list.csv`;
+      logger.info(`Downloading problem list from: ${url}`);
+      
+      const response = await axios.get(url, {
+        timeout: 30000,
+        responseType: 'text'
+      });
+
+      const lines = response.data.split('\n').filter((line: string) => line.trim());
+      const problems = lines.slice(1).map((line: string) => line.split(',')[0]); // First column is problem_id
+
+      return problems.filter((p: string) => p.startsWith('p'));
+    } catch (error) {
+      logger.error('Failed to download problem list', { error });
+      throw new Error('Failed to download problem list from IBM DAX');
+    }
   }
 
   /**
-   * Generate mock metadata for testing
+   * Download metadata for multiple problems
    */
-  private generateMockMetadata(): string {
-    const headers = 'submission_id,problem_id,user_id,submission_time,language,original_language,filename_ext,status,cpu_time,memory,code_size,accuracy\n';
-    
-    const languages = ['JavaScript', 'TypeScript', 'Python'];
-    const problems = ['p00001', 'p00002', 'p00003', 'p00004', 'p00005'];
-    
-    let rows = headers;
-    for (let i = 0; i < this.options.limit; i++) {
-      const lang = languages[i % languages.length];
-      const problem = problems[i % problems.length];
-      const ext = lang === 'JavaScript' ? 'js' : lang === 'TypeScript' ? 'ts' : 'py';
-      
-      rows += `s${100000000 + i},${problem},u${200000000 + i},${Date.now()},${lang},${lang},${ext},Accepted,50,15000,${100 + i},4/4\n`;
+  private async downloadProblemMetadata(problems: string[]): Promise<any[]> {
+    const allSubmissions: any[] = [];
+    let processedCount = 0;
+
+    for (const problemId of problems) {
+      try {
+        const url = `${this.metadataUrl}/${problemId}.csv`;
+        logger.debug(`Downloading metadata for ${problemId}...`);
+
+        const response = await axios.get(url, {
+          timeout: 30000,
+          responseType: 'text'
+        });
+
+        const submissions = this.parseMetadataCSV(response.data, problemId);
+        allSubmissions.push(...submissions);
+        
+        processedCount++;
+        if (processedCount % 10 === 0) {
+          logger.info(`Downloaded metadata for ${processedCount}/${problems.length} problems`);
+        }
+
+        // Rate limiting - wait 100ms between requests
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+      } catch (error) {
+        logger.warn(`Failed to download metadata for ${problemId}`, { error });
+        // Continue with other problems
+      }
     }
-    
-    return rows;
+
+    logger.info(`Downloaded metadata for ${processedCount} problems, found ${allSubmissions.length} submissions`);
+    return allSubmissions;
+  }
+
+  /**
+   * Parse metadata CSV content
+   */
+  private parseMetadataCSV(csvContent: string, problemId: string): any[] {
+    const lines = csvContent.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',');
+    const submissions = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',');
+      if (values.length < headers.length) continue;
+
+      const submission: any = {
+        problemId,
+        submissionId: values[0],
+        userId: values[1],
+        submissionTime: values[2],
+        language: values[3],
+        originalLanguage: values[4],
+        filenameExt: values[5],
+        status: values[6],
+        cpuTime: parseInt(values[7], 10) || 0,
+        memory: parseInt(values[8], 10) || 0,
+        codeSize: parseInt(values[9], 10) || 0,
+        accuracy: values[10] || ''
+      };
+
+      submissions.push(submission);
+    }
+
+    return submissions;
   }
 
   /**
    * Filter submissions based on criteria
    */
-  private async filterSubmissions(): Promise<any[]> {
-    const metadataPath = path.join(this.options.outputDir, 'metadata', 'submissions.csv');
-    const content = fs.readFileSync(metadataPath, 'utf-8');
-    
-    const lines = content.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',');
-    
-    const submissions = lines.slice(1).map(line => {
-      const values = line.split(',');
-      return {
-        submissionId: values[0],
-        problemId: values[1],
-        userId: values[2],
-        submissionTime: values[3],
-        language: values[4],
-        originalLanguage: values[5],
-        filenameExt: values[6],
-        status: values[7],
-        cpuTime: parseInt(values[8], 10),
-        memory: parseInt(values[9], 10),
-        codeSize: parseInt(values[10], 10),
-        accuracy: values[11]
-      };
-    });
+  private filterSubmissionsData(submissions: any[]): any[] {
+    // Language mapping from CodeNet to our target languages
+    const languageMap: Record<string, ProgrammingLanguage> = {
+      'JavaScript': 'JavaScript',
+      'JavaScript (Node.js)': 'JavaScript',
+      'Node.js': 'JavaScript',
+      'TypeScript': 'TypeScript',
+      'Python': 'Python',
+      'Python3': 'Python',
+      'Python2': 'Python',
+      'PyPy3': 'Python',
+      'PyPy2': 'Python'
+    };
 
-    // Filter by criteria
-    return submissions.filter(sub => {
-      // Language filter
-      if (!this.options.languages.includes(sub.language as ProgrammingLanguage)) {
+    const filtered = submissions.filter(sub => {
+      // Language filter - map to our target languages
+      const mappedLanguage = languageMap[sub.language];
+      if (!mappedLanguage || !this.options.languages.includes(mappedLanguage)) {
         return false;
       }
 
-      // Status filter
+      // Status filter - only "Accepted" submissions
       if (sub.status !== this.options.status) {
         return false;
       }
 
-      // Code size filter (approximate lines)
+      // Code size filter (approximate lines: ~50 chars per line)
       const estimatedLines = Math.floor(sub.codeSize / 50);
       if (estimatedLines < this.options.minLines || estimatedLines > this.options.maxLines) {
         return false;
       }
 
+      // Quality filter - skip very small or very large files
+      if (sub.codeSize < 100 || sub.codeSize > 25000) {
+        return false;
+      }
+
       return true;
-    }).slice(0, this.options.limit);
+    });
+
+    // Sort by code size (prefer mid-range complexity)
+    filtered.sort((a, b) => {
+      const aDistance = Math.abs(a.codeSize - 5000);
+      const bDistance = Math.abs(b.codeSize - 5000);
+      return aDistance - bDistance;
+    });
+
+    return filtered;
   }
 
   /**
-   * Download source files
+   * Download source files from IBM DAX
    */
-  private async downloadSourceFiles(submissions: any[]): Promise<void> {
+  private async downloadSourceFilesFromDAX(submissions: any[]): Promise<void> {
     let downloaded = 0;
-    
+    let failed = 0;
+
     for (const submission of submissions) {
       try {
-        await this.downloadSourceFile(submission);
+        await this.downloadSourceFileFromDAX(submission);
         downloaded++;
-        
-        if (downloaded % 100 === 0) {
-          logger.info(`Downloaded ${downloaded}/${submissions.length} files`);
+
+        if (downloaded % 50 === 0) {
+          logger.info(`Downloaded ${downloaded}/${submissions.length} files (${failed} failed)`);
         }
+
+        // Rate limiting - wait 200ms between downloads
+        await new Promise(resolve => setTimeout(resolve, 200));
+
       } catch (error) {
-        logger.warn(`Failed to download ${submission.submissionId}`, { error });
+        failed++;
+        logger.warn(`Failed to download ${submission.submissionId}`, { 
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
-    
-    logger.info(`Downloaded ${downloaded} source files successfully`);
+
+    logger.info(`Download complete: ${downloaded} successful, ${failed} failed`);
   }
 
   /**
-   * Download single source file
+   * Download single source file from IBM DAX
    */
-  private async downloadSourceFile(submission: any): Promise<void> {
-    // In real implementation, download from IBM DAX
-    // For PoC, generate mock source files
+  private async downloadSourceFileFromDAX(submission: any): Promise<void> {
+    const problemId = submission.problemId;
+    const language = submission.language;
+    const submissionId = submission.submissionId;
     
-    const mockCode = this.generateMockSourceCode(submission.language, submission.problemId);
-    
-    const langDir = submission.language.toLowerCase();
-    const filename = `${submission.submissionId}.${submission.filenameExt}`;
-    const filepath = path.join(this.options.outputDir, langDir, filename);
-    
-    fs.writeFileSync(filepath, mockCode);
-  }
+    // IBM DAX URL structure: /data/{problem_id}/{language}/{submission_id}.{ext}
+    const url = `${this.dataUrl}/${problemId}/${language}/${submissionId}.${submission.filenameExt}`;
 
-  /**
-   * Generate mock source code for testing
-   */
-  private generateMockSourceCode(language: string, problemId: string): string {
-    if (language === 'TypeScript') {
-      return `// Solution for ${problemId}
-interface Solution {
-  solve(input: string): string;
-}
+    try {
+      logger.debug(`Downloading: ${url}`);
 
-class ProblemSolver implements Solution {
-  solve(input: string): string {
-    // Implementation with async/await pattern
-    const processData = async (data: string): Promise<string> => {
-      try {
-        const result = await this.processAsync(data);
-        return result.trim();
-      } catch (error) {
-        console.error('Processing error:', error);
-        throw error;
+      const response = await axios.get(url, {
+        timeout: 10000,
+        responseType: 'text'
+      });
+
+      const sourceCode = response.data;
+
+      // Map language to our directory structure
+      const languageMap: Record<string, string> = {
+        'JavaScript': 'javascript',
+        'JavaScript (Node.js)': 'javascript',
+        'Node.js': 'javascript',
+        'TypeScript': 'typescript',
+        'Python': 'python',
+        'Python3': 'python',
+        'Python2': 'python',
+        'PyPy3': 'python',
+        'PyPy2': 'python'
+      };
+
+      const langDir = languageMap[language] || language.toLowerCase();
+      const filename = `${submissionId}.${submission.filenameExt}`;
+      const filepath = path.join(this.options.outputDir, langDir, filename);
+
+      // Save to file
+      fs.writeFileSync(filepath, sourceCode);
+
+      // Save metadata
+      const metadataPath = path.join(this.options.outputDir, 'metadata', `${submissionId}.json`);
+      fs.writeFileSync(metadataPath, JSON.stringify(submission, null, 2));
+
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new Error(`Source file not found: ${url}`);
+        } else if (error.code === 'ECONNABORTED') {
+          throw new Error(`Download timeout: ${url}`);
+        }
       }
-    };
-
-    return processData(input).toString();
-  }
-
-  private async processAsync(data: string): Promise<string> {
-    // Simulated async processing
-    return new Promise(resolve => {
-      setTimeout(() => resolve(data.toUpperCase()), 100);
-    });
-  }
-}
-
-export default new ProblemSolver();
-`;
-    } else if (language === 'JavaScript') {
-      return `// Solution for ${problemId}
-function solve(input) {
-  // Error handling pattern
-  try {
-    const data = parseInput(input);
-    const result = processData(data);
-    return formatOutput(result);
-  } catch (error) {
-    console.error('Solving error:', error);
-    throw error;
-  }
-}
-
-function parseInput(input) {
-  return input.split('\\n').map(line => line.trim());
-}
-
-function processData(data) {
-  // Array manipulation pattern
-  return data
-    .filter(item => item.length > 0)
-    .map(item => item.toUpperCase())
-    .reduce((acc, val) => acc + val, '');
-}
-
-function formatOutput(result) {
-  return result.trim();
-}
-
-module.exports = { solve };
-`;
-    } else { // Python
-      return `# Solution for ${problemId}
-from typing import List, Optional
-
-class ProblemSolver:
-    """Solver for CodeNet problem"""
-    
-    def __init__(self):
-        self.cache = {}
-    
-    def solve(self, input_data: str) -> str:
-        """Main solving function with error handling"""
-        try:
-            data = self.parse_input(input_data)
-            result = self.process_data(data)
-            return self.format_output(result)
-        except Exception as e:
-            print(f"Error solving: {e}")
-            raise
-    
-    def parse_input(self, input_data: str) -> List[str]:
-        """Parse input with list comprehension pattern"""
-        return [line.strip() for line in input_data.split('\\n') if line.strip()]
-    
-    def process_data(self, data: List[str]) -> str:
-        """Process data with functional patterns"""
-        result = ''.join(
-            item.upper() 
-            for item in data 
-            if len(item) > 0
-        )
-        return result
-    
-    def format_output(self, result: str) -> str:
-        """Format output"""
-        return result.strip()
-
-if __name__ == '__main__':
-    solver = ProblemSolver()
-    result = solver.solve(input())
-    print(result)
-`;
+      throw error;
     }
   }
+
 }
 
 /**
