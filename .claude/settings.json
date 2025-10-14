@@ -1,11 +1,14 @@
 {
   "env": {
+    "ANTHROPIC_AUTH_TOKEN": "aca218b0977144669ae6149e90c9bfb6.fBgrI4PYSgRpIOH5",
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
     "CLAUDE_FLOW_AUTO_COMMIT": "false",
     "CLAUDE_FLOW_AUTO_PUSH": "false",
     "CLAUDE_FLOW_HOOKS_ENABLED": "true",
     "CLAUDE_FLOW_TELEMETRY_ENABLED": "true",
     "CLAUDE_FLOW_REMOTE_EXECUTION": "true",
-    "CLAUDE_FLOW_CHECKPOINTS_ENABLED": "true"
+    "CLAUDE_FLOW_CHECKPOINTS_ENABLED": "true",
+        }
   },
   "permissions": {
     "allow": [

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { codenetRAGService } from '../services/codenet-rag.service';
 import { qdrantService } from '../services/qdrant.service';
 import logger from '../utils/logger';
-import { APIError } from '../types';
+import { APIError } from '../utils/errors';
 import { ProgrammingLanguage } from '../types/codenet.types';
 
 /**
@@ -20,24 +20,26 @@ export class CodeNetController {
       const { query, language, limit } = req.query;
 
       if (!query || typeof query !== 'string') {
-        throw new APIError('Query parameter is required', 400);
+        throw new APIError('Query parameter is required', 'VALIDATION_ERROR' as any, 'CodeNet API', 400);
       }
 
       if (!language || typeof language !== 'string') {
-        throw new APIError('Language parameter is required', 400);
+        throw new APIError('Language parameter is required', 'VALIDATION_ERROR' as any, 'CodeNet API', 400);
       }
 
       const validLanguages: ProgrammingLanguage[] = ['TypeScript', 'JavaScript', 'Python'];
       if (!validLanguages.includes(language as ProgrammingLanguage)) {
         throw new APIError(
           `Invalid language. Must be one of: ${validLanguages.join(', ')}`,
+          'VALIDATION_ERROR' as any,
+          'CodeNet API',
           400
         );
       }
 
       const resultLimit = limit ? parseInt(limit as string, 10) : 5;
       if (resultLimit < 1 || resultLimit > 20) {
-        throw new APIError('Limit must be between 1 and 20', 400);
+        throw new APIError('Limit must be between 1 and 20', 'VALIDATION_ERROR' as any, 'CodeNet API', 400);
       }
 
       logger.info('CodeNet search request', { query, language, limit: resultLimit });
@@ -69,23 +71,25 @@ export class CodeNetController {
       const { task, language, existingCode } = req.body;
 
       if (!task || typeof task !== 'string') {
-        throw new APIError('Task is required', 400);
+        throw new APIError('Task is required', 'VALIDATION_ERROR' as any, 'CodeNet API', 400);
       }
 
       if (!language || typeof language !== 'string') {
-        throw new APIError('Language is required', 400);
+        throw new APIError('Language is required', 'VALIDATION_ERROR' as any, 'CodeNet API', 400);
       }
 
       const validLanguages: ProgrammingLanguage[] = ['TypeScript', 'JavaScript', 'Python'];
       if (!validLanguages.includes(language as ProgrammingLanguage)) {
         throw new APIError(
           `Invalid language. Must be one of: ${validLanguages.join(', ')}`,
+          'VALIDATION_ERROR' as any,
+          'CodeNet API',
           400
         );
       }
 
       if (existingCode && typeof existingCode !== 'string') {
-        throw new APIError('Existing code must be a string', 400);
+        throw new APIError('Existing code must be a string', 'VALIDATION_ERROR' as any, 'CodeNet API', 400);
       }
 
       logger.info('CodeNet generate request', { task: task.substring(0, 50), language });
@@ -114,7 +118,7 @@ export class CodeNetController {
       const { codeContext } = req.query;
 
       if (!codeContext || typeof codeContext !== 'string') {
-        throw new APIError('Code context is required', 400);
+        throw new APIError('Code context is required', 'VALIDATION_ERROR' as any, 'CodeNet API', 400);
       }
 
       logger.info('CodeNet patterns request');

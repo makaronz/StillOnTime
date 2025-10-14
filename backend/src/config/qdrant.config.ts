@@ -25,10 +25,10 @@ export const qdrantConfig: QdrantConfig = {
 };
 
 // Circuit breaker configuration for Qdrant
-const qdrantCircuitBreaker = new CircuitBreaker({
+const qdrantCircuitBreaker = new CircuitBreaker('qdrant', {
   failureThreshold: 5,
-  resetTimeout: 60000, // 1 minute
-  monitorInterval: 10000 // 10 seconds
+  recoveryTimeout: 60000, // 1 minute
+  monitoringPeriod: 10000 // 10 seconds
 });
 
 /**

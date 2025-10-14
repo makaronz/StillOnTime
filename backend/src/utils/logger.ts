@@ -1,5 +1,5 @@
 import winston from "winston";
-import { config } from "@/config/config";
+import { config } from "../config/config";
 import { BaseError } from "./errors";
 
 // Custom log levels for StillOnTime application

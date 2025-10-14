@@ -1,0 +1,14 @@
+{
+  "problemId": "p00006",
+  "submissionId": "s000060009",
+  "userId": "u900000009",
+  "submissionTime": "1760452148584",
+  "language": "TypeScript",
+  "originalLanguage": "TypeScript",
+  "filenameExt": "ts",
+  "status": "Accepted",
+  "cpuTime": 121.03601863238609,
+  "memory": 16040.250352495794,
+  "codeSize": 2887.9554825146297,
+  "accuracy": "4/4"
+}

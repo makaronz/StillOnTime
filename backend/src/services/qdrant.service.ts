@@ -13,7 +13,7 @@ import {
   QdrantFilter,
   IngestionProgress
 } from '../types/codenet.types';
-import { APIError } from '../types';
+import { APIError } from '../utils/errors';
 
 /**
  * Qdrant Vector Database Service
@@ -68,7 +68,12 @@ export class QdrantService {
         logger.info('Payload indexes created successfully');
       } catch (error) {
         logger.error('Failed to initialize collection', { error });
-        throw new APIError('Failed to initialize Qdrant collection', 500);
+        throw new APIError(
+          'Failed to initialize Qdrant collection',
+          'EXTERNAL_SERVICE_UNAVAILABLE' as any,
+          'Qdrant',
+          500
+        );
       }
     }, 'initializeCollection');
   }
@@ -190,7 +195,7 @@ export class QdrantService {
         }));
       } catch (error) {
         logger.error('Search failed', { error, limit, hasFilters: !!filters });
-        throw new APIError('Failed to search Qdrant', 500);
+        throw new APIError('Failed to search Qdrant', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'Qdrant', 500);
       }
     }, 'searchSimilar');
   }
@@ -222,7 +227,7 @@ export class QdrantService {
         };
       } catch (error) {
         logger.error('Failed to get document', { error, id });
-        throw new APIError('Failed to retrieve document from Qdrant', 500);
+        throw new APIError('Failed to retrieve document from Qdrant', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'Qdrant', 500);
       }
     }, 'getDocument');
   }
@@ -236,7 +241,7 @@ export class QdrantService {
         return await this.client.getCollection(this.collectionName);
       } catch (error) {
         logger.error('Failed to get collection info', { error });
-        throw new APIError('Failed to get collection info', 500);
+        throw new APIError('Failed to get collection info', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'Qdrant', 500);
       }
     }, 'getCollectionInfo');
   }
@@ -251,7 +256,7 @@ export class QdrantService {
         logger.warn(`Collection ${this.collectionName} deleted`);
       } catch (error) {
         logger.error('Failed to delete collection', { error });
-        throw new APIError('Failed to delete collection', 500);
+        throw new APIError('Failed to delete collection', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'Qdrant', 500);
       }
     }, 'deleteCollection');
   }

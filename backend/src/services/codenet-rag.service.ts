@@ -12,7 +12,7 @@ import {
   RAGQueryParams,
   SearchResult
 } from '../types/codenet.types';
-import { APIError } from '../types';
+import { APIError } from '../utils/errors';
 
 /**
  * CodeNet RAG Service
@@ -75,7 +75,7 @@ export class CodeNetRAGService {
     limit: number = 5
   ): Promise<CodeExample[]> {
     if (!this.enabled) {
-      throw new APIError('CodeNet RAG is not enabled', 503);
+      throw new APIError('CodeNet RAG is not enabled', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 503);
     }
 
     try {
@@ -114,7 +114,7 @@ export class CodeNetRAGService {
       return examples;
     } catch (error) {
       logger.error('Failed to find similar code', { error, query, language });
-      throw new APIError('Failed to search for similar code', 500);
+      throw new APIError('Failed to search for similar code', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 500);
     }
   }
 
@@ -127,7 +127,7 @@ export class CodeNetRAGService {
     existingCode?: string
   ): Promise<GeneratedCode> {
     if (!this.enabled) {
-      throw new APIError('CodeNet RAG is not enabled', 503);
+      throw new APIError('CodeNet RAG is not enabled', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 503);
     }
 
     try {
@@ -178,7 +178,7 @@ export class CodeNetRAGService {
       return result;
     } catch (error) {
       logger.error('Failed to generate code', { error, task, language });
-      throw new APIError('Failed to generate code with context', 500);
+      throw new APIError('Failed to generate code with context', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 500);
     }
   }
 
@@ -187,7 +187,7 @@ export class CodeNetRAGService {
    */
   async extractPatterns(codeContext: string): Promise<CodePattern[]> {
     if (!this.enabled) {
-      throw new APIError('CodeNet RAG is not enabled', 503);
+      throw new APIError('CodeNet RAG is not enabled', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 503);
     }
 
     try {
@@ -241,7 +241,7 @@ export class CodeNetRAGService {
       return patterns;
     } catch (error) {
       logger.error('Failed to extract patterns', { error });
-      throw new APIError('Failed to extract code patterns', 500);
+      throw new APIError('Failed to extract code patterns', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 500);
     }
   }
 
@@ -250,7 +250,7 @@ export class CodeNetRAGService {
    */
   async queryWithParams(params: RAGQueryParams): Promise<SearchResult[]> {
     if (!this.enabled) {
-      throw new APIError('CodeNet RAG is not enabled', 503);
+      throw new APIError('CodeNet RAG is not enabled', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 503);
     }
 
     try {
@@ -291,7 +291,7 @@ export class CodeNetRAGService {
       return results;
     } catch (error) {
       logger.error('Failed to query with params', { error, params });
-      throw new APIError('Failed to execute RAG query', 500);
+      throw new APIError('Failed to execute RAG query', 'EXTERNAL_SERVICE_UNAVAILABLE' as any, 'CodeNet RAG', 500);
     }
   }
 
