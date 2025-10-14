@@ -23,14 +23,21 @@
 
 ### Phase 2: Dataset Download & Filtering ✅ **COMPLETED**
 - [x] Implement download-codenet.ts script
+- [x] Download from real IBM DAX CDN
+- [x] Download problem list (4000+ problems)
+- [x] Download metadata CSV per problem
+- [x] Download actual source files
 - [x] Filter by language (TypeScript, JavaScript, Python)
 - [x] Filter by status ("Accepted" only)
-- [x] Filter by code size (50-500 lines)
-- [x] Generate mock data for PoC testing
+- [x] Filter by code size (100-25000 bytes, ~50-500 lines)
+- [x] Language mapping (Node.js → JavaScript, Python3 → Python)
+- [x] Rate limiting (100ms metadata, 200ms files)
+- [x] Error handling and graceful fallback
 - [x] Create directory structure (metadata, javascript, typescript, python)
 
 **Files Created**: 1 (download-codenet.ts)  
-**Note**: Mock data for PoC, real IBM DAX integration ready for production  
+**Implementation**: ✅ Real IBM DAX integration (production ready)  
+**No Mock Data**: All code downloads real submissions from IBM's CDN  
 **Status**: ✅ Complete
 
 ---

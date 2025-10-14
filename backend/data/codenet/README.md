@@ -31,13 +31,22 @@ npm run codenet:download -- --limit 1000
 ```
 
 **What it does:**
-- Downloads metadata from IBM DAX (or uses mock data for PoC)
+- Downloads real metadata from IBM DAX CDN
+- Fetches problem list (4000+ problems)
+- Downloads metadata CSV for each problem
 - Filters for TypeScript, JavaScript, Python submissions
-- Only includes "Accepted" status
-- Filters by code size (50-500 lines)
-- Creates directory structure
+- Only includes "Accepted" status submissions
+- Filters by code size (100-25000 bytes, ~50-500 lines)
+- Downloads actual source files from IBM DAX
+- Creates directory structure with proper language mapping
 
-**Output:** Source files in `javascript/`, `typescript/`, `python/`
+**URL Structure:**
+- Base: `https://dax-cdn.cdn.appdomain.cloud/dax-project-codenet/1.0.0`
+- Problem list: `/metadata/problem_list.csv`
+- Metadata: `/metadata/{problem_id}.csv`
+- Source: `/data/{problem_id}/{language}/{submission_id}.ext`
+
+**Output:** Real CodeNet source files in `javascript/`, `typescript/`, `python/`
 
 ### 2. Preprocess Dataset
 
@@ -111,10 +120,10 @@ Run all steps in sequence:
 # 1. Start infrastructure
 docker-compose up -d
 
-# 2. Download dataset (mock data for PoC)
+# 2. Download dataset from IBM DAX (real data, takes ~30min for 1000 examples)
 npm run codenet:download
 
-# 3. Preprocess files
+# 3. Preprocess files (requires OpenAI API key)
 npm run codenet:preprocess
 
 # 4. Ingest to Qdrant
@@ -126,6 +135,8 @@ npm run codenet:patterns
 # 6. Enable RAG in environment
 # Set CODENET_ENABLE_RAG=true in .env
 ```
+
+**Note**: First download takes time as it fetches real data from IBM DAX. Expect ~30 minutes for 1000 examples with rate limiting.
 
 ## Configuration
 
@@ -203,13 +214,22 @@ After mock dataset ingestion:
 
 ## Production Considerations
 
-### For Real Project CodeNet Integration
+### Dataset Download
 
-1. **Download Real Dataset**:
-   - Access IBM DAX: https://dax-cdn.cdn.appdomain.cloud/dax-project-codenet/1.0.0
-   - Download metadata CSVs
-   - Download source code archives
-   - Total size: ~7GB compressed
+✅ **Already Implemented** - Script downloads real data from IBM DAX:
+- Problem list: 4000+ problems
+- Metadata: CSV per problem  
+- Source files: Individual downloads from CDN
+
+**Rate Limiting**:
+- 100ms between metadata requests (max ~600 problems/min)
+- 200ms between source downloads (max ~300 files/min)
+- Prevents overwhelming IBM's CDN
+
+**Download Times** (estimated):
+- 1,000 examples: ~30 minutes
+- 10,000 examples: ~5 hours
+- 100,000 examples: ~2 days
 
 2. **Filtering Strategy**:
    - Start with 1,000-10,000 examples
