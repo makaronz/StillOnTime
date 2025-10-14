@@ -11,6 +11,7 @@ import { createMonitoringRoutes } from "./monitoring.routes";
 import enhancedRoutes from "./enhanced.routes";
 import { analyticsRoutes } from "./analytics.routes";
 import { oauthSettingsRoutes } from "./oauth-settings.routes";
+import codenetRoutes from "./codenet.routes";
 import { HealthController } from "../controllers/health.controller";
 import { MonitoringMiddleware } from "../middleware/monitoring.middleware";
 
@@ -56,6 +57,9 @@ router.use("/analytics", analyticsRoutes);
 // OAuth settings routes - /api/oauth/*
 router.use("/oauth", oauthSettingsRoutes);
 
+// CodeNet RAG routes - /api/codenet/*
+router.use("/codenet", codenetRoutes);
+
 // Monitoring and health routes - /api/monitoring/*
 // Note: These will be initialized in the main app with proper dependencies
 function initializeMonitoringRoutesImpl(
@@ -86,6 +90,7 @@ router.get("/health", (req, res) => {
       routePlanning: "/api/route-planning",
       sms: "/api/sms",
       enhanced: "/api/enhanced",
+      codenet: "/api/codenet",
       monitoring: "/api/monitoring",
     },
   });
