@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import * as crypto from "crypto";
 import { validateSecurityConfig } from "./security";
 
 dotenv.config();
@@ -52,6 +53,34 @@ function getRequiredEnvVar(name: string, fallbackForDev?: string): string {
   }
 
   return value;
+}
+
+// Helper function to get secure encryption salt
+function getEncryptionSalt(): string {
+  const encryptionSalt = process.env.ENCRYPTION_SALT;
+
+  if (!encryptionSalt) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("ENCRYPTION_SALT environment variable is required in production");
+    }
+
+    // For development, generate a deterministic salt based on JWT secret
+    const fallbackSalt = crypto.scryptSync(process.env.JWT_SECRET || "fallback", "dev-salt", 32).toString("hex");
+    console.warn("Warning: Using generated encryption salt for development. Set ENCRYPTION_SALT for production.");
+    return fallbackSalt;
+  }
+
+  // Validate salt length
+  if (encryptionSalt.length < 32) {
+    throw new Error("ENCRYPTION_SALT must be at least 32 characters long");
+  }
+
+  // Ensure salt has sufficient entropy
+  if (encryptionSalt === "salt" || encryptionSalt === "password" || encryptionSalt === "secret") {
+    throw new Error("ENCRYPTION_SALT cannot be a common weak value");
+  }
+
+  return encryptionSalt;
 }
 
 export const config: Config = {

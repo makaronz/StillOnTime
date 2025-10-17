@@ -3,7 +3,7 @@
  * Handles all OAuth-related API calls to the backend
  */
 
-import api from "./api";
+import { api } from "./api";
 
 export interface OAuthStatus {
   connected: boolean;

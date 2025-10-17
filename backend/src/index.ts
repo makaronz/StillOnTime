@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
@@ -17,7 +17,7 @@ import healthRoutes from "@/routes/health.routes";
 // Load environment variables
 dotenv.config();
 
-const app = express();
+const app: express.Application = express();
 const PORT = config.port || 3001;
 
 // Enhanced security middleware
@@ -73,7 +73,7 @@ const csrfProtection = csrf({
 });
 
 // Apply CSRF protection to all routes except health checks and OAuth callback
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   // Skip CSRF for health checks, OAuth callbacks, GET requests, and development API calls
   if (
     req.path === "/health" ||
@@ -84,18 +84,21 @@ app.use((req, res, next) => {
   ) {
     return next();
   }
-  
+
   // Apply CSRF protection
-  csrfProtection(req, res, next);
+  (csrfProtection as any)(req, res, next);
 });
 
 // CSRF token endpoint - provides token to frontend
-app.get("/api/csrf-token", csrfProtection, (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+app.get("/api/csrf-token", (req: Request, res: Response, next: NextFunction) => {
+  (csrfProtection as any)(req, res, (err: any) => {
+    if (err) return next(err);
+    res.json({ csrfToken: (req as any).csrfToken() });
+  });
 });
 
 // Middleware to set CSRF token in cookie for frontend
-app.use((req, res, next) => {
+app.use((req: any, res: Response, next: NextFunction) => {
   if (req.csrfToken) {
     res.cookie("XSRF-TOKEN", req.csrfToken(), {
       httpOnly: false, // Frontend needs to read this
@@ -107,7 +110,7 @@ app.use((req, res, next) => {
 });
 
 // Request ID middleware for tracing
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const requestId =
     (req.headers["x-request-id"] as string) ||
     `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

@@ -1,5 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/authStore";
+import { useConnectionStore } from "@/stores/connectionStore";
+import { retryWithBackoff } from "@/utils/retryWithBackoff";
 import toast from "react-hot-toast";
 
 const API_BASE_URL =
@@ -34,29 +36,46 @@ class ApiService {
   });
 
   constructor() {
-    // Request interceptor to add auth token
+    // Request interceptor to add auth token and update connection status
     this.client.interceptors.request.use(
       (config) => {
         const token = useAuthStore.getState().token;
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Update connection status when making requests
+        const connectionStore = useConnectionStore.getState();
+        if (!connectionStore.isConnected && !connectionStore.isConnecting) {
+          connectionStore.checkConnection();
+        }
+
         return config;
       },
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor for error handling
+    // Response interceptor for error handling and connection status
     this.client.interceptors.response.use(
-      (response) => response,
-      (error: unknown) => {
+      (response) => {
+        // Mark as connected on successful response
+        useConnectionStore.getState().setConnected(true);
+        return response;
+      },
+      async (error: unknown) => {
         if (!isAxiosErrorLike(error)) {
+          useConnectionStore.getState().setError('An unexpected error occurred');
           return Promise.reject(error);
         }
 
         const { response, code } = error;
 
-        if (response?.status === 401) {
+        // Update connection status based on error
+        if (code === "NETWORK_ERROR" || !response) {
+          useConnectionStore.getState().setError('Network error. Please check your connection.');
+        } else if (response?.status && response.status >= 500) {
+          useConnectionStore.getState().setError('Server is temporarily unavailable.');
+        } else if (response?.status === 401) {
           const { isAuthenticated } = useAuthStore.getState();
           if (isAuthenticated) {
             useAuthStore.getState().logout();
@@ -69,10 +88,6 @@ class ApiService {
           toast.error(
             "Access denied. You don't have permission for this action."
           );
-        } else if (response?.status && response.status >= 500) {
-          toast.error("Server error. Please try again later.");
-        } else if (code === "NETWORK_ERROR" || !response) {
-          toast.error("Network error. Please check your connection.");
         }
 
         return Promise.reject(error);
@@ -80,27 +95,111 @@ class ApiService {
     );
   }
 
-  // Generic API methods
-  async get<T>(url: string): Promise<T> {
-    const response = await this.client.get<T>(url);
+  // Generic API methods with retry logic
+  async get<T>(url: string, retry = true): Promise<T> {
+    const makeRequest = () => this.client.get<T>(url);
+
+    if (retry) {
+      const response = await retryWithBackoff(async () => {
+        const result = await makeRequest();
+        return result;
+      }, {
+        maxAttempts: 3,
+        initialDelay: 1000,
+        maxDelay: 10000,
+        retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'ECONNABORTED', 'ECONNREFUSED'],
+        onRetry: (attempt, error) => {
+          console.log(`Retrying GET request to ${url} (attempt ${attempt})`, error);
+        }
+      });
+      return response.data;
+    }
+
+    const response = await makeRequest();
     return response.data;
   }
 
-  async post<T>(url: string, data?: unknown): Promise<T> {
-    const response = await this.client.post<T>(url, data);
+  async post<T>(url: string, data?: unknown, retry = true): Promise<T> {
+    const makeRequest = () => this.client.post<T>(url, data);
+
+    if (retry) {
+      const response = await retryWithBackoff(async () => {
+        const result = await makeRequest();
+        return result;
+      }, {
+        maxAttempts: 3,
+        initialDelay: 1000,
+        maxDelay: 10000,
+        retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'ECONNABORTED', 'ECONNREFUSED'],
+        onRetry: (attempt, error) => {
+          console.log(`Retrying POST request to ${url} (attempt ${attempt})`, error);
+        }
+      });
+      return response.data;
+    }
+
+    const response = await makeRequest();
     return response.data;
   }
 
-  async put<T>(url: string, data?: unknown): Promise<T> {
-    const response = await this.client.put<T>(url, data);
+  async put<T>(url: string, data?: unknown, retry = true): Promise<T> {
+    const makeRequest = () => this.client.put<T>(url, data);
+
+    if (retry) {
+      const response = await retryWithBackoff(async () => {
+        const result = await makeRequest();
+        return result;
+      }, {
+        maxAttempts: 3,
+        initialDelay: 1000,
+        maxDelay: 10000,
+        retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'ECONNABORTED', 'ECONNREFUSED'],
+        onRetry: (attempt, error) => {
+          console.log(`Retrying PUT request to ${url} (attempt ${attempt})`, error);
+        }
+      });
+      return response.data;
+    }
+
+    const response = await makeRequest();
     return response.data;
   }
 
-  async delete<T>(url: string): Promise<T> {
-    const response = await this.client.delete<T>(url);
+  async delete<T>(url: string, retry = true): Promise<T> {
+    const makeRequest = () => this.client.delete<T>(url);
+
+    if (retry) {
+      const response = await retryWithBackoff(async () => {
+        const result = await makeRequest();
+        return result;
+      }, {
+        maxAttempts: 3,
+        initialDelay: 1000,
+        maxDelay: 10000,
+        retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'ECONNABORTED', 'ECONNREFUSED'],
+        onRetry: (attempt, error) => {
+          console.log(`Retrying DELETE request to ${url} (attempt ${attempt})`, error);
+        }
+      });
+      return response.data;
+    }
+
+    const response = await makeRequest();
     return response.data;
+  }
+
+  // Health check method
+  async healthCheck(): Promise<boolean> {
+    try {
+      await this.client.get('/api/health', { timeout: 5000 });
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
 
+// Export both the class instance and the service
 export const apiService = new ApiService();
-export const api = apiService;
+export { apiService as api };
+export default apiService;

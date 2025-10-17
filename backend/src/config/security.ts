@@ -51,7 +51,7 @@ export interface SecurityConfig {
 
 export const securityConfig: SecurityConfig = {
   jwt: {
-    minSecretLength: 32,
+    minSecretLength: 64,
     expiresIn: "1h",
     refreshExpiresIn: "7d",
   },
@@ -100,15 +100,66 @@ export const securityConfig: SecurityConfig = {
 };
 
 /**
- * Validates security configuration on startup
+ * Enhanced security configuration validation with comprehensive checks
  */
 export function validateSecurityConfig(): void {
-  // Validate JWT secret length
-  if (process.env.NODE_ENV === "production" && process.env.JWT_SECRET) {
-    if (process.env.JWT_SECRET.length < securityConfig.jwt.minSecretLength) {
+  // Validate JWT secret strength
+  if (process.env.JWT_SECRET) {
+    const jwtSecret = process.env.JWT_SECRET;
+
+    // Check minimum length
+    if (jwtSecret.length < securityConfig.jwt.minSecretLength) {
       throw new Error(
-        `JWT_SECRET must be at least ${securityConfig.jwt.minSecretLength} characters long in production`
+        `JWT_SECRET must be at least ${securityConfig.jwt.minSecretLength} characters long (current: ${jwtSecret.length})`
       );
+    }
+
+    // Check for weak patterns
+    const weakPatterns = [
+      "jwt", "secret", "password", "token", "key", "auth",
+      "123", "abc", "test", "demo", "default", "example"
+    ];
+
+    const lowerSecret = jwtSecret.toLowerCase();
+    for (const pattern of weakPatterns) {
+      if (lowerSecret.includes(pattern)) {
+        throw new Error(`JWT_SECRET contains weak pattern: "${pattern}". Use a strong, random secret.`);
+      }
+    }
+
+    // Check entropy - require mix of character types
+    const hasUpperCase = /[A-Z]/.test(jwtSecret);
+    const hasLowerCase = /[a-z]/.test(jwtSecret);
+    const hasNumbers = /\d/.test(jwtSecret);
+    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(jwtSecret);
+
+    const complexityScore = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChars].filter(Boolean).length;
+
+    if (complexityScore < 3) {
+      throw new Error(
+        "JWT_SECRET lacks sufficient complexity. Must contain at least 3 of: uppercase, lowercase, numbers, special characters"
+      );
+    }
+  }
+
+  // Validate encryption salt if provided
+  if (process.env.ENCRYPTION_SALT) {
+    const encryptionSalt = process.env.ENCRYPTION_SALT;
+
+    if (encryptionSalt.length < 32) {
+      throw new Error(
+        `ENCRYPTION_SALT must be at least 32 characters long (current: ${encryptionSalt.length})`
+      );
+    }
+
+    // Check for weak patterns in encryption salt
+    const weakSaltPatterns = ["salt", "password", "secret", "key", "encrypt"];
+    const lowerSalt = encryptionSalt.toLowerCase();
+
+    for (const pattern of weakSaltPatterns) {
+      if (lowerSalt.includes(pattern)) {
+        throw new Error(`ENCRYPTION_SALT contains weak pattern: "${pattern}". Use a strong, random salt.`);
+      }
     }
   }
 
@@ -120,7 +171,28 @@ export function validateSecurityConfig(): void {
     }
   }
 
+  // Validate environment-specific security settings
+  if (process.env.NODE_ENV === "production") {
+    // Ensure required security variables are set
+    const requiredProductionVars = ["JWT_SECRET", "ENCRYPTION_SALT"];
+    const missingVars = requiredProductionVars.filter(varName => !process.env[varName]);
+
+    if (missingVars.length > 0) {
+      throw new Error(
+        `Missing required security environment variables for production: ${missingVars.join(", ")}`
+      );
+    }
+
+    // Check for development values in production
+    if (process.env.JWT_SECRET && (process.env.JWT_SECRET.length < 64 || process.env.JWT_SECRET.includes("dev"))) {
+      throw new Error("JWT_SECRET appears to be a development value. Use a strong production secret.");
+    }
+  }
+
   console.log("✅ Security configuration validated successfully");
+
+  // Log security summary (without exposing secrets)
+  console.log(`🔒 Security configuration: JWT(${process.env.JWT_SECRET?.length || 0} chars), Encryption Salt(${process.env.ENCRYPTION_SALT?.length || 0} chars)`);
 }
 
 /**

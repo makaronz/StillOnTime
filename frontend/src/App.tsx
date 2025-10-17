@@ -5,6 +5,8 @@ import Layout from '@/components/Layout'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import OAuthCallback from '@/components/OAuthCallback'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import NetworkAwareApp from '@/components/NetworkAwareApp'
 
 // Lazy load page components for code splitting
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
@@ -22,59 +24,63 @@ function App(): JSX.Element {
   }, [checkAuth])
 
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth/callback" element={<OAuthCallback />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        
-        {/* Protected routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/configuration"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Configuration />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <History />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/monitoring"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Monitoring />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+    <ErrorBoundary>
+      <NetworkAwareApp>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<OAuthCallback />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+            {/* Protected routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/configuration"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Configuration />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <History />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monitoring"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Monitoring />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </NetworkAwareApp>
+    </ErrorBoundary>
   )
 }
 

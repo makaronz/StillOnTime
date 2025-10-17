@@ -388,22 +388,54 @@ export class OAuth2Service {
    */
   private encryptToken(token: string): string {
     const algorithm = "aes-256-gcm";
-    
-    // Generate unique salt per token (not hardcoded)
+
+    // Generate unique salt per token using environment-based salt
     const salt = crypto.randomBytes(16);
-    const key = crypto.scryptSync(config.jwtSecret, salt, 32);
+    const encryptionSalt = this.getEncryptionSalt();
+    const key = crypto.scryptSync(encryptionSalt, salt, 32);
     const iv = crypto.randomBytes(16);
 
     const cipher = crypto.createCipheriv(algorithm, key, iv);
 
     let encrypted = cipher.update(token, "utf8", "hex");
     encrypted += cipher.final("hex");
-    
+
     // Get authentication tag for GCM mode
     const authTag = cipher.getAuthTag();
 
     // Store: salt:iv:authTag:encrypted
     return `${salt.toString("hex")}:${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted}`;
+  }
+
+  /**
+   * Get encryption salt from environment variable with fallback validation
+   */
+  private getEncryptionSalt(): string {
+    // Use dedicated encryption salt environment variable
+    const encryptionSalt = process.env.ENCRYPTION_SALT;
+
+    if (!encryptionSalt) {
+      // Generate a secure default salt if not provided (for development only)
+      if (config.nodeEnv === "production") {
+        throw new Error("ENCRYPTION_SALT environment variable is required in production");
+      }
+
+      logger.warn("Using generated encryption salt - set ENCRYPTION_SALT environment variable for production");
+      // Generate a deterministic salt based on JWT secret for development
+      return crypto.scryptSync(config.jwtSecret, "fallback-salt", 32).toString("hex");
+    }
+
+    // Validate salt length and complexity
+    if (encryptionSalt.length < 32) {
+      throw new Error("ENCRYPTION_SALT must be at least 32 characters long");
+    }
+
+    // Ensure salt has sufficient entropy (check for common weak patterns)
+    if (encryptionSalt === "salt" || encryptionSalt === "password" || encryptionSalt === "secret") {
+      throw new Error("ENCRYPTION_SALT cannot be a common weak value");
+    }
+
+    return encryptionSalt;
   }
 
   /**
@@ -421,7 +453,8 @@ export class OAuth2Service {
         // Old format - fallback to old decryption for backward compatibility
         logger.warn("Decrypting token using legacy format - token should be re-encrypted");
         try {
-          const key = crypto.scryptSync(config.jwtSecret, "salt", 32);
+          const encryptionSalt = this.getEncryptionSalt();
+          const key = crypto.scryptSync(encryptionSalt, "salt", 32);
           const iv = Buffer.from(parts[0], "hex");
           const encrypted = parts[1];
           const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
@@ -447,7 +480,8 @@ export class OAuth2Service {
       const encrypted = parts[3];
 
       // Derive key using the same salt that was used for encryption
-      const key = crypto.scryptSync(config.jwtSecret, salt, 32);
+      const encryptionSalt = this.getEncryptionSalt();
+      const key = crypto.scryptSync(encryptionSalt, salt, 32);
 
       const decipher = crypto.createDecipheriv(algorithm, key, iv);
       decipher.setAuthTag(authTag);

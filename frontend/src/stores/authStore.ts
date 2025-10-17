@@ -119,6 +119,21 @@ export const useAuthStore = create<AuthState>()(subscribeWithSelector(
           }
         } catch (error) {
           console.error("Auth check failed:", error);
+
+          // Check if this is a network error
+          const isNetworkError = error instanceof Error && (
+            error.message.includes('network') ||
+            error.message.includes('fetch') ||
+            error.message.includes('connection')
+          );
+
+          if (isNetworkError) {
+            // Don't log out on network errors, just stop loading
+            set({ isLoading: false });
+            toast.error('Unable to verify authentication due to connection issues. Some features may be limited.');
+            return;
+          }
+
           set({
             token: null,
             user: null,

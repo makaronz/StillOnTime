@@ -6,11 +6,14 @@ import App from './App.tsx'
 import './styles/index.css'
 import './utils/sessionManager' // Initialize session management
 
+// Initialize connection check
+import './stores/connectionStore'
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,

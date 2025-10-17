@@ -1,5 +1,7 @@
 import { apiService } from "./api";
 import { User, ApiResponse } from "@/types";
+import { retryWithBackoff } from "@/utils/retryWithBackoff";
+import { useConnectionStore } from "@/stores/connectionStore";
 
 export interface AuthResponse {
   token: string;
@@ -17,15 +19,32 @@ class AuthService {
    * Get Google OAuth 2.0 authorization URL
    */
   async getGoogleAuthUrl(): Promise<OAuthUrlResponse> {
-    const response = await apiService.get<{
-      success: boolean;
-      authUrl: string;
-      state: string;
-    }>("/api/auth/login");
-    return {
-      authUrl: response.authUrl,
-      state: response.state, // Use state from backend
-    };
+    try {
+      const response = await retryWithBackoff(
+        () => apiService.get<{
+          success: boolean;
+          authUrl: string;
+          state: string;
+        }>("/api/auth/login"),
+        {
+          maxAttempts: 3,
+          initialDelay: 1000,
+          maxDelay: 5000,
+          retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'ECONNABORTED', 'ECONNREFUSED']
+        }
+      );
+
+      // Mark connection as successful
+      useConnectionStore.getState().setConnected(true);
+
+      return {
+        authUrl: response.authUrl,
+        state: response.state, // Use state from backend
+      };
+    } catch (error) {
+      useConnectionStore.getState().setError('Failed to connect to authentication service');
+      throw error;
+    }
   }
 
   /**
@@ -35,30 +54,46 @@ class AuthService {
     code: string,
     state: string
   ): Promise<AuthResponse> {
-    const response = await apiService.post<{
-      success: boolean;
-      user: User;
-      token: string;
-      expiresIn?: number;
-      message?: string;
-    }>("/api/auth/callback", {
-      code,
-      state,
-    });
+    try {
+      const response = await retryWithBackoff(
+        () => apiService.post<{
+          success: boolean;
+          user: User;
+          token: string;
+          expiresIn?: number;
+          message?: string;
+        }>("/api/auth/callback", {
+          code,
+          state,
+        }),
+        {
+          maxAttempts: 3,
+          initialDelay: 1000,
+          maxDelay: 5000,
+          retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'ECONNABORTED', 'ECONNREFUSED']
+        }
+      );
 
-    if (!response.success) {
-      throw new Error(response.message || "Failed to exchange OAuth code");
+      // Mark connection as successful
+      useConnectionStore.getState().setConnected(true);
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to exchange OAuth code");
+      }
+
+      if (!response.token || !response.user) {
+        throw new Error("Invalid response from authentication server");
+      }
+
+      return {
+        token: response.token,
+        user: response.user,
+        expiresIn: response.expiresIn || 3600, // Default 1 hour
+      };
+    } catch (error) {
+      useConnectionStore.getState().setError('Failed to complete authentication');
+      throw error;
     }
-
-    if (!response.token || !response.user) {
-      throw new Error("Invalid response from authentication server");
-    }
-
-    return {
-      token: response.token,
-      user: response.user,
-      expiresIn: response.expiresIn || 3600, // Default 1 hour
-    };
   }
 
   /**
