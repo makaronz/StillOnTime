@@ -1,31 +1,25 @@
 #!/bin/bash
+set -euo pipefail
 
-# Start Serena MCP Server for StillOnTime Project
-# This script starts the Serena MCP server configured for the StillOnTime project
+PROJECT_ROOT="$(pwd)"
+INSTALL_DIR="${PROJECT_ROOT}/dokumentacja/serena-installation"
+CONFIG_FILE="${PROJECT_ROOT}/config/serena_config.yml"
+LOG_FILE="logs/serena.log"
 
-echo "🚀 Starting Serena MCP Server for StillOnTime..."
-echo "📁 Project directory: $(pwd)"
-echo "🔧 Serena installation: ./serena-installation"
+mkdir -p "$(dirname "$LOG_FILE")"
 
-# Check if serena-installation directory exists
-if [ ! -d "./serena-installation" ]; then
-    echo "❌ Error: serena-installation directory not found!"
-    echo "Please make sure Serena is properly installed."
-    exit 1
-fi
+echo "🚀 Starting Serena MCP Server for StillOnTime..." | tee -a "$LOG_FILE"
+echo "📁 Project directory: ${PROJECT_ROOT}" | tee -a "$LOG_FILE"
+echo "🔧 Serena installation: ${INSTALL_DIR}" | tee -a "$LOG_FILE"
 
-# Check if serena_config.yml exists
-if [ ! -f "./serena_config.yml" ]; then
-    echo "❌ Error: serena_config.yml not found!"
-    echo "Please make sure the configuration file exists."
-    exit 1
-fi
+test -d "$INSTALL_DIR" || { echo "❌ Error: ${INSTALL_DIR} not found" | tee -a "$LOG_FILE"; exit 1; }
 
-# Start the MCP server
-echo "🌐 Starting MCP server..."
-echo "📊 Web dashboard will be available at: http://localhost:24282/dashboard/"
-echo "🛑 Press Ctrl+C to stop the server"
-echo ""
+test -f "$CONFIG_FILE" || { echo "❌ Error: ${CONFIG_FILE} not found" | tee -a "$LOG_FILE"; exit 1; }
 
-cd ./serena-installation
+echo "🌐 Starting MCP server..." | tee -a "$LOG_FILE"
+echo "📊 Web dashboard: http://localhost:24282/dashboard/" | tee -a "$LOG_FILE"
+
+echo "TODO(decision): zweryfikuj ścieżkę projektu Serena" | tee -a "$LOG_FILE"
+
+cd "$INSTALL_DIR"
 uv run serena start-mcp-server --project ../.serena/project.yml
