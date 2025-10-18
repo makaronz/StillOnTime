@@ -1,312 +1,72 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # Application Load Balancer
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: stillontime-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/ssl/private:ro
-      - ./logs/nginx:/var/log/nginx
-    depends_on:
-      - backend-1
-      - backend-2
-      - frontend
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Backend Services (High Availability)
-  backend-1:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.production
-    container_name: stillontime-backend-1
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
-      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-      - INSTANCE_ID=backend-1
-    volumes:
-      - ./logs/backend-1:/app/logs
-      - ./uploads:/app/uploads
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  backend-2:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.production
-    container_name: stillontime-backend-2
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
-      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-      - INSTANCE_ID=backend-2
-    volumes:
-      - ./logs/backend-2:/app/logs
-      - ./uploads:/app/uploads
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  # Frontend Service
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.production
-    container_name: stillontime-frontend
-    environment:
-      - NODE_ENV=production
-      - REACT_APP_API_URL=${REACT_APP_API_URL}
-      - REACT_APP_WS_URL=${REACT_APP_WS_URL}
-    volumes:
-      - ./logs/frontend:/var/log/nginx
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Database Services
   postgres:
     image: postgres:15-alpine
-    container_name: stillontime-postgres
+    restart: unless-stopped
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      POSTGRES_DB: stillontime
+      POSTGRES_USER: ${POSTGRES_USER:-stillontime_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backups/postgres:/backups
-      - ./database/init:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
     networks:
       - stillontime-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    command: >
-      postgres
-      -c max_connections=200
-      -c shared_buffers=256MB
-      -c effective_cache_size=1GB
-      -c work_mem=4MB
-      -c maintenance_work_mem=64MB
-      -c random_page_cost=1.1
-      -c temp_file_limit=2GB
-      -c log_min_duration_statement=1000
-      -c log_checkpoints=on
-      -c log_connections=on
-      -c log_disconnections=on
-      -c log_lock_waits=on
 
   redis:
     image: redis:7-alpine
-    container_name: stillontime-redis
-    volumes:
-      - redis_data:/data
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
     networks:
       - stillontime-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    command: redis-server /usr/local/etc/redis/redis.conf
 
-  # Monitoring Services
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: stillontime-prometheus
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
+  qdrant:
+    image: qdrant/qdrant:v1.15.1
+    restart: unless-stopped
     networks:
       - stillontime-network
-    restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: stillontime-grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
-    ports:
-      - "3000:3000"
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    depends_on:
-      - prometheus
+      QDRANT__SERVICE__GRPC_PORT: 6334
 
-  elasticsearch:
-    image: elasticsearch:8.9.0
-    container_name: stillontime-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.enabled=false
-      - xpack.security.enrollment.enabled=false
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  kibana:
-    image: kibana:8.9.0
-    container_name: stillontime-kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    depends_on:
-      - elasticsearch
-
-  logstash:
-    image: logstash:8.9.0
-    container_name: stillontime-logstash
-    volumes:
-      - ./monitoring/logstash/config:/usr/share/logstash/config:ro
-      - ./logs:/usr/share/logstash/logs:ro
-    networks:
-      - stillontime-network
-    restart: unless-stopped
-    depends_on:
-      - elasticsearch
-
-  # Backup Service
-  backup:
+  backend:
     build:
-      context: ./backup
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: stillontime-backup
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - S3_BUCKET=${S3_BACKUP_BUCKET}
-      - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
-    volumes:
-      - ./backups:/backups
-      - postgres_data:/var/lib/postgresql/data:ro
-    networks:
-      - stillontime-network
+      target: prod
     restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DB_CONNECTION_STRING?:postgresql://stillontime_user:change_me@postgres:5432/stillontime}
+      REDIS_URL: ${REDIS_URL?:redis://redis:6379}
+      QDRANT_URL: http://qdrant:6333
+      PORT: ${BACKEND_PORT:-3001}
+      FRONTEND_URL: ${FRONTEND_URL?:http://frontend}
     depends_on:
       - postgres
-
-  # Security Scanner
-  security-scanner:
-    build:
-      context: ./security
-      dockerfile: Dockerfile
-    container_name: stillontime-security
-    environment:
-      - SCAN_INTERVAL=3600  # Hourly scans
-      - ALERT_WEBHOOK=${SECURITY_ALERT_WEBHOOK}
-    volumes:
-      - ./logs:/app/logs:ro
-      - ./security/config:/app/config:ro
+      - redis
+      - qdrant
     networks:
       - stillontime-network
+    ports:
+      - "${BACKEND_PORT:-3001}:${BACKEND_PORT:-3001}"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod
     restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL?:http://backend:${BACKEND_PORT:-3001}}
+    depends_on:
+      - backend
+    networks:
+      - stillontime-network
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
-    driver: local
-  elasticsearch_data:
-    driver: local
 
 networks:
   stillontime-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

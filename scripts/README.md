@@ -164,3 +164,18 @@ If you encounter issues:
 3. Check [API_QUICK_REFERENCE.md](../claudedocs/API_QUICK_REFERENCE.md) for common fixes
 4. Verify Docker is running: `docker ps`
 5. Check application logs in `backend/logs/`
+
+## Skrypty porządkowe i uruchomieniowe (2024 cleanup)
+
+| Skrypt | Opis | Log |
+| --- | --- | --- |
+| `backup_and_branch.sh` | Backup repo + tag/gałąź bezpieczeństwa | `logs/backup.log` |
+| `backup_and_branch.ps1` | Wariant PowerShell | `logs/backup.log` |
+| `bootstrap.sh` | Instalacja zależności (dev/prod) | `logs/bootstrap.log` |
+| `build.sh` | Build wszystkich modułów | `logs/build.log` |
+| `start.sh` | Uruchamianie usług (local/docker) | `logs/start.log` |
+| `smoke-test.sh` | Smoke test + moduły runtime | `logs/smoke-test.log` |
+| `purge_unused.sh` | Raport i usuwanie artefaktów | `logs/purge-unused.log` |
+| `update-doc-links.sh` | Aktualizacja odnośników po migracji dokumentacji | `logs/update-doc-links.log` |
+
+> Wszystkie skrypty są idempotentne i wspierają `--dry-run`. Uruchamiaj z katalogu `<ABSOLUTE_REPO_PATH>`.

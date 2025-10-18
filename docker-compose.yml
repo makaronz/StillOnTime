@@ -1,7 +1,6 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: stillontime-postgres
@@ -16,8 +15,8 @@ services:
       - ./backend/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - stillontime-network
+    profiles: [dev, prod]
 
-  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: stillontime-redis
@@ -27,26 +26,27 @@ services:
       - redis_data:/data
     networks:
       - stillontime-network
+    profiles: [dev, prod]
 
-  # Qdrant Vector Database
   qdrant:
     image: qdrant/qdrant:v1.15.1
     container_name: stillontime-qdrant
     ports:
-      - "6333:6333"  # HTTP API
-      - "6334:6334"  # gRPC
+      - "6333:6333"
+      - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
       - stillontime-network
     environment:
       QDRANT__SERVICE__GRPC_PORT: 6334
+    profiles: [dev, prod]
 
-  # Backend API
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      target: dev
+      dockerfile: Dockerfile
     container_name: stillontime-backend
     environment:
       NODE_ENV: development
@@ -68,12 +68,35 @@ services:
     networks:
       - stillontime-network
     command: npm run dev
+    profiles: [dev]
 
-  # Frontend React App
+  backend-prod:
+    build:
+      context: ./backend
+      target: prod
+      dockerfile: Dockerfile
+    container_name: stillontime-backend-prod
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DB_CONNECTION_STRING?:postgresql://stillontime_user:stillontime_password@postgres:5432/stillontime_automation}
+      REDIS_URL: ${REDIS_URL?:redis://redis:6379}
+      PORT: 3001
+      FRONTEND_URL: ${FRONTEND_URL?:http://frontend-prod}
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+    networks:
+      - stillontime-network
+    profiles: [prod]
+
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      target: dev
+      dockerfile: Dockerfile
     container_name: stillontime-frontend
     environment:
       VITE_API_URL: http://localhost:3001
@@ -86,7 +109,24 @@ services:
       - backend
     networks:
       - stillontime-network
-    command: npm run dev
+    command: npm run dev -- --host 0.0.0.0
+    profiles: [dev]
+
+  frontend-prod:
+    build:
+      context: ./frontend
+      target: prod
+      dockerfile: Dockerfile
+    container_name: stillontime-frontend-prod
+    environment:
+      VITE_API_URL: ${VITE_API_URL?:http://backend-prod:3001}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend-prod
+    networks:
+      - stillontime-network
+    profiles: [prod]
 
 volumes:
   postgres_data:

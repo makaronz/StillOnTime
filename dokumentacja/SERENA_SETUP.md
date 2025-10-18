@@ -1,3 +1,4 @@
+> **Uwaga:** Katalog instalacyjny został przeniesiony do `dokumentacja/serena-installation/`.
 # Serena AI Development Assistant - Setup Guide
 
 ## Overview

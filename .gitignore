@@ -6,15 +6,21 @@ node_modules/
 .env
 .env.local
 .env.*.local
+config/*.secrets
+config/*.override
 
 # Build outputs
 dist/
 build/
 */dist/
 */build/
+coverage/
+*/coverage/
+.nyc_output/
 
 # Logs
 logs/
+!logs/.gitkeep
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -31,11 +37,6 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Test coverage
-coverage/
-*/coverage/
-.nyc_output/
-
 # Prisma
 *.db
 *.db-journal
@@ -44,6 +45,10 @@ coverage/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Docker runtime
+*.pid
+.docker/
 
 # Qdrant storage (local development)
 qdrant_storage/
@@ -54,8 +59,6 @@ backend/data/codenet/javascript/**/*.js
 backend/data/codenet/typescript/**/*.ts
 backend/data/codenet/python/**/*.py
 backend/data/codenet/preprocessed/**/*.json
-
-# Keep directory structure
 !backend/data/codenet/.gitkeep
 !backend/data/codenet/*/.gitkeep
 
@@ -64,24 +67,17 @@ backend/data/codenet/preprocessed/**/*.json
 *.temp
 .cache/
 
+# Backups artefacts
+BACKUP/*.zip
+BACKUP/*.tar.gz
+BACKUP/*.sha256
+
 # Memory bank session states (swarm coordination)
-coordination/memory_bank/sessions/*.json
-coordination/subtasks/*.md
+dokumentacja/coordination/memory_bank/sessions/*.json
 
 # Plan files (auto-generated)
 *.plan.md
 .codersinflow
-.vscode
-node_modules
-.venv
 .codex
 out
-dist
 *.vsix
-.claude
-CLAUDE.md
-.git
-__pycache__
-*.pyc
-.next
-.github
