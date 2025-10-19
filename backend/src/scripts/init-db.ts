@@ -5,16 +5,8 @@
  * This script sets up the database schema and runs initial migrations
  */
 
-import { PrismaClient } from "@prisma/client";
-import { config } from "../config/config";
-
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: config.databaseUrl,
-    },
-  },
-});
+import { db } from "../config/database";
+import { sql } from "kysely";
 
 async function initializeDatabase() {
   try {
@@ -22,13 +14,17 @@ async function initializeDatabase() {
 
     // Test database connection
     console.log("📡 Testing database connection...");
-    await prisma.$queryRaw`SELECT 1`;
+    await sql`SELECT 1`.execute(db);
     console.log("✅ Database connection successful");
 
     // Check if database is already initialized
     console.log("🔍 Checking database state...");
     try {
-      const userCount = await prisma.user.count();
+      const result = await db
+        .selectFrom("users")
+        .select((eb) => eb.fn.countAll<number>().as("count"))
+        .executeTakeFirstOrThrow();
+      const userCount = Number(result.count);
       console.log(`📊 Found ${userCount} users in database`);
     } catch (error) {
       console.log(
@@ -39,13 +35,13 @@ async function initializeDatabase() {
     console.log("✅ Database initialization completed successfully");
     console.log("");
     console.log("Next steps:");
-    console.log("1. Run: npm run prisma:migrate");
-    console.log("2. Optionally run: npm run prisma:studio (to view data)");
+    console.log("1. Database is ready (no client generation needed)");
+    console.log("2. Use pgAdmin or similar for database management");
   } catch (error) {
     console.error("❌ Database initialization failed:", error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    // Kysely doesn't require disconnect - connection pooling is automatic
   }
 }
 

@@ -1,16 +1,29 @@
 // Common types for the StillOnTime backend application
 import {
-  User as PrismaUser,
-  ProcessedEmail as PrismaProcessedEmail,
-  ScheduleData as PrismaScheduleData,
-  RoutePlan as PrismaRoutePlan,
-  WeatherData as PrismaWeatherData,
-  CalendarEvent as PrismaCalendarEvent,
-  UserConfig as PrismaUserConfig,
-  Notification as PrismaNotification,
-  Summary as PrismaSummary,
-  Prisma,
-} from "@prisma/client";
+  User,
+  ProcessedEmail,
+  ScheduleData,
+  RoutePlan,
+  WeatherData,
+  CalendarEvent,
+  UserConfig,
+  Notification,
+  Summary,
+  NewUser,
+  UserUpdate,
+  NewProcessedEmail,
+  ProcessedEmailUpdate,
+  NewScheduleData,
+  ScheduleDataUpdate,
+  NewRoutePlan,
+  RoutePlanUpdate,
+  NewWeatherData,
+  WeatherDataUpdate,
+  NewCalendarEvent,
+  CalendarEventUpdate,
+  NewUserConfig,
+  UserConfigUpdate,
+} from "@/config/database-types";
 import {
   CalendarConflict,
   AlertRule,
@@ -18,32 +31,32 @@ import {
   TimeRecommendation,
 } from "./domain";
 
-// Re-export Prisma types for consistency
-export type User = PrismaUser;
-export type ProcessedEmail = PrismaProcessedEmail;
-export type ScheduleData = PrismaScheduleData;
-export type RoutePlan = PrismaRoutePlan;
-export type WeatherData = PrismaWeatherData;
-export type CalendarEvent = PrismaCalendarEvent;
-export type UserConfig = PrismaUserConfig;
-export type Notification = PrismaNotification;
-export type Summary = PrismaSummary;
+// Re-export Kysely types for consistency
+export type User = User;
+export type ProcessedEmail = ProcessedEmail;
+export type ScheduleData = ScheduleData;
+export type RoutePlan = RoutePlan;
+export type WeatherData = WeatherData;
+export type CalendarEvent = CalendarEvent;
+export type UserConfig = UserConfig;
+export type Notification = Notification;
+export type Summary = Summary;
 
-// Prisma input types for creating/updating records
-export type CreateUserInput = Prisma.UserCreateInput;
-export type UpdateUserInput = Prisma.UserUpdateInput;
-export type CreateProcessedEmailInput = Prisma.ProcessedEmailCreateInput;
-export type UpdateProcessedEmailInput = Prisma.ProcessedEmailUpdateInput;
-export type CreateScheduleDataInput = Prisma.ScheduleDataCreateInput;
-export type UpdateScheduleDataInput = Prisma.ScheduleDataUpdateInput;
-export type CreateRoutePlanInput = Prisma.RoutePlanCreateInput;
-export type UpdateRoutePlanInput = Prisma.RoutePlanUpdateInput;
-export type CreateWeatherDataInput = Prisma.WeatherDataCreateInput;
-export type UpdateWeatherDataInput = Prisma.WeatherDataUpdateInput;
-export type CreateCalendarEventInput = Prisma.CalendarEventCreateInput;
-export type UpdateCalendarEventInput = Prisma.CalendarEventUpdateInput;
-export type CreateUserConfigInput = Prisma.UserConfigCreateInput;
-export type UpdateUserConfigInput = Prisma.UserConfigUpdateInput;
+// Kysely input types for creating/updating records
+export type CreateUserInput = NewUser;
+export type UpdateUserInput = UserUpdate;
+export type CreateProcessedEmailInput = NewProcessedEmail;
+export type UpdateProcessedEmailInput = ProcessedEmailUpdate;
+export type CreateScheduleDataInput = NewScheduleData;
+export type UpdateScheduleDataInput = ScheduleDataUpdate;
+export type CreateRoutePlanInput = NewRoutePlan;
+export type UpdateRoutePlanInput = RoutePlanUpdate;
+export type CreateWeatherDataInput = NewWeatherData;
+export type UpdateWeatherDataInput = WeatherDataUpdate;
+export type CreateCalendarEventInput = NewCalendarEvent;
+export type UpdateCalendarEventInput = CalendarEventUpdate;
+export type CreateUserConfigInput = NewUserConfig;
+export type UpdateUserConfigInput = UserConfigUpdate;
 // Kysely-compatible notification types
 export type CreateNotificationInput = {
   userId: string;
@@ -59,40 +72,34 @@ export type CreateNotificationInput = {
   retryCount?: number;
 };
 export type UpdateNotificationInput = Partial<Omit<CreateNotificationInput, 'userId'>>;
-export type CreateSummaryInput = Prisma.SummaryCreateInput;
-export type UpdateSummaryInput = Prisma.SummaryUpdateInput;
+export type CreateSummaryInput = NewSummary;
+export type UpdateSummaryInput = SummaryUpdate;
 
 // Complex types with relations
-export type UserWithRelations = Prisma.UserGetPayload<{
-  include: {
-    processedEmails: true;
-    schedules: true;
-    routePlans: true;
-    weatherData: true;
-    calendarEvents: true;
-    userConfig: true;
-    notifications: true;
-    summaries: true;
-  };
-}>;
+export type UserWithRelations = User & {
+  processedEmails: ProcessedEmail[];
+  schedules: ScheduleData[];
+  routePlans: RoutePlan[];
+  weatherData: WeatherData[];
+  calendarEvents: CalendarEvent[];
+  userConfig: UserConfig | null;
+  notifications: Notification[];
+  summaries: Summary[];
+};
 
-export type ScheduleDataWithRelations = Prisma.ScheduleDataGetPayload<{
-  include: {
-    user: true;
-    email: true;
-    routePlan: true;
-    weatherData: true;
-    calendarEvent: true;
-    summary: true;
-  };
-}>;
+export type ScheduleDataWithRelations = ScheduleData & {
+  user: User;
+  email: ProcessedEmail | null;
+  routePlan: RoutePlan | null;
+  weatherData: WeatherData[];
+  calendarEvent: CalendarEvent | null;
+  summary: Summary | null;
+};
 
-export type ProcessedEmailWithSchedule = Prisma.ProcessedEmailGetPayload<{
-  include: {
-    user: true;
-    schedule: true;
-  };
-}>;
+export type ProcessedEmailWithSchedule = ProcessedEmail & {
+  user: User;
+  schedule: ScheduleData | null;
+};
 
 export interface TokenSet {
   access_token: string;

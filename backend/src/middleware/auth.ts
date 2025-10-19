@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '@/config/database';
+import { db } from '@/config/database';
+import { userRepository } from '@/repositories/user.repository';
+import { scheduleDataRepository } from '@/repositories/schedule-data.repository';
+import { processedEmailRepository } from '@/repositories/processed-email.repository';
+import { routePlanRepository } from '@/repositories/route-plan.repository';
 import { logger } from '@/utils/logger';
 import { applyRateLimit } from './rateLimit';
 
@@ -78,20 +82,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     const decoded = await verifyToken(token);
 
     // Fetch user from database to ensure they still exist and get latest info
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        userConfig: {
-          select: {
-            // Add tier field when implemented
-          }
-        }
-      }
-    });
+    const user = await userRepository.findById(decoded.userId);
 
     if (!user) {
       return res.status(401).json({
@@ -157,14 +148,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       const token = authHeader.substring(7);
       const decoded = await verifyToken(token);
 
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        select: {
-          id: true,
-          email: true,
-          name: true
-        }
-      });
+      const user = await userRepository.findById(decoded.userId);
 
       if (user) {
         req.user = {
@@ -253,24 +237,18 @@ export const requireOwnership = (resourceIdParam: string = 'id') => {
 
       switch (resourceType) {
         case 'schedules':
-          const schedule = await prisma.scheduleData.findFirst({
-            where: { id: resourceId, userId: req.user!.userId }
-          });
-          isOwner = !!schedule;
+          const schedule = await scheduleDataRepository.findById(resourceId);
+          isOwner = !!schedule && schedule.userId === req.user!.userId;
           break;
 
         case 'emails':
-          const email = await prisma.processedEmail.findFirst({
-            where: { id: resourceId, userId: req.user!.userId }
-          });
-          isOwner = !!email;
+          const email = await processedEmailRepository.findById(resourceId);
+          isOwner = !!email && email.userId === req.user!.userId;
           break;
 
         case 'routes':
-          const route = await prisma.routePlan.findFirst({
-            where: { id: resourceId, userId: req.user!.userId }
-          });
-          isOwner = !!route;
+          const route = await routePlanRepository.findById(resourceId);
+          isOwner = !!route && route.userId === req.user!.userId;
           break;
 
         default:
@@ -360,14 +338,7 @@ export const refreshTokenMiddleware = async (req: Request, res: Response, next: 
       });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true
-      }
-    });
+    const user = await userRepository.findById(decoded.userId);
 
     if (!user) {
       return res.status(401).json({

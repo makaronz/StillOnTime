@@ -2,7 +2,9 @@ import { GmailService } from './gmailService';
 import { PDFService } from './pdfService';
 import { ProcessedEmailService } from './processedEmailService';
 import { ScheduleExtractionService } from './scheduleExtractionService';
-import { prisma } from '@/config/database';
+import { db } from '@/config/database';
+import { scheduleDataRepository } from '@/repositories/schedule-data.repository';
+import { processedEmailRepository } from '@/repositories/processed-email.repository';
 import { logger } from '@/utils/logger';
 import { createHash } from 'crypto';
 import { Queue } from 'bull';
@@ -357,21 +359,19 @@ export class EmailService {
     scheduleData: any
   ): Promise<any> {
     try {
-      const schedule = await prisma.scheduleData.create({
-        data: {
-          shootingDate: scheduleData.shootingDate,
-          callTime: scheduleData.callTime,
-          location: scheduleData.location,
-          baseLocation: scheduleData.baseLocation,
-          sceneType: scheduleData.sceneType,
-          scenes: scheduleData.scenes || {},
-          safetyNotes: scheduleData.safetyNotes,
-          equipment: scheduleData.equipment || {},
-          contacts: scheduleData.contacts || {},
-          notes: scheduleData.notes,
-          userId,
-          emailId
-        }
+      const schedule = await scheduleDataRepository.create({
+        shootingDate: scheduleData.shootingDate,
+        callTime: scheduleData.callTime,
+        location: scheduleData.location,
+        baseLocation: scheduleData.baseLocation,
+        sceneType: scheduleData.sceneType,
+        scenes: scheduleData.scenes || {},
+        safetyNotes: scheduleData.safetyNotes,
+        equipment: scheduleData.equipment || {},
+        contacts: scheduleData.contacts || {},
+        notes: scheduleData.notes,
+        userId,
+        emailId
       });
 
       logger.info('Schedule data stored', {
@@ -434,14 +434,7 @@ export class EmailService {
   private async deduplicateEmails(emails: EmailMessage[]): Promise<EmailMessage[]> {
     try {
       const messageIds = emails.map(e => e.id);
-      const processedEmails = await prisma.processedEmail.findMany({
-        where: {
-          messageId: {
-            in: messageIds
-          }
-        },
-        select: { messageId: true }
-      });
+      const processedEmails = await processedEmailRepository.findByMessageIds(messageIds);
 
       const processedIds = new Set(processedEmails.map(e => e.messageId));
       return emails.filter(email => !processedIds.has(email.id));
@@ -543,16 +536,10 @@ export class EmailService {
   async getProcessingStats(userId: string): Promise<any> {
     try {
       const [total, processed, failed, pending] = await Promise.all([
-        prisma.processedEmail.count({ where: { userId } }),
-        prisma.processedEmail.count({
-          where: { userId, processingStatus: 'completed' }
-        }),
-        prisma.processedEmail.count({
-          where: { userId, processingStatus: 'failed' }
-        }),
-        prisma.processedEmail.count({
-          where: { userId, processingStatus: 'pending' }
-        })
+        processedEmailRepository.countByUserId(userId),
+        processedEmailRepository.countByUserIdAndStatus(userId, 'completed'),
+        processedEmailRepository.countByUserIdAndStatus(userId, 'failed'),
+        processedEmailRepository.countByUserIdAndStatus(userId, 'pending')
       ]);
 
       const queueStats = await this.emailQueue.getJobCounts();
@@ -582,21 +569,14 @@ export class EmailService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-      const result = await prisma.processedEmail.deleteMany({
-        where: {
-          createdAt: {
-            lt: cutoffDate
-          },
-          processingStatus: 'completed'
-        }
-      });
+      const result = await processedEmailRepository.deleteOldCompletedEmails(cutoffDate);
 
       logger.info('Cleaned up old emails', {
         daysOld,
-        deletedCount: result.count
+        deletedCount: result
       });
 
-      return result.count;
+      return result;
     } catch (error: any) {
       logger.error('Failed to cleanup old emails', {
         daysOld,
@@ -611,12 +591,7 @@ export class EmailService {
    */
   async retryFailedEmails(userId: string): Promise<number> {
     try {
-      const failedEmails = await prisma.processedEmail.findMany({
-        where: {
-          userId,
-          processingStatus: 'failed'
-        }
-      });
+      const failedEmails = await processedEmailRepository.findByUserIdAndStatus(userId, 'failed');
 
       let retriedCount = 0;
 

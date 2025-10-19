@@ -1,5 +1,5 @@
 import { WhereCondition, OrderByCondition, FindManyOptions } from "../types";
-import type { Prisma } from "@prisma/client";
+// Removed Prisma import - using Kysely types now
 
 // Re-export types for use by other repositories
 export { FindManyOptions, WhereCondition, OrderByCondition };

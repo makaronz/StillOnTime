@@ -5,16 +5,16 @@
  * This script tests basic CRUD operations on all models to verify the schema is working correctly
  */
 
-import { PrismaClient } from "@prisma/client";
-import { config } from "../config/config";
-
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: config.databaseUrl,
-    },
-  },
-});
+import { db } from "../config/database";
+import { userRepository } from "../repositories/user.repository";
+import { userConfigRepository } from "../repositories/user-config.repository";
+import { processedEmailRepository } from "../repositories/processed-email.repository";
+import { scheduleDataRepository } from "../repositories/schedule-data.repository";
+import { routePlanRepository } from "../repositories/route-plan.repository";
+import { weatherDataRepository } from "../repositories/weather-data.repository";
+import { calendarEventRepository } from "../repositories/calendar-event.repository";
+import { notificationRepository } from "../repositories/notification.repository";
+import { summaryRepository } from "../repositories/summary.repository";
 
 async function testDatabaseSchema() {
   try {
@@ -22,41 +22,36 @@ async function testDatabaseSchema() {
 
     // Test User creation
     console.log("📝 Testing User model...");
-    const testUser = await prisma.user.create({
-      data: {
-        email: "test@stillontime.com",
-        name: "Test User",
-        googleId: "test-google-id-123",
-        accessToken: "test-access-token",
-        refreshToken: "test-refresh-token",
-        tokenExpiry: new Date(Date.now() + 3600000), // 1 hour from now
-      },
+    const testUser = await userRepository.create({
+      email: "test@stillontime.com",
+      name: "Test User",
+      googleId: "test-google-id-123",
+      accessToken: "test-access-token",
+      refreshToken: "test-refresh-token",
+      tokenExpiry: new Date(Date.now() + 3600000), // 1 hour from now
     });
     console.log("✅ User created:", testUser.id);
 
     // Test UserConfig creation
     console.log("📝 Testing UserConfig model...");
-    const testUserConfig = await prisma.userConfig.create({
-      data: {
-        userId: testUser.id,
-        homeAddress: "123 Test Street, Test City",
-        panavisionAddress: "456 Panavision Ave, Test City",
-        bufferCarChange: 15,
-        bufferParking: 10,
-        bufferEntry: 10,
-        bufferTraffic: 20,
-        bufferMorningRoutine: 45,
-        notificationEmail: true,
-        notificationSMS: false,
-        notificationPush: true,
-      },
+    const testUserConfig = await userConfigRepository.create({
+      userId: testUser.id,
+      homeAddress: "123 Test Street, Test City",
+      panavisionAddress: "456 Panavision Ave, Test City",
+      bufferCarChange: 15,
+      bufferParking: 10,
+      bufferEntry: 10,
+      bufferTraffic: 20,
+      bufferMorningRoutine: 45,
+      notificationEmail: true,
+      notificationSMS: false,
+      notificationPush: true,
     });
     console.log("✅ UserConfig created:", testUserConfig.id);
 
     // Test ProcessedEmail creation
     console.log("📝 Testing ProcessedEmail model...");
-    const testEmail = await prisma.processedEmail.create({
-      data: {
+    const testEmail = await processedEmailRepository.create({
         messageId: "test-message-id-123",
         subject: "Test Schedule Email",
         sender: "test@stillontime.com",
@@ -65,15 +60,13 @@ async function testDatabaseSchema() {
         processed: false,
         processingStatus: "pending",
         pdfHash: "test-pdf-hash-123",
-        userId: testUser.id,
-      },
+        userId: testUser.id
     });
     console.log("✅ ProcessedEmail created:", testEmail.id);
 
     // Test ScheduleData creation
     console.log("📝 Testing ScheduleData model...");
-    const testSchedule = await prisma.scheduleData.create({
-      data: {
+    const testSchedule = await scheduleDataRepository.create({
         shootingDate: new Date("2024-01-15"),
         callTime: "08:00",
         location: "Test Location, Test City",
@@ -85,15 +78,13 @@ async function testDatabaseSchema() {
         contacts: [{ name: "Test Contact", phone: "123-456-7890" }],
         notes: "Test notes",
         userId: testUser.id,
-        emailId: testEmail.id,
-      },
+        emailId: testEmail.id
     });
     console.log("✅ ScheduleData created:", testSchedule.id);
 
     // Test RoutePlan creation
     console.log("📝 Testing RoutePlan model...");
-    const testRoutePlan = await prisma.routePlan.create({
-      data: {
+    const testRoutePlan = await routePlanRepository.create({
         wakeUpTime: new Date("2024-01-15T06:00:00Z"),
         departureTime: new Date("2024-01-15T07:00:00Z"),
         arrivalTime: new Date("2024-01-15T08:00:00Z"),
@@ -110,15 +101,13 @@ async function testDatabaseSchema() {
           morningRoutine: 45,
         },
         userId: testUser.id,
-        scheduleId: testSchedule.id,
-      },
+        scheduleId: testSchedule.id
     });
     console.log("✅ RoutePlan created:", testRoutePlan.id);
 
     // Test WeatherData creation
     console.log("📝 Testing WeatherData model...");
-    const testWeather = await prisma.weatherData.create({
-      data: {
+    const testWeather = await weatherDataRepository.create({
         forecastDate: new Date("2024-01-15"),
         temperature: 15.5,
         description: "Partly cloudy",
@@ -127,15 +116,13 @@ async function testDatabaseSchema() {
         humidity: 65,
         warnings: ["No warnings"],
         userId: testUser.id,
-        scheduleId: testSchedule.id,
-      },
+        scheduleId: testSchedule.id
     });
     console.log("✅ WeatherData created:", testWeather.id);
 
     // Test CalendarEvent creation
     console.log("📝 Testing CalendarEvent model...");
-    const testCalendarEvent = await prisma.calendarEvent.create({
-      data: {
+    const testCalendarEvent = await calendarEventRepository.create({
         calendarEventId: "test-calendar-event-id",
         title: "StillOnTime — Shooting Day (Test Location)",
         startTime: new Date("2024-01-15T07:00:00Z"),
@@ -143,30 +130,13 @@ async function testDatabaseSchema() {
         description: "Test shooting day event",
         location: "Test Location, Test City",
         userId: testUser.id,
-        scheduleId: testSchedule.id,
-      },
+        scheduleId: testSchedule.id
     });
     console.log("✅ CalendarEvent created:", testCalendarEvent.id);
 
     // Test relationships by fetching user with all related data
     console.log("📝 Testing relationships...");
-    const userWithRelations = await prisma.user.findUnique({
-      where: { id: testUser.id },
-      include: {
-        processedEmails: true,
-        schedules: {
-          include: {
-            routePlan: true,
-            weatherData: true,
-            calendarEvent: true,
-          },
-        },
-        routePlans: true,
-        weatherData: true,
-        calendarEvents: true,
-        userConfig: true,
-      },
-    });
+    const userWithRelations = await userRepository.findById(testUser.id);
 
     console.log("✅ Relationships test passed:");
     console.log(
@@ -190,9 +160,7 @@ async function testDatabaseSchema() {
 
     // Clean up test data
     console.log("🧹 Cleaning up test data...");
-    await prisma.user.delete({
-      where: { id: testUser.id },
-    });
+    await userRepository.delete(testUser.id);
     console.log("✅ Test data cleaned up");
 
     console.log("🎉 All database schema tests passed successfully!");
@@ -200,7 +168,7 @@ async function testDatabaseSchema() {
     console.error("❌ Database schema test failed:", error);
     throw error;
   } finally {
-    await prisma.$disconnect();
+    // Kysely doesn't require disconnect - connection pooling is automatic
   }
 }
 

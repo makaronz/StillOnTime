@@ -1,20 +1,20 @@
 import { AuthService } from '@/services/authService';
-import { PrismaClient } from '@prisma/client';
+import { userRepository } from '@/repositories/user.repository';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-jest.mock('@prisma/client');
+jest.mock('@/repositories/user.repository');
 jest.mock('jsonwebtoken');
 jest.mock('bcryptjs');
 
 describe('AuthService', () => {
   let authService: AuthService;
-  let mockPrisma: jest.Mocked<PrismaClient>;
+  let mockUserRepository: jest.Mocked<typeof userRepository>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPrisma = new PrismaClient() as jest.Mocked<PrismaClient>;
-    authService = new AuthService(mockPrisma);
+    mockUserRepository = userRepository as jest.Mocked<typeof userRepository>;
+    authService = new AuthService();
   });
 
   describe('registerUser', () => {
@@ -38,19 +38,17 @@ describe('AuthService', () => {
         updatedAt: new Date()
       };
 
-      mockPrisma.user.create.mockResolvedValue(createdUser);
+      mockUserRepository.create.mockResolvedValue(createdUser);
 
       // Act
       const result = await authService.registerUser(userData);
 
       // Assert
       expect(bcrypt.hash).toHaveBeenCalledWith(userData.password, 12);
-      expect(mockPrisma.user.create).toHaveBeenCalledWith({
-        data: {
-          email: userData.email,
-          name: userData.name,
-          password: hashedPassword
-        }
+      expect(mockUserRepository.create).toHaveBeenCalledWith({
+        email: userData.email,
+        name: userData.name,
+        password: hashedPassword
       });
       expect(result).toEqual({
         id: createdUser.id,

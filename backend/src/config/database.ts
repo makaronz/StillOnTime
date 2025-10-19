@@ -19,8 +19,7 @@ export const db = new Kysely<Database>({
   }),
 });
 
-// Export prisma alias for backward compatibility during migration
-export const prisma = db;
+// Migration complete - prisma alias removed
 
 // Handle graceful shutdown
 process.on("beforeExit", async () => {

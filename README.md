@@ -1,67 +1,84 @@
-# StillOnTime - Film Schedule Automation System
+# 🎬 StillOnTime - Film Schedule Automation System
 
-A comprehensive performance-optimized film schedule automation system with advanced monitoring, caching, and optimization capabilities.
+<div align="center">
 
-## 🚀 Features
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![Performance](https://img.shields.io/badge/performance-optimized-orange)
+![Node](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)
+![TypeScript](https://img.shields.io/badge/typescript-5.2.2-blue)
 
-### Core Functionality
-- **Automated Email Processing**: Monitors Gmail for shooting schedule emails with PDF attachments
-- **PDF Data Extraction**: Extracts shooting dates, call times, locations, and other relevant information
-- **Route Planning**: Calculates optimal routes with real-time traffic data and configurable time buffers
-- **Google Calendar Integration**: Creates calendar events with multiple alarms and comprehensive descriptions
-- **Weather Integration**: Provides weather forecasts and warnings for outdoor shoots
-- **React Dashboard**: Web interface for monitoring, configuration, and manual overrides
-- **OAuth 2.0 Security**: Secure Google services integration with proper token management
+**A comprehensive performance-optimized film schedule automation system with advanced monitoring, caching, and optimization capabilities.**
 
-### Performance Features
-- **Database Optimization**: 75% faster queries with strategic indexing
-- **API Caching**: 70% faster responses with Redis caching
-- **Bundle Optimization**: 43% smaller bundle size with code splitting
-- **Performance Monitoring**: Real-time metrics and alerting
-- **Automated Testing**: Performance regression detection
+[🚀 Quick Start](#-quick-start) • [📊 Performance](#-performance-metrics) • [🏗️ Architecture](#️-architecture) • [📚 Documentation](#-documentation) • [🤝 Contributing](#-contributing)
 
-### Monitoring & Observability
-- **Real-time Dashboards**: Grafana-based performance monitoring
-- **Alert System**: Automated performance degradation alerts
-- **Performance Budgets**: Automated enforcement and reporting
-- **Load Testing**: Artillery-based API performance testing
-- **Web Vitals**: Frontend performance tracking
+</div>
+
+---
+
+## 🎯 Overview
+
+StillOnTime is a cutting-edge film industry logistics application that revolutionizes how production crews manage schedules, routes, and equipment logistics. Built with performance-first principles, it delivers **75% faster database queries**, **70% faster API responses**, and **43% smaller bundle sizes**.
+
+### ✨ Key Features
+
+- 🎬 **Automated Email Processing** - Monitors Gmail for shooting schedule emails with PDF attachments
+- 🗺️ **Intelligent Route Planning** - Calculates optimal routes with real-time traffic data
+- 📅 **Google Calendar Integration** - Creates calendar events with multiple alarms
+- 🌤️ **Weather Integration** - Provides forecasts and warnings for outdoor shoots
+- 📱 **React Dashboard** - Modern web interface for monitoring and configuration
+- 🔒 **OAuth 2.0 Security** - Secure Google services integration
+- ⚡ **Performance Optimized** - Advanced caching, monitoring, and optimization
+
+## 🚀 Performance Metrics
+
+<div align="center">
+
+
+| Metric                  | Before | After  | Improvement        |
+| ------------------------- | -------- | -------- | -------------------- |
+| **Database Query Time** | ~200ms | ~50ms  | **75% faster** ⚡  |
+| **API Response Time**   | ~500ms | ~150ms | **70% faster** 🚀  |
+| **Page Load Time**      | ~3.2s  | ~1.8s  | **44% faster** 📈  |
+| **Bundle Size**         | ~2.1MB | ~1.2MB | **43% smaller** 📦 |
+| **Email Processing**    | ~30s   | ~8s    | **73% faster** ⚡  |
+
+</div>
 
 ## 🏗️ Technology Stack
 
 ### Backend
-- **Node.js 20+** with TypeScript
-- **Express.js** web framework
-- **PostgreSQL** 15+ with performance indexes
-- **Redis** 7+ for caching and session storage
-- **Bull Queue** for background job processing
-- **Google APIs** (Gmail, Calendar, Drive, Maps)
-- **OpenWeatherMap API** for weather data
+
+![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat&logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-blue?style=flat&logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4.18.2-black?style=flat&logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue?style=flat&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7+-red?style=flat&logo=redis&logoColor=white)
 
 ### Frontend
-- **React 18** with TypeScript
-- **Vite** build tool with optimizations
-- **Tailwind CSS** for styling
-- **Zustand** for state management
-- **React Router** for navigation
-- **Web Vitals** monitoring
+
+![React](https://img.shields.io/badge/React-18.2.0-blue?style=flat&logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-4.5.0-purple?style=flat&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.3.5-cyan?style=flat&logo=tailwindcss&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-4.4.6-orange?style=flat&logo=zustand&logoColor=white)
 
 ### Performance & Monitoring
-- **Grafana** dashboards
-- **Prometheus** metrics
-- **Lighthouse CI** for performance testing
-- **Artillery** for load testing
-- **GitHub Actions** for CI/CD
+
+![Grafana](https://img.shields.io/badge/Grafana-Dashboard-orange?style=flat&logo=grafana&logoColor=white)
+![Lighthouse](https://img.shields.io/badge/Lighthouse-CI-yellow?style=flat&logo=lighthouse&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-blue?style=flat&logo=docker&logoColor=white)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 20+
-- PostgreSQL 15+
-- Redis 7+
-- Docker (optional)
-- Google Cloud Console project with APIs enabled
-- OpenWeatherMap API key
+
+- **Node.js** 20+
+- **PostgreSQL** 15+
+- **Redis** 7+
+- **Docker** (optional)
+- **Google Cloud Console** project with APIs enabled
+- **OpenWeatherMap API** key
 
 ### Installation
 
@@ -87,6 +104,19 @@ npm run build
 npm run dev
 ```
 
+### Docker Setup (Recommended)
+
+```bash
+# Start all services with Docker
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
 ### Performance Setup
 
 ```bash
@@ -100,36 +130,26 @@ npm run monitoring:setup
 npm run test:performance:ci
 ```
 
-### Development
-
-- **Backend API**: http://localhost:3001
-- **Frontend Dashboard**: http://localhost:3000
-- **Database**: PostgreSQL on port 5432
-- **Redis**: Redis on port 6379
-
 ## 📊 Performance Monitoring
 
 ### Dashboard Access
+
 - **Grafana Dashboard**: `http://localhost:3000/d/performance`
 - **Metrics Endpoint**: `http://localhost:3001/metrics`
 - **Health Check**: `http://localhost:3001/health`
 
 ### Performance Budgets
+
 - **JavaScript Bundle**: < 500KB gzipped
 - **CSS Bundle**: < 50KB gzipped
 - **Total Bundle**: < 1MB gzipped
 - **API Response**: < 200ms average
 - **Lighthouse Score**: > 90
 
-### Alerting
-- **API Latency**: > 1s (warning), > 2s (critical)
-- **Error Rate**: > 5% (warning), > 15% (critical)
-- **Bundle Size**: Exceeds budget thresholds
-- **Web Vitals**: Poor performance scores
-
 ## 🧪 Testing
 
 ### Test Suites
+
 ```bash
 # Run all tests
 npm test
@@ -148,6 +168,7 @@ npm run performance:budget-check
 ```
 
 ### Performance Testing
+
 ```bash
 # Bundle analysis
 npm run performance:bundle
@@ -162,58 +183,33 @@ npm run test:api-performance
 npm run performance:regression-check
 ```
 
-## 📈 Performance Metrics
-
-### Current Performance (Optimized)
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Database Query Time | ~200ms | ~50ms | **75% faster** |
-| API Response Time | ~500ms | ~150ms | **70% faster** |
-| Page Load Time | ~3.2s | ~1.8s | **44% faster** |
-| Bundle Size | ~2.1MB | ~1.2MB | **43% smaller** |
-| Email Processing | ~30s sequential | ~8s parallel | **73% faster** |
-
-### Available Scripts
-
-```bash
-# Development
-npm run dev              # Start all development servers
-npm run build            # Build for production
-npm run test             # Run all tests
-
-# Performance
-npm run test:performance # Run performance test suite
-npm run performance:bundle # Analyze bundle size
-npm run performance:budget-check # Check performance budgets
-npm run monitoring:start # Start monitoring services
-
-# Database
-npm run prisma:migrate   # Run database migrations
-npm run prisma:studio    # Open Prisma Studio
-npm run prisma:migrate:performance # Apply performance indexes
-```
-
 ## 🏗️ Architecture
 
 ```
 StillOnTime/
-├── backend/                 # Node.js/Express API
-├── frontend/               # React/Vite frontend
-├── monitoring/             # Performance monitoring
-├── scripts/               # Build and utility scripts
-├── docs/                  # Documentation
-└── .github/workflows/     # CI/CD pipelines
+├── 🎬 backend/                 # Node.js/Express API
+│   ├── src/                   # Source code
+│   ├── tests/                 # Backend tests
+│   └── migrations/            # Database migrations
+├── 🎨 frontend/               # React/Vite frontend
+│   ├── src/                   # Source code
+│   ├── tests/                 # Frontend tests
+│   └── public/                # Static assets
+├── 📊 monitoring/             # Performance monitoring
+├── 🐳 docker/                # Docker configurations
+├── 📚 docs/                  # Documentation
+└── 🔧 scripts/               # Build and utility scripts
 ```
 
 ## 📚 Documentation
 
-- [Performance Optimization Guide](./PERFORMANCE_OPTIMIZATION.md)
-- [Monitoring Guide](./docs/performance/monitoring-guide.md)
-- [API Documentation](./backend/docs/api.md)
-- [Frontend Guide](./frontend/docs/README.md)
-- [Deployment Guide](./docs/deployment.md)
+- 📖 [Performance Optimization Guide](./PERFORMANCE_OPTIMIZATION_SUMMARY.md)
+- 🔧 [API Documentation](./docs/API_REFERENCE.md)
+- 🚀 [Deployment Guide](./docs/DEPLOYMENT_GUIDE.md)
+- 🔒 [Security Guide](./docs/SECURITY_QUICK_REFERENCE.md)
+- 📊 [Monitoring Guide](./docs/performance/monitoring-guide.md)
 
-## Configuration
+## 🔧 Configuration
 
 ### Required Environment Variables
 
@@ -241,21 +237,18 @@ FRONTEND_URL="http://localhost:3000"
 ### Google APIs Setup
 
 1. **Enable required APIs**:
+
    - Gmail API
    - Google Calendar API
    - Google Drive API
    - Google Maps API
-
 2. **OAuth 2.0 Scopes**:
+
    - `https://www.googleapis.com/auth/gmail.readonly`
    - `https://www.googleapis.com/auth/calendar`
    - `https://www.googleapis.com/auth/drive.file`
 
-3. **Authorized redirect URIs**:
-   - `http://localhost:3000/auth/callback` (development)
-   - `https://yourdomain.com/auth/callback` (production)
-
-## Usage
+## 🎬 Usage
 
 1. **Authentication**: Sign in with your Google account
 2. **Configuration**: Set up your home address, Panavision address, and time buffers
@@ -267,88 +260,35 @@ FRONTEND_URL="http://localhost:3000"
    - Creates calendar events with alarms
    - Sends notifications
 
-## API Documentation
-
-The API follows RESTful conventions and includes the following endpoints:
-
-- `GET /api/health` - Health check
-- `POST /api/auth/google` - OAuth 2.0 authentication
-- `GET /api/schedules` - Get processed schedules
-- `POST /api/schedules/process` - Manually trigger email processing
-- `GET /api/config` - Get user configuration
-- `PUT /api/config` - Update user configuration
-
-## Testing
+## 📈 Available Scripts
 
 ```bash
-# Backend tests
-cd backend
-npm test
+# Development
+npm run dev              # Start all development servers
+npm run build            # Build for production
+npm run test             # Run all tests
 
-# Frontend tests
-cd frontend
-npm test
+# Performance
+npm run test:performance # Run performance test suite
+npm run performance:bundle # Analyze bundle size
+npm run performance:budget-check # Check performance budgets
+npm run monitoring:start # Start monitoring services
 
-# Run with coverage
-npm run test:coverage
-```
+# Database
+npm run prisma:migrate   # Run database migrations
+npm run prisma:studio    # Open Prisma Studio
+npm run prisma:migrate:performance # Apply performance indexes
 
-## Deployment
-
-### Production Environment
-
-1. **Set up production environment variables**
-2. **Configure HTTPS and domain**
-3. **Set up production database**
-4. **Configure monitoring and logging**
-5. **Deploy using Docker or your preferred method**
-
-### Security Considerations
-
-- Use HTTPS in production
-- Rotate JWT secrets regularly
-- Implement proper rate limiting
-- Monitor for suspicious activity
-- Keep dependencies updated
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## 🚀 Deployment
-
-### Docker Deployment
-```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-### Production Build
-```bash
-# Build optimized version
-npm run build:optimized
-
-# Run performance tests
-npm run test:performance
-
-# Deploy to production
-npm run deploy:production
+# Docker
+npm run docker:up       # Start all services
+npm run docker:down     # Stop all services
+npm run docker:logs     # View logs
 ```
 
 ## 🤝 Contributing
 
 ### Development Workflow
+
 1. Create feature branch from `main`
 2. Implement changes with performance considerations
 3. Run performance tests: `npm run test:performance`
@@ -356,6 +296,7 @@ npm run deploy:production
 5. Submit pull request with performance metrics
 
 ### Performance Guidelines
+
 - Monitor bundle size impact
 - Test API performance changes
 - Consider database query optimization
@@ -365,6 +306,7 @@ npm run deploy:production
 ## 📊 CI/CD
 
 ### GitHub Actions
+
 - **Performance Testing**: Automated on every PR
 - **Budget Checking**: Enforces performance budgets
 - **Load Testing**: Validates API performance under load
@@ -372,6 +314,7 @@ npm run deploy:production
 - **Dashboard Updates**: Updates performance metrics
 
 ### Pipeline Stages
+
 1. **Build**: Optimized build with bundle analysis
 2. **Test**: Unit, integration, and performance tests
 3. **Performance**: Lighthouse, load testing, budget checks
@@ -381,12 +324,14 @@ npm run deploy:production
 ## 🚨 Troubleshooting
 
 ### Performance Issues
+
 - **Slow API Responses**: Check database query performance
 - **High Memory Usage**: Review cache configuration
 - **Bundle Size Increases**: Analyze with bundle analyzer
 - **Frontend Performance**: Check Web Vitals metrics
 
 ### Common Solutions
+
 - **Database Optimization**: Add indexes, optimize queries
 - **Cache Tuning**: Adjust TTL and cache strategies
 - **Bundle Optimization**: Implement code splitting
@@ -406,6 +351,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Built with ❤️ by the StillOnTime Team
+<div align="center">
+
+**Built with ❤️ by the StillOnTime Team**
 
 **Performance First Approach** - Every feature is optimized for speed and efficiency.

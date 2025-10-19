@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the database setup for the StillOnTime Film Schedule Automation System using PostgreSQL with Prisma ORM.
+This document describes the database setup for the StillOnTime Film Schedule Automation System using PostgreSQL with Kysely Query Builder.
 
 ## Database Schema
 
@@ -64,16 +64,18 @@ cd backend
 npm install
 ```
 
-### 4. Generate Prisma Client
+### 4. Database is ready (no client generation needed)
 
 ```bash
-npm run prisma:generate
+# Database types are auto-generated from schema.sql
+# No additional generation needed
 ```
 
-### 5. Run Database Migrations
+### 5. Database schema is managed via direct SQL
 
 ```bash
-npm run prisma:migrate
+# Use schema.sql for database structure
+# No migrations needed - direct SQL execution
 ```
 
 ### 6. Verify Setup
@@ -90,11 +92,9 @@ npm run db:test
 
 | Script                    | Description                             |
 | ------------------------- | --------------------------------------- |
-| `npm run prisma:generate` | Generate Prisma client from schema      |
-| `npm run prisma:migrate`  | Run database migrations                 |
-| `npm run prisma:studio`   | Open Prisma Studio (database GUI)       |
-| `npm run prisma:reset`    | Reset database and run all migrations   |
-| `npm run prisma:deploy`   | Deploy migrations (production)          |
+| `npm run db:init`         | Initialize database connection          |
+| `npm run db:test`         | Test database operations                |
+| `pgAdmin`                 | Use pgAdmin or similar for database GUI |
 | `npm run db:init`         | Initialize and test database connection |
 | `npm run db:test`         | Run comprehensive database schema tests |
 
@@ -111,18 +111,17 @@ The database connection is configured in `src/config/database.ts` with:
 
 ### Making Schema Changes
 
-1. Update `prisma/schema.prisma`
-2. Run `npm run prisma:migrate` to create and apply migration
+1. Update `schema.sql` directly
+2. Run the SQL changes against the database
 3. Run `npm run db:test` to verify changes
 
 ### Production Deployment
 
 ```bash
-# Deploy migrations to production
-npm run prisma:deploy
+# Deploy schema changes to production
+psql -d production_db -f schema.sql
 
-# Generate client for production
-npm run prisma:generate
+# Database types are auto-generated from schema
 ```
 
 ## Troubleshooting
@@ -151,12 +150,14 @@ npm run prisma:generate
 1. Reset database if needed:
 
    ```bash
-   npm run prisma:reset
+   # Drop and recreate database
+   dropdb stillontime_dev && createdb stillontime_dev
+   psql -d stillontime_dev -f schema.sql
    ```
 
-2. Check migration status:
+2. Check database status:
    ```bash
-   npx prisma migrate status
+   npm run db:test
    ```
 
 ### Performance Optimization
@@ -178,13 +179,14 @@ The schema includes optimized indexes for:
 
 ## Monitoring
 
-Use Prisma Studio for database inspection:
+Use pgAdmin or similar for database inspection:
 
 ```bash
-npm run prisma:studio
+# Use pgAdmin or similar database management tool
+# Connect to: postgresql://stillontime_user:stillontime_password@localhost:5433/stillontime_dev
 ```
 
-This opens a web interface at `http://localhost:5555` for viewing and editing data.
+Connect using your preferred PostgreSQL client for viewing and editing data.
 
 ## Backup and Recovery
 
