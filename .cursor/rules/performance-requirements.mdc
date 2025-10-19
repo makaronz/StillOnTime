@@ -1,0 +1,376 @@
+---
+description: Performance requirements and optimization patterns
+---
+
+# Performance Requirements & Optimization
+
+## ⚡ Performance Targets (HARD LIMITS)
+
+### Critical Performance Requirements
+- **Email processing**: ≤ 2 minutes end-to-end
+- **PDF parsing**: ≤ 30 seconds per document
+- **Route calculation**: ≤ 15 seconds with traffic data
+- **Calendar event creation**: ≤ 10 seconds
+- **Dashboard load time**: ≤ 2 seconds initial render
+- **API response time**: p95 < 500ms for all endpoints
+- **Uptime target**: 99% during 06:00–22:00 CET
+
+## 🚀 Optimization Patterns
+
+### Database Optimization
+```typescript
+// Connection pooling
+const db = new Kysely<Database>({
+  dialect: new PostgresDialect({
+    pool: new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 20,                    // Max connections
+      idleTimeoutMillis: 30000,   // 30s idle timeout
+      connectionTimeoutMillis: 2000, // 2s connection timeout
+    }),
+  }),
+});
+
+// Query optimization
+const users = await db
+  .selectFrom('users')
+  .select(['id', 'email', 'name'])
+  .where('active', '=', true)
+  .limit(100)  // Limit results
+  .execute();
+```
+
+### Caching Strategy
+```typescript
+// Redis caching with TTL
+const getCachedRoute = async (routeId: string) => {
+  const cached = await redis.get(`route:${routeId}`);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+  
+  const route = await calculateRoute(routeId);
+  await redis.setex(`route:${routeId}`, 3600, JSON.stringify(route)); // 1 hour TTL
+  return route;
+};
+
+// Cache invalidation
+const invalidateRouteCache = async (routeId: string) => {
+  await redis.del(`route:${routeId}`);
+};
+```
+
+### Queue Processing
+```typescript
+// Bull queue for background jobs
+const emailQueue = new Bull('email processing', {
+  redis: { host: 'localhost', port: 6379 },
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 50,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+  },
+});
+
+// Process jobs with concurrency
+emailQueue.process('extract-schedule', 5, emailProcessor); // 5 concurrent workers
+```
+
+## 📊 Performance Monitoring
+
+### Health Check Endpoints
+```typescript
+// Comprehensive health check
+app.get('/api/health', async (req, res) => {
+  const start = Date.now();
+  
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    responseTime: Date.now() - start,
+    services: {
+      database: await checkDatabase(),
+      redis: await checkRedis(),
+      external: await checkExternalAPIs()
+    },
+    metrics: {
+      memoryUsage: process.memoryUsage(),
+      uptime: process.uptime(),
+      cpuUsage: process.cpuUsage()
+    }
+  };
+  
+  res.json(health);
+});
+```
+
+### Performance Metrics
+```typescript
+// Metrics collection
+const metrics = {
+  emailProcessingTime: Date.now() - startTime,
+  queueSize: await emailQueue.getWaiting(),
+  errorRate: errors / totalRequests,
+  cacheHitRate: cacheHits / (cacheHits + cacheMisses),
+  databaseConnections: db.pool.totalCount,
+  activeConnections: db.pool.idleCount
+};
+
+// Log performance metrics
+logger.info('Performance metrics', metrics);
+```
+
+## 🔄 Circuit Breaker Pattern
+
+### External API Protection
+```typescript
+// Circuit breaker for external APIs
+const circuitBreaker = new CircuitBreaker({
+  failureThreshold: 5,        // 5 failures
+  resetTimeout: 60000,        // 60s reset timeout
+  monitoringPeriod: 10000,    // 10s monitoring
+  requestTimeout: 5000        // 5s request timeout
+});
+
+const callExternalAPI = async () => {
+  return circuitBreaker.execute(() => {
+    return externalService.call();
+  });
+};
+```
+
+### Retry Logic
+```typescript
+// Exponential backoff retry
+@withRetry({
+  maxAttempts: 3,
+  backoff: 'exponential',
+  initialDelay: 1000,
+  maxDelay: 10000
+})
+async function unstableOperation(): Promise<Result> {
+  return await externalService.call();
+}
+```
+
+## 🗄️ Database Performance
+
+### Query Optimization
+```typescript
+// Use indexes for frequent queries
+CREATE INDEX idx_users_active ON users(active) WHERE active = true;
+CREATE INDEX idx_emails_processed ON emails(processed_at) WHERE processed_at IS NOT NULL;
+
+// Batch operations
+const batchInsert = async (users: User[]) => {
+  return await db
+    .insertInto('users')
+    .values(users)
+    .execute();
+};
+
+// Use transactions for consistency
+const processEmailTransaction = async (emailId: string) => {
+  return await db.transaction().execute(async (trx) => {
+    const email = await trx.selectFrom('emails').selectAll().where('id', '=', emailId).executeTakeFirst();
+    const processed = await trx.updateTable('emails').set({ processed_at: new Date() }).where('id', '=', emailId).execute();
+    return { email, processed };
+  });
+};
+```
+
+### Connection Management
+```typescript
+// Connection pooling configuration
+const poolConfig = {
+  max: 20,                    // Maximum connections
+  min: 5,                     // Minimum connections
+  idle: 10000,               // Idle timeout
+  acquire: 30000,            // Acquire timeout
+  evict: 1000,               // Eviction interval
+  handleDisconnects: true    // Handle disconnects
+};
+```
+
+## 🚀 Frontend Performance
+
+### Code Splitting
+```typescript
+// Lazy loading components
+const LazyConfiguration = React.lazy(() => import('./pages/Configuration'));
+const LazyDashboard = React.lazy(() => import('./pages/Dashboard'));
+
+// Route-based code splitting
+const App = () => (
+  <Router>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/configuration" element={<LazyConfiguration />} />
+        <Route path="/dashboard" element={<LazyDashboard />} />
+      </Routes>
+    </Suspense>
+  </Router>
+);
+```
+
+### State Optimization
+```typescript
+// Zustand store optimization
+export const useAppStore = create<AppState>((set, get) => ({
+  user: null,
+  config: defaultConfig,
+  
+  // Optimized selectors
+  setUser: (user) => set({ user }),
+  setConfig: (config) => set({ config }),
+  
+  // Computed values
+  isAuthenticated: () => get().user !== null,
+  hasPermission: (permission) => get().user?.permissions?.includes(permission) ?? false
+}));
+```
+
+### Memoization
+```typescript
+// React.memo for expensive components
+export const ExpensiveComponent = React.memo<Props>(({ data, onAction }) => {
+  const processedData = useMemo(() => {
+    return data.map(item => processItem(item));
+  }, [data]);
+
+  const handleAction = useCallback((id: string) => {
+    onAction(id);
+  }, [onAction]);
+
+  return <div>{/* render processed data */}</div>;
+});
+```
+
+## 📱 Mobile Performance
+
+### React Native Optimization
+```typescript
+// FlatList for large lists
+import { FlatList } from 'react-native';
+
+const UserList = ({ users }: { users: User[] }) => (
+  <FlatList
+    data={users}
+    keyExtractor={(item) => item.id}
+    renderItem={({ item }) => <UserItem user={item} />}
+    getItemLayout={(data, index) => ({
+      length: 50,
+      offset: 50 * index,
+      index,
+    })}
+    removeClippedSubviews={true}
+    maxToRenderPerBatch={10}
+    windowSize={10}
+  />
+);
+```
+
+### Image Optimization
+```typescript
+// Optimized image loading
+import { Image } from 'react-native';
+
+const OptimizedImage = ({ uri, ...props }) => (
+  <Image
+    source={{ uri }}
+    style={styles.image}
+    resizeMode="cover"
+    loadingIndicatorSource={require('./placeholder.png')}
+    {...props}
+  />
+);
+```
+
+## 🔍 Performance Testing
+
+### Load Testing
+```typescript
+// Load test for API endpoints
+describe('API Performance', () => {
+  it('should handle 100 concurrent requests', async () => {
+    const promises = Array(100).fill(null).map(() => 
+      request(app).get('/api/health')
+    );
+    
+    const start = Date.now();
+    const responses = await Promise.all(promises);
+    const duration = Date.now() - start;
+    
+    expect(responses.every(r => r.status === 200)).toBe(true);
+    expect(duration).toBeLessThan(5000); // 5 seconds
+  });
+});
+```
+
+### Memory Testing
+```typescript
+// Memory leak detection
+describe('Memory Management', () => {
+  it('should not leak memory during email processing', async () => {
+    const initialMemory = process.memoryUsage();
+    
+    for (let i = 0; i < 1000; i++) {
+      await emailService.processEmail(`test-email-${i}`);
+    }
+    
+    // Force garbage collection
+    if (global.gc) global.gc();
+    
+    const finalMemory = process.memoryUsage();
+    const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
+    
+    expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024); // 50MB
+  });
+});
+```
+
+## 📊 Performance Monitoring
+
+### Real-time Metrics
+```typescript
+// Performance monitoring
+const performanceMonitor = {
+  startTime: Date.now(),
+  
+  recordMetric: (name: string, value: number) => {
+    logger.info('Performance metric', { name, value, timestamp: Date.now() });
+  },
+  
+  recordError: (error: Error, context: string) => {
+    logger.error('Performance error', { 
+      error: error.message, 
+      context, 
+      timestamp: Date.now() 
+    });
+  }
+};
+```
+
+### Alerting
+```typescript
+// Performance alerts
+const checkPerformanceThresholds = () => {
+  const metrics = getCurrentMetrics();
+  
+  if (metrics.responseTime > 500) {
+    alert('High response time detected');
+  }
+  
+  if (metrics.errorRate > 0.05) {
+    alert('High error rate detected');
+  }
+  
+  if (metrics.memoryUsage > 0.8) {
+    alert('High memory usage detected');
+  }
+};
+```

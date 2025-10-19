@@ -1,195 +1,208 @@
 ---
-description: Film industry terminology, workflows, and domain-specific requirements for StillOnTime
+description: Film industry terminology and domain-specific requirements
 ---
 
-# Film Industry Domain Requirements
+# Film Industry Domain Knowledge
 
-## Core Purpose
-StillOntime is a **film production logistics tool** that helps crew members arrive on time for shoots by automating schedule extraction, route planning, and notifications.
+## 🎬 Core Terminology
 
-## Film Industry Terminology (MANDATORY)
-Always use correct film production terms in code, UI, and documentation:
+### Production Terms
+- **Call Sheet**: Production schedule with locations, times, crew assignments
+- **Call Time**: When crew members must arrive on set
+- **Shooting Location**: Physical location where filming occurs
+- **Crew Position**: Specific role/job on production (Director, DP, Gaffer, etc.)
+- **Production Title**: Name of the film/TV show being produced
+- **Wrap Time**: When filming ends for the day
+- **Turnaround**: Minimum rest time between wrap and next call time
 
-### Production Terminology:
-- **Call Sheet**: Daily shooting schedule with times, locations, crew assignments
-- **Call Time**: When crew member must arrive on set  
-- **Wrap Time**: When shooting ends for the day
-- **Crew Positions**: Director, DP (Director of Photography), Gaffer, Script Supervisor, etc.
-- **Shooting Schedule**: Multi-day production timeline
-- **Location**: Physical shooting location (different from "venue" or "address")
-- **Setup Time**: Time needed to prepare equipment before shooting
-- **Strike Time**: Time to pack up equipment after shooting
-
-### Code Examples:
+### Crew Hierarchy
 ```typescript
-// ✅ CORRECT - Film industry terms
-interface CallSheet {
-  shootingDate: Date;
-  callTimes: CallTime[];
-  locations: ShootingLocation[];
-  crewAssignments: CrewPosition[];
-}
-
-interface CallTime {
-  crewPosition: string;
-  callTime: Date;
-  location: ShootingLocation;
-}
-
-// ❌ INCORRECT - Generic terms
-interface Schedule {
-  eventDate: Date;
-  appointments: Meeting[];
-  venues: Address[];
-}
+const CREW_HIERARCHY = {
+  ABOVE_THE_LINE: [
+    'Producer', 'Director', 'Writer', 'Executive Producer'
+  ],
+  BELOW_THE_LINE: [
+    'Director of Photography', 'Production Designer',
+    'Costume Designer', 'Makeup Artist', 'Sound Mixer',
+    'Gaffer', 'Key Grip', 'Script Supervisor'
+  ],
+  SUPPORT: [
+    'Production Assistant', 'Runner', 'Driver',
+    'Catering', 'Security', 'Medic'
+  ]
+};
 ```
 
-## Required Time Buffers (HARDCODED REQUIREMENTS)
-These buffers MUST be implemented in route calculations:
+## ⏰ Time Buffer Requirements
 
+### Standard Buffers
 ```typescript
 const FILM_INDUSTRY_BUFFERS = {
-  MORNING_ROUTINE: 30,     // minutes - personal prep time
-  CAR_CHANGE: 15,          // minutes - switching to/from personal vehicle  
-  PARKING: 10,             // minutes - finding parking on location
-  PANAVISION_ENTRY: 5,     // minutes - equipment facility entry procedures
-  TRAFFIC_BUFFER: 15,      // minutes - unexpected traffic delays
-  EQUIPMENT_LOADING: 20    // minutes - loading gear into vehicles
-} as const;
+  MORNING_ROUTINE: 30,        // minutes - crew preparation
+  CAR_CHANGE: 15,            // minutes - vehicle transitions
+  PARKING: 10,               // minutes - finding parking
+  TRAFFIC_BUFFER: 15,        // minutes - traffic delays
+  EQUIPMENT_LOADING: 20,     // minutes - loading/unloading gear
+  ENTRY_TO_PANAVISION: 5,    // minutes - equipment house access
+  WEATHER_DELAY: 30,         // minutes - weather-related delays
+  LUNCH_BREAK: 60,           // minutes - mandatory meal break
+  WRAP_CLEANUP: 15           // minutes - end-of-day cleanup
+};
 ```
 
-## Weather Integration Requirements
-Equipment recommendations based on weather conditions:
+### Location Transitions
+- **Same Location**: 5-10 minutes buffer
+- **Nearby Locations**: 15-30 minutes buffer
+- **Distant Locations**: 45-90 minutes buffer
+- **Equipment Moves**: 30-60 minutes buffer
 
+## 🌤️ Weather Integration
+
+### Equipment Recommendations
 ```typescript
-interface WeatherEquipmentRecommendations {
-  rainGear: boolean;        // Rain covers, umbrellas for equipment
-  sunProtection: boolean;   // Reflectors, sun scrims, shade structures  
-  heatingCooling: boolean;  // Generators, fans, heaters for crew comfort
-  windProtection: boolean;  // Sandbags, wind screens for equipment
-}
-
-// Weather conditions that affect shooting
-enum ShootingConditions {
-  CLEAR = 'clear',
-  OVERCAST = 'overcast', 
-  LIGHT_RAIN = 'light_rain',
-  HEAVY_RAIN = 'heavy_rain',
-  HIGH_WINDS = 'high_winds',
-  EXTREME_HEAT = 'extreme_heat',
-  EXTREME_COLD = 'extreme_cold'
-}
-```
-
-## Multi-Location Shoot Handling
-Film productions often have multiple locations per day:
-
-```typescript
-interface DailyShootSchedule {
-  date: Date;
-  locations: ShootingLocation[];
-  transitions: LocationTransition[];
-  totalShootingTime: number;
-  totalTravelTime: number;
-}
-
-interface LocationTransition {
-  fromLocation: ShootingLocation;
-  toLocation: ShootingLocation;
-  departureTime: Date;
-  arrivalTime: Date;  
-  travelTime: number;
-  equipmentMoveTime: number; // Time to move cameras, lights, etc.
-}
-```
-
-## Manual Override Requirements (CRITICAL)
-ALL automation MUST be manually adjustable by production crew:
-
-```typescript
-interface ManualOverrides {
-  customCallTime?: Date;           // Override calculated call time
-  customRoute?: RouteOverride;     // Override suggested route
-  customBuffers?: TimeBuffers;     // Override default time buffers
-  weatherOverride?: WeatherData;   // Override weather data if outdated
-  equipmentOverride?: string[];    // Override equipment recommendations
-}
-
-// Production crew can always override system suggestions
-class CallTimeCalculator {
-  calculateCallTime(
-    shootTime: Date, 
-    location: ShootingLocation,
-    overrides?: ManualOverrides
-  ): CallTime {
-    // System calculates suggestion
-    const suggested = this.calculateSuggestedTime(shootTime, location);
-    
-    // Manual override takes precedence  
-    return overrides?.customCallTime || suggested;
+const WEATHER_EQUIPMENT = {
+  RAIN: {
+    gear: ['Rain covers', 'Umbrellas', 'Tarps'],
+    clothing: ['Rain jackets', 'Waterproof boots'],
+    equipment: ['Weather-sealed cameras', 'Lens hoods']
+  },
+  SUN: {
+    gear: ['Sun shades', 'Reflectors', 'ND filters'],
+    clothing: ['Sun hats', 'Sunglasses', 'Sunscreen'],
+    equipment: ['Polarizing filters', 'Lens hoods']
+  },
+  COLD: {
+    gear: ['Heaters', 'Battery warmers', 'Insulation'],
+    clothing: ['Warm jackets', 'Gloves', 'Thermal layers'],
+    equipment: ['Battery backups', 'Cold-weather batteries']
   }
-}
+};
 ```
 
-## SMS Alert Requirements
-Critical notifications for schedule changes and weather warnings:
+### Weather Impact on Schedule
+- **Light Rain**: 15-30 minute delays
+- **Heavy Rain**: 1-3 hour delays or cancellation
+- **Extreme Heat**: 30-60 minute delays, extra breaks
+- **Cold Weather**: 15-30 minute delays for equipment warm-up
 
+## 📍 Multi-Location Management
+
+### Location Types
+1. **Studio**: Controlled environment, predictable
+2. **Exterior**: Weather-dependent, variable conditions
+3. **Interior**: Weather-protected, controlled lighting
+4. **Remote**: Limited access, special equipment needed
+
+### Location Logistics
 ```typescript
-interface SMSAlert {
-  recipient: CrewMember;
-  message: string;
-  urgency: 'low' | 'medium' | 'high' | 'critical';
-  scheduleChange?: ScheduleChange;
-  weatherWarning?: WeatherWarning;
-}
-
-// Examples of critical alerts
-enum AlertTypes {
-  SCHEDULE_CHANGE = 'Location changed from Studio A to Warehouse B - new call time 7:00 AM',
-  WEATHER_WARNING = 'Heavy rain expected at location. Bring rain covers for equipment.',
-  TRAFFIC_ALERT = 'Major traffic on suggested route. Leave 30 minutes earlier.',
-  EQUIPMENT_REMINDER = 'Cold weather shoot - generators and heating equipment recommended'
+interface LocationInfo {
+  name: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+  parking: {
+    available: boolean;
+    cost: number;
+    distance: number; // meters from set
+  };
+  facilities: {
+    restrooms: boolean;
+    catering: boolean;
+    power: boolean;
+    internet: boolean;
+  };
+  restrictions: string[];
+  permits: string[];
 }
 ```
 
-## Production Workflow Integration
-The app must integrate with existing film production workflows:
+## 🚗 Transportation & Logistics
 
-### Email Processing (Call Sheets)
-- Parse PDF call sheets from production companies
-- Extract shooting locations, call times, crew assignments  
-- Handle multiple formats from different production houses
-
-### Calendar Integration
-- Sync with Google Calendar for crew schedules
-- Create events with proper film industry metadata
-- Handle recurring shooting schedules
-
-### Route Planning  
-- Account for equipment loading time at origin
-- Consider parking availability at shooting locations
-- Factor in equipment unloading time at destination
-
-## User Interface Requirements
-The UI must be optimized for film industry users:
-
+### Vehicle Requirements
 ```typescript
-// Crew member dashboard priorities
-interface CrewDashboard {
-  nextCallTime: CallTime;           // Most important - when to arrive
-  routeToLocation: Route;           // How to get there  
-  weatherAtLocation: WeatherData;   // What conditions to expect
-  equipmentRecommendations: string[]; // What gear to bring
-  scheduleChanges: ScheduleChange[]; // Any recent updates
+const VEHICLE_TYPES = {
+  CREW_VANS: {
+    capacity: 8,
+    equipment: false,
+    use: 'Crew transport between locations'
+  },
+  EQUIPMENT_TRUCKS: {
+    capacity: 2,
+    equipment: true,
+    use: 'Camera, lighting, grip equipment'
+  },
+  PRODUCTION_VEHICLES: {
+    capacity: 4,
+    equipment: false,
+    use: 'Producer, director, key crew'
+  }
+};
+```
+
+### Route Planning
+- **Traffic Patterns**: Rush hour avoidance
+- **Equipment Access**: Large vehicle restrictions
+- **Parking**: Availability and cost
+- **Permits**: Special vehicle permits for equipment trucks
+
+## 📱 Communication Protocols
+
+### Call Sheet Distribution
+- **Digital**: Email, mobile apps, web portals
+- **Physical**: Printed copies for on-set reference
+- **Updates**: Real-time changes via SMS/email
+- **Backup**: Contact information for emergencies
+
+### Emergency Procedures
+- **Weather Delays**: Immediate notification system
+- **Location Changes**: GPS coordinates and directions
+- **Equipment Issues**: Backup equipment availability
+- **Medical Emergencies**: On-set medic contact
+
+## 🎯 Production-Specific Features
+
+### Schedule Optimization
+```typescript
+interface ProductionSchedule {
+  shootingDays: number;
+  locations: LocationInfo[];
+  crew: CrewMember[];
+  equipment: EquipmentList;
+  weather: WeatherForecast;
+  constraints: ProductionConstraints;
 }
 ```
 
-## Example Production Schedule Flow:
-1. **Production Manager** emails call sheet PDF to crew
-2. **System** extracts locations and call times from PDF
-3. **System** calculates routes with film industry buffers
-4. **Crew Member** receives notification with personalized call time
-5. **System** monitors weather and traffic, sends alerts if needed
-6. **Production Manager** can manually override any system suggestions
+### Budget Considerations
+- **Overtime**: Avoid 8+ hour days
+- **Equipment**: Daily rental costs
+- **Location**: Permit and insurance costs
+- **Transportation**: Fuel and vehicle rental
+- **Catering**: Meal costs per person
 
-This domain knowledge must be reflected in ALL code, UI components, API design, and documentation. The app serves film professionals who have specific terminology, workflows, and timing requirements that differ significantly from generic scheduling applications.
+## 🔧 Technical Requirements
+
+### Equipment Tracking
+- **Camera Equipment**: Serial numbers, condition
+- **Lighting**: Power requirements, positioning
+- **Sound**: Microphone types, recording formats
+- **Grip**: Stands, flags, reflectors
+
+### Data Management
+- **Footage**: Storage requirements, backup procedures
+- **Scripts**: Version control, distribution
+- **Schedules**: Real-time updates, conflict resolution
+- **Contacts**: Emergency numbers, vendor information
+
+## 📊 Performance Metrics
+
+### Production Efficiency
+- **On-Time Arrival**: Crew punctuality
+- **Setup Time**: Equipment preparation speed
+- **Shooting Ratio**: Footage vs. final product
+- **Wrap Time**: End-of-day efficiency
+
+### Cost Optimization
+- **Location Efficiency**: Multiple scenes per location
+- **Crew Utilization**: Optimal crew size
+- **Equipment Sharing**: Multi-day equipment use
+- **Transportation**: Route optimization

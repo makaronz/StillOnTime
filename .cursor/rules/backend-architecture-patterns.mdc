@@ -1,0 +1,124 @@
+---
+globs: backend/**/*.ts,backend/**/*.js
+description: Backend architecture patterns and coding standards
+---
+
+# Backend Architecture Patterns
+
+## 🏗️ Directory Structure
+```
+backend/src/
+├── controllers/       # API route handlers
+├── services/         # Business logic layer
+├── middleware/       # Express middleware (auth, errors, logging)
+├── models/          # Data models and types
+├── utils/           # Utilities (circuit-breaker, retry, logger)
+├── repositories/    # Data access layer (Kysely)
+├── routes/          # API route definitions
+└── types/           # TypeScript interfaces
+```
+
+## 🔧 Key Patterns
+
+### Error Handling Hierarchy
+```typescript
+// Use hierarchical error classes from [backend/src/middleware/errorHandler.ts](mdc:backend/src/middleware/errorHandler.ts)
+throw new APIError('External service failed', 503, originalError);
+throw new BusinessLogicError('Invalid schedule data', originalError);
+throw new ValidationError('Required field missing: startTime');
+```
+
+### Circuit Breaker Pattern
+```typescript
+import { circuitBreaker } from '../utils/circuit-breaker';
+
+const result = await circuitBreaker.execute(() => {
+  return externalService.call();
+});
+```
+
+### Retry Logic with Decorator
+```typescript
+import { withRetry } from '../utils/retry';
+
+@withRetry({ maxAttempts: 3, backoff: 'exponential' })
+async function unstableOperation(): Promise<Result> {
+  return await externalService.call();
+}
+```
+
+### Structured Logging
+```typescript
+import { logger } from '../utils/logger';
+
+logger.info('Email processing started', { 
+  emailId, 
+  userId, 
+  processingType: 'schedule_extraction' 
+});
+```
+
+## 🗄️ Database Patterns
+
+### Kysely Query Builder
+```typescript
+// Type-safe database queries
+const users = await db
+  .selectFrom('users')
+  .select(['id', 'email', 'name'])
+  .where('active', '=', true)
+  .execute();
+```
+
+### Repository Pattern
+```typescript
+// Data access layer
+export class UserRepository {
+  async findById(id: string): Promise<User | null> {
+    return await db
+      .selectFrom('users')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+  }
+}
+```
+
+## 🔒 Security Patterns
+
+### OAuth 2.0 PKCE
+```typescript
+// Google OAuth with PKCE
+const authUrl = oauth2Client.generateAuthUrl({
+  access_type: 'offline',
+  scope: ['https://www.googleapis.com/auth/gmail.readonly'],
+  code_challenge: codeChallenge,
+  code_challenge_method: 'S256'
+});
+```
+
+### JWT Authentication
+```typescript
+// JWT token validation
+const token = req.headers.authorization?.replace('Bearer ', '');
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
+```
+
+## 📊 Performance Patterns
+
+### Caching Strategy
+```typescript
+// Redis caching with TTL
+const cached = await redis.get(`route:${routeId}`);
+if (cached) return JSON.parse(cached);
+
+const result = await calculateRoute(routeId);
+await redis.setex(`route:${routeId}`, 3600, JSON.stringify(result));
+```
+
+### Queue Processing
+```typescript
+// Bull queue for background jobs
+const emailQueue = new Bull('email processing');
+emailQueue.process('extract-schedule', emailProcessor);
+```

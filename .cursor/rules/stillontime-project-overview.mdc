@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+description: StillOnTime project overview and core architecture
+---
+
+# StillOnTime Project Overview
+
+## 🎬 Project Purpose
+StillOnTime is a film industry logistics application that helps production crews manage schedules, routes, and equipment logistics for film/TV productions.
+
+## 🏗️ Core Architecture
+- **Monorepo Structure**: Independent backend/frontend with shared root scripts
+- **Backend**: Node.js/TypeScript with Express, Kysely query builder, PostgreSQL
+- **Frontend**: React/TypeScript with Vite, Zustand state management
+- **Database**: PostgreSQL with Redis caching
+- **Vector DB**: Qdrant for CodeNet RAG integration
+
+## 📁 Key Files
+- **Backend Entry**: [backend/src/index.ts](mdc:backend/src/index.ts) (full) / [backend/src/simple-server.ts](mdc:backend/src/simple-server.ts) (demo)
+- **Frontend Entry**: [frontend/src/main.tsx](mdc:frontend/src/main.tsx)
+- **Database Schema**: [backend/schema.sql](mdc:backend/schema.sql)
+- **Configuration**: [frontend/src/pages/Configuration.tsx](mdc:frontend/src/pages/Configuration.tsx)
+- **Environment**: [.env](mdc:.env)
+
+## 🚀 Development Commands
+```bash
+# Start everything
+npm run dev
+
+# Individual services
+cd backend && npm run dev:simple  # Demo backend (port 3001)
+cd frontend && npm run dev        # Frontend (port 3000)
+
+# Database access
+docker exec trad_ag_ai_postgres psql -U stillontime_user -d stillontime_dev
+```
+
+## 🔧 Current Status
+- **Database**: PostgreSQL `stillontime_dev` on port 5433
+- **Backend**: Demo backend running (simple-server.ts)
+- **Frontend**: React app on port 3000
+- **Configuration**: System endpoints implemented
+- **OAuth**: Google OAuth integration ready
+- **LLM**: OpenAI integration with CodeNet RAG

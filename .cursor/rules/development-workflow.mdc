@@ -1,0 +1,276 @@
+---
+alwaysApply: true
+description: Development workflow and best practices for StillOnTime
+---
+
+# Development Workflow
+
+## 🚀 Quick Start Commands
+
+### Development Environment
+```bash
+# Start everything (recommended)
+npm run dev
+
+# Individual services
+cd backend && npm run dev:simple    # Demo backend (port 3001)
+cd frontend && npm run dev          # Frontend (port 3000)
+
+# Database services
+npm run docker:up                   # PostgreSQL + Redis
+```
+
+### Database Access
+```bash
+# Check PostgreSQL status
+docker ps | grep postgres
+
+# Access database
+docker exec trad_ag_ai_postgres psql -U stillontime_user -d stillontime_dev
+
+# Run migrations
+docker exec trad_ag_ai_postgres psql -U postgres -d stillontime_dev -f /tmp/schema.sql
+```
+
+## 🔧 Development Patterns
+
+### File Organization
+- **Never save to root**: Use appropriate subdirectories
+- **Backend files**: Follow [backend/src/](mdc:backend/src/) structure
+- **Frontend files**: Follow [frontend/src/](mdc:frontend/src/) structure
+- **Tests**: Co-locate with source files or in dedicated test directories
+- **Documentation**: Use [docs/](mdc:docs/) for project docs
+
+### Code Quality Standards
+```typescript
+// ✅ CORRECT - Explicit return types (backend)
+export async function processEmail(emailId: string): Promise<EmailProcessResult> {
+  // implementation
+}
+
+// ✅ CORRECT - Proper error handling
+try {
+  const result = await riskyOperation();
+  return result;
+} catch (error) {
+  logger.error('Operation failed', { error, context: 'processEmail' });
+  throw new BusinessLogicError('Failed to process email', error);
+}
+
+// ❌ INCORRECT - Missing return type, generic Error
+export async function processEmail(emailId) {
+  throw new Error('Something went wrong');
+}
+```
+
+## 🧪 Testing Workflow
+
+### TDD Process
+1. **Write failing test** → `npm run test` (should fail)
+2. **Implement minimal code** → `npm run test` (should pass)
+3. **Refactor while green** → `npm run test` (should still pass)
+
+### Test Commands
+```bash
+# All tests
+npm run test
+
+# Backend tests
+cd backend && npm run test
+
+# Frontend tests
+cd frontend && npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Coverage report
+npm run test:coverage
+```
+
+## 🔄 Git Workflow
+
+### Commit Standards
+```bash
+# Commit format
+<type>(<scope>): <description>
+
+# Examples
+feat(backend): add email processing service
+fix(frontend): resolve OAuth configuration issue
+refactor(api): optimize database queries
+test(backend): add email service unit tests
+```
+
+### Branch Strategy
+```bash
+# Feature branches
+git checkout -b feature/email-processing
+git checkout -b fix/oauth-configuration
+git checkout -b refactor/database-queries
+
+# Hotfix branches
+git checkout -b hotfix/critical-security-fix
+```
+
+## 🐛 Debugging Workflow
+
+### Backend Debugging
+```bash
+# Check logs
+docker-compose logs -f backend
+
+# Database issues
+npm run prisma:studio
+npm run db:reset
+
+# Test failures
+cd backend && npm run test:watch
+```
+
+### Frontend Debugging
+```bash
+# Development server
+cd frontend && npm run dev
+
+# Test in UI mode
+cd frontend && npm run test:ui
+
+# Build issues
+cd frontend && npm run build
+```
+
+### Docker Issues
+```bash
+# Rebuild services
+npm run docker:down
+npm run docker:build
+npm run docker:up
+
+# Check service health
+docker-compose ps
+curl http://localhost:3001/api/v1/health
+```
+
+## 📊 Monitoring & Health
+
+### Health Endpoints
+- `GET /api/v1/health` - Overall system health
+- `GET /api/v1/health/ready` - Readiness probe
+- `GET /api/v1/health/live` - Liveness probe
+
+### Key Metrics
+- Database connections
+- Redis cache hit rate
+- External API response times
+- Queue processing rate
+
+## 🔒 Security Workflow
+
+### Environment Variables
+```bash
+# Required variables
+DATABASE_URL=postgresql://stillontime_user:stillontime_password@localhost:5433/stillontime_dev
+JWT_SECRET=your-jwt-secret
+OPENAI_API_KEY=sk-your-openai-key
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+### Security Checklist
+- [ ] No hardcoded secrets
+- [ ] Environment variables properly set
+- [ ] OAuth 2.0 PKCE implemented
+- [ ] JWT tokens properly validated
+- [ ] Input validation on all endpoints
+- [ ] Rate limiting implemented
+- [ ] HTTPS enforced in production
+
+## 🚀 Deployment Workflow
+
+### Pre-deployment Checklist
+- [ ] All tests pass
+- [ ] Coverage meets requirements
+- [ ] Security scan completed
+- [ ] Performance tests pass
+- [ ] Environment variables configured
+- [ ] Database migrations ready
+- [ ] Health checks working
+
+### Production Commands
+```bash
+# Build for production
+npm run build
+
+# Start production server
+npm run start
+
+# Database migrations
+npm run prisma:migrate
+
+# Health check
+curl http://localhost:3001/api/v1/health
+```
+
+## 📱 Mobile Development
+
+### React Native Setup
+```bash
+# Mobile development
+cd mobile && npm install
+npx react-native run-ios
+npx react-native run-android
+```
+
+### Mobile Environment
+```typescript
+// mobile/src/config/environment.ts
+export const config = {
+  apiUrl: __DEV__ 
+    ? 'http://localhost:3001/api' 
+    : 'https://api.stillontime.com',
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY
+};
+```
+
+## 🔧 Development Tools
+
+### VS Code Configuration
+```json
+// .vscode/settings.json
+{
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "typescript.suggest.autoImports": true
+}
+```
+
+### Git Hooks
+```bash
+# Pre-commit hooks
+npm install --save-dev husky lint-staged
+npx husky add .husky/pre-commit "npm run lint-staged"
+```
+
+## 📋 Daily Workflow
+
+### Morning Setup
+1. Check system status: `npm run docker:up`
+2. Start development: `npm run dev`
+3. Run tests: `npm run test`
+4. Check health: `curl http://localhost:3001/api/v1/health`
+
+### Before Committing
+1. Run tests: `npm run test`
+2. Check linting: `npm run lint`
+3. Verify build: `npm run build`
+4. Commit with proper message
+
+### End of Day
+1. Commit all changes
+2. Push to repository
+3. Update documentation if needed
+4. Check system health

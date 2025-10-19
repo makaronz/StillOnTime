@@ -1,0 +1,342 @@
+---
+globs: **/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,e2e-tests/**/*
+description: Testing standards and patterns for StillOnTime
+---
+
+# Testing Standards & Patterns
+
+## 🧪 Testing Philosophy
+
+### TDD Approach (Test-Driven Development)
+1. **RED**: Write failing test first
+2. **GREEN**: Implement minimal code to pass
+3. **REFACTOR**: Improve while keeping tests green
+
+### Coverage Targets
+- **Critical paths** (email, routing, calendar): >80%
+- **Standard paths**: >60%
+- **All new code**: Must have tests
+
+## 🔧 Test Structure
+
+### Unit Tests
+```typescript
+// backend/tests/services/email.service.test.ts
+import { EmailService } from '../../src/services/email.service';
+
+describe('EmailService', () => {
+  let emailService: EmailService;
+
+  beforeEach(() => {
+    emailService = new EmailService();
+  });
+
+  it('should process email within 2 minutes', async () => {
+    const start = Date.now();
+    await emailService.processEmail('test-email-id');
+    const duration = Date.now() - start;
+    expect(duration).toBeLessThan(120000); // 2 minutes
+  });
+
+  it('should handle email parsing errors gracefully', async () => {
+    await expect(emailService.processEmail('invalid-id'))
+      .rejects.toThrow('Email not found');
+  });
+});
+```
+
+### Integration Tests
+```typescript
+// backend/tests/integration/api.test.ts
+import request from 'supertest';
+import { app } from '../../src/index';
+
+describe('API Integration', () => {
+  it('should return health status', async () => {
+    const response = await request(app)
+      .get('/api/health')
+      .expect(200);
+    
+    expect(response.body.status).toBe('healthy');
+  });
+
+  it('should handle authentication', async () => {
+    const response = await request(app)
+      .get('/api/user/profile')
+      .set('Authorization', 'Bearer invalid-token')
+      .expect(401);
+  });
+});
+```
+
+### E2E Tests (Playwright)
+```typescript
+// e2e-tests/configuration.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Configuration Page', () => {
+  test('should load configuration page', async ({ page }) => {
+    await page.goto('/configuration');
+    await expect(page.locator('h1')).toContainText('Configuration');
+  });
+
+  test('should save OAuth settings', async ({ page }) => {
+    await page.goto('/configuration');
+    await page.fill('[data-testid="google-client-id"]', 'test-client-id');
+    await page.click('[data-testid="save-oauth"]');
+    await expect(page.locator('.success-message')).toBeVisible();
+  });
+});
+```
+
+## 🎯 Test Categories
+
+### Backend Tests
+```typescript
+// Service tests
+describe('EmailService', () => {
+  // Test business logic
+});
+
+// Controller tests
+describe('OAuthController', () => {
+  // Test API endpoints
+});
+
+// Repository tests
+describe('UserRepository', () => {
+  // Test data access
+});
+
+// Utility tests
+describe('CircuitBreaker', () => {
+  // Test resilience patterns
+});
+```
+
+### Frontend Tests
+```typescript
+// Component tests
+describe('ConfigurationPage', () => {
+  // Test React components
+});
+
+// Hook tests
+describe('useApi', () => {
+  // Test custom hooks
+});
+
+// Store tests
+describe('AppStore', () => {
+  // Test Zustand stores
+});
+```
+
+## 🚀 Test Commands
+
+### Running Tests
+```bash
+# All tests
+npm run test
+
+# Backend tests
+cd backend && npm run test
+
+# Frontend tests
+cd frontend && npm run test
+
+# E2E tests
+npm run test:e2e
+
+# E2E with UI
+npm run test:e2e:headed
+
+# Coverage report
+npm run test:coverage
+```
+
+### Watch Mode
+```bash
+# Backend watch
+cd backend && npm run test:watch
+
+# Frontend watch
+cd frontend && npm run test:watch
+```
+
+## 📊 Test Data & Fixtures
+
+### Test Database
+```typescript
+// Setup test database
+beforeAll(async () => {
+  await setupTestDatabase();
+});
+
+afterAll(async () => {
+  await cleanupTestDatabase();
+});
+
+beforeEach(async () => {
+  await seedTestData();
+});
+```
+
+### Mock Data
+```typescript
+// Mock external services
+jest.mock('../../src/services/email.service', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    processEmail: jest.fn().mockResolvedValue({ success: true }),
+  })),
+}));
+
+// Mock API responses
+global.fetch = jest.fn().mockResolvedValue({
+  ok: true,
+  json: () => Promise.resolve({ data: 'test' }),
+});
+```
+
+## 🔍 Test Utilities
+
+### Custom Matchers
+```typescript
+// Custom Jest matchers
+expect.extend({
+  toBeWithinTimeLimit(received, limit) {
+    const pass = received <= limit;
+    return {
+      message: () => `expected ${received} to be within ${limit}ms`,
+      pass,
+    };
+  },
+});
+```
+
+### Test Helpers
+```typescript
+// Test utilities
+export const createMockUser = (overrides = {}) => ({
+  id: 'test-user-id',
+  email: 'test@example.com',
+  name: 'Test User',
+  ...overrides,
+});
+
+export const createMockEmail = (overrides = {}) => ({
+  id: 'test-email-id',
+  subject: 'Test Email',
+  body: 'Test content',
+  ...overrides,
+});
+```
+
+## 🎭 E2E Test Patterns
+
+### Page Object Model
+```typescript
+// e2e-tests/pages/ConfigurationPage.ts
+export class ConfigurationPage {
+  constructor(private page: Page) {}
+
+  async navigate() {
+    await this.page.goto('/configuration');
+  }
+
+  async fillOAuthSettings(clientId: string, clientSecret: string) {
+    await this.page.fill('[data-testid="google-client-id"]', clientId);
+    await this.page.fill('[data-testid="google-client-secret"]', clientSecret);
+  }
+
+  async saveSettings() {
+    await this.page.click('[data-testid="save-oauth"]');
+  }
+
+  async expectSuccessMessage() {
+    await expect(this.page.locator('.success-message')).toBeVisible();
+  }
+}
+```
+
+### Test Scenarios
+```typescript
+// e2e-tests/scenarios/configuration-flow.spec.ts
+test.describe('Configuration Flow', () => {
+  test('complete OAuth setup', async ({ page }) => {
+    const configPage = new ConfigurationPage(page);
+    
+    await configPage.navigate();
+    await configPage.fillOAuthSettings('client-id', 'client-secret');
+    await configPage.saveSettings();
+    await configPage.expectSuccessMessage();
+  });
+});
+```
+
+## 📈 Performance Testing
+
+### Load Testing
+```typescript
+// Performance tests
+describe('Performance', () => {
+  it('should handle concurrent requests', async () => {
+    const promises = Array(100).fill(null).map(() => 
+      request(app).get('/api/health')
+    );
+    
+    const responses = await Promise.all(promises);
+    expect(responses.every(r => r.status === 200)).toBe(true);
+  });
+});
+```
+
+### Memory Testing
+```typescript
+// Memory leak tests
+describe('Memory Management', () => {
+  it('should not leak memory during email processing', async () => {
+    const initialMemory = process.memoryUsage();
+    
+    for (let i = 0; i < 1000; i++) {
+      await emailService.processEmail(`test-email-${i}`);
+    }
+    
+    const finalMemory = process.memoryUsage();
+    expect(finalMemory.heapUsed - initialMemory.heapUsed).toBeLessThan(50 * 1024 * 1024); // 50MB
+  });
+});
+```
+
+## 🛡️ Security Testing
+
+### Authentication Tests
+```typescript
+// Security tests
+describe('Security', () => {
+  it('should reject invalid JWT tokens', async () => {
+    await request(app)
+      .get('/api/user/profile')
+      .set('Authorization', 'Bearer invalid-token')
+      .expect(401);
+  });
+
+  it('should validate input data', async () => {
+    await request(app)
+      .post('/api/email/process')
+      .send({ emailId: '<script>alert("xss")</script>' })
+      .expect(400);
+  });
+});
+```
+
+## 📋 Test Checklist
+
+### Before Committing
+- [ ] All tests pass
+- [ ] Coverage meets requirements
+- [ ] No console errors in tests
+- [ ] E2E tests cover critical paths
+- [ ] Performance tests within limits
+- [ ] Security tests pass
+- [ ] Test data is cleaned up
