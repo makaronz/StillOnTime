@@ -1,0 +1,218 @@
+# StillOnTime Film Industry Domain Knowledge
+
+## 🎬 Film Industry Terminology
+
+### Core Concepts
+- **Call Sheet**: Production schedule with locations, times, crew assignments
+- **Call Time**: When crew members must arrive on set
+- **Shooting Location**: Physical location where filming occurs
+- **Crew Position**: Specific role/job on production (Director, DP, Gaffer, etc.)
+- **Production Title**: Name of the film/TV show being produced
+- **Wrap Time**: When filming ends for the day
+- **Turnaround**: Minimum rest time between wrap and next call time
+
+### Production Workflow
+1. **Pre-Production**: Planning, location scouting, crew hiring
+2. **Production**: Active filming period
+3. **Post-Production**: Editing, sound, visual effects
+4. **Distribution**: Release and marketing
+
+## ⏰ Time Buffer Requirements
+
+### Standard Buffers
+```typescript
+const FILM_INDUSTRY_BUFFERS = {
+  MORNING_ROUTINE: 30,        // minutes - crew preparation
+  CAR_CHANGE: 15,            // minutes - vehicle transitions
+  PARKING: 10,               // minutes - finding parking
+  TRAFFIC_BUFFER: 15,        // minutes - traffic delays
+  EQUIPMENT_LOADING: 20,     // minutes - loading/unloading gear
+  ENTRY_TO_PANAVISION: 5,    // minutes - equipment house access
+  WEATHER_DELAY: 30,         // minutes - weather-related delays
+  LUNCH_BREAK: 60,           // minutes - mandatory meal break
+  WRAP_CLEANUP: 15           // minutes - end-of-day cleanup
+};
+```
+
+### Location Transitions
+- **Same Location**: 5-10 minutes buffer
+- **Nearby Locations**: 15-30 minutes buffer
+- **Distant Locations**: 45-90 minutes buffer
+- **Equipment Moves**: 30-60 minutes buffer
+
+## 🌤️ Weather Integration
+
+### Equipment Recommendations
+```typescript
+const WEATHER_EQUIPMENT = {
+  RAIN: {
+    gear: ['Rain covers', 'Umbrellas', 'Tarps'],
+    clothing: ['Rain jackets', 'Waterproof boots'],
+    equipment: ['Weather-sealed cameras', 'Lens hoods']
+  },
+  SUN: {
+    gear: ['Sun shades', 'Reflectors', 'ND filters'],
+    clothing: ['Sun hats', 'Sunglasses', 'Sunscreen'],
+    equipment: ['Polarizing filters', 'Lens hoods']
+  },
+  COLD: {
+    gear: ['Heaters', 'Battery warmers', 'Insulation'],
+    clothing: ['Warm jackets', 'Gloves', 'Thermal layers'],
+    equipment: ['Battery backups', 'Cold-weather batteries']
+  }
+};
+```
+
+### Weather Impact on Schedule
+- **Light Rain**: 15-30 minute delays
+- **Heavy Rain**: 1-3 hour delays or cancellation
+- **Extreme Heat**: 30-60 minute delays, extra breaks
+- **Cold Weather**: 15-30 minute delays for equipment warm-up
+
+## 📍 Multi-Location Management
+
+### Location Types
+1. **Studio**: Controlled environment, predictable
+2. **Exterior**: Weather-dependent, variable conditions
+3. **Interior**: Weather-protected, controlled lighting
+4. **Remote**: Limited access, special equipment needed
+
+### Location Logistics
+```typescript
+interface LocationInfo {
+  name: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+  parking: {
+    available: boolean;
+    cost: number;
+    distance: number; // meters from set
+  };
+  facilities: {
+    restrooms: boolean;
+    catering: boolean;
+    power: boolean;
+    internet: boolean;
+  };
+  restrictions: string[];
+  permits: string[];
+}
+```
+
+## 👥 Crew Management
+
+### Crew Positions Hierarchy
+```typescript
+const CREW_HIERARCHY = {
+  ABOVE_THE_LINE: [
+    'Producer', 'Director', 'Writer', 'Executive Producer'
+  ],
+  BELOW_THE_LINE: [
+    'Director of Photography', 'Production Designer',
+    'Costume Designer', 'Makeup Artist', 'Sound Mixer',
+    'Gaffer', 'Key Grip', 'Script Supervisor'
+  ],
+  SUPPORT: [
+    'Production Assistant', 'Runner', 'Driver',
+    'Catering', 'Security', 'Medic'
+  ]
+};
+```
+
+### Crew Scheduling
+- **Call Times**: Staggered based on role requirements
+- **Wrap Times**: Coordinated to avoid overtime
+- **Meal Breaks**: Mandatory 6-hour rule compliance
+- **Travel Time**: Between locations and home
+
+## 🚗 Transportation & Logistics
+
+### Vehicle Requirements
+```typescript
+const VEHICLE_TYPES = {
+  CREW_VANS: {
+    capacity: 8,
+    equipment: false,
+    use: 'Crew transport between locations'
+  },
+  EQUIPMENT_TRUCKS: {
+    capacity: 2,
+    equipment: true,
+    use: 'Camera, lighting, grip equipment'
+  },
+  PRODUCTION_VEHICLES: {
+    capacity: 4,
+    equipment: false,
+    use: 'Producer, director, key crew'
+  }
+};
+```
+
+### Route Planning
+- **Traffic Patterns**: Rush hour avoidance
+- **Equipment Access**: Large vehicle restrictions
+- **Parking**: Availability and cost
+- **Permits**: Special vehicle permits for equipment trucks
+
+## 📱 Communication Protocols
+
+### Call Sheet Distribution
+- **Digital**: Email, mobile apps, web portals
+- **Physical**: Printed copies for on-set reference
+- **Updates**: Real-time changes via SMS/email
+- **Backup**: Contact information for emergencies
+
+### Emergency Procedures
+- **Weather Delays**: Immediate notification system
+- **Location Changes**: GPS coordinates and directions
+- **Equipment Issues**: Backup equipment availability
+- **Medical Emergencies**: On-set medic contact
+
+## 🎯 Production-Specific Features
+
+### Schedule Optimization
+```typescript
+interface ProductionSchedule {
+  shootingDays: number;
+  locations: LocationInfo[];
+  crew: CrewMember[];
+  equipment: EquipmentList;
+  weather: WeatherForecast;
+  constraints: ProductionConstraints;
+}
+```
+
+### Budget Considerations
+- **Overtime**: Avoid 8+ hour days
+- **Equipment**: Daily rental costs
+- **Location**: Permit and insurance costs
+- **Transportation**: Fuel and vehicle rental
+- **Catering**: Meal costs per person
+
+## 🔧 Technical Requirements
+
+### Equipment Tracking
+- **Camera Equipment**: Serial numbers, condition
+- **Lighting**: Power requirements, positioning
+- **Sound**: Microphone types, recording formats
+- **Grip**: Stands, flags, reflectors
+
+### Data Management
+- **Footage**: Storage requirements, backup procedures
+- **Scripts**: Version control, distribution
+- **Schedules**: Real-time updates, conflict resolution
+- **Contacts**: Emergency numbers, vendor information
+
+## 📊 Performance Metrics
+
+### Production Efficiency
+- **On-Time Arrival**: Crew punctuality
+- **Setup Time**: Equipment preparation speed
+- **Shooting Ratio**: Footage vs. final product
+- **Wrap Time**: End-of-day efficiency
+
+### Cost Optimization
+- **Location Efficiency**: Multiple scenes per location
+- **Crew Utilization**: Optimal crew size
+- **Equipment Sharing**: Multi-day equipment use
+- **Transportation**: Route optimization
