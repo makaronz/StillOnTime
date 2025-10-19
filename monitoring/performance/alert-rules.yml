@@ -1,0 +1,257 @@
+# Performance Monitoring Alert Rules
+# Defines thresholds and actions for performance degradation alerts
+
+groups:
+  - name: stillontime.performance
+    rules:
+      # API Performance Alerts
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+          service: api
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile API response time is {{ $value }}s, which exceeds the 1s threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/api-latency.md"
+          dashboard_url: "http://grafana.stillontime.com/d/performance"
+
+      - alert: CriticalAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+          service: api
+        annotations:
+          summary: "Critical API latency detected"
+          description: "95th percentile API response time is {{ $value }}s, which exceeds the 2s critical threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/api-latency.md"
+          dashboard_url: "http://grafana.stillontime.com/d/performance"
+
+      # Error Rate Alerts
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 1m
+        labels:
+          severity: warning
+          team: backend
+          service: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}, which exceeds the 5% threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/error-rate.md"
+
+      - alert: CriticalErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.15
+        for: 30s
+        labels:
+          severity: critical
+          team: backend
+          service: api
+        annotations:
+          summary: "Critical error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}, which exceeds the 15% critical threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/error-rate.md"
+
+      # Database Performance Alerts
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          team: backend
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile database query time is {{ $value }}s, which exceeds the 0.5s threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/database-performance.md"
+
+      - alert: CriticalDatabaseQueries
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) > 1
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+          service: database
+        annotations:
+          summary: "Critical database performance detected"
+          description: "95th percentile database query time is {{ $value }}s, which exceeds the 1s critical threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/database-performance.md"
+
+      # Cache Performance Alerts
+      - alert: LowCacheHitRate
+        expr: rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          service: cache
+        annotations:
+          summary: "Low cache hit rate detected"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}, which is below the 80% threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/cache-performance.md"
+
+      # Frontend Performance Alerts
+      - alert: SlowLCP
+        expr: web_vital_lcp_seconds{quantile="0.75"} > 2.5
+        for: 5m
+        labels:
+          severity: warning
+          team: frontend
+          service: web
+        annotations:
+          summary: "Slow Largest Contentful Paint detected"
+          description: "75th percentile LCP is {{ $value }}s, which exceeds the 2.5s threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/web-vitals.md"
+
+      - alert: PoorCLS
+        expr: web_vital_cls{quantile="0.75"} > 0.25
+        for: 5m
+        labels:
+          severity: warning
+          team: frontend
+          service: web
+        annotations:
+          summary: "Poor Cumulative Layout Shift detected"
+          description: "75th percentile CLS is {{ $value }}, which exceeds the 0.25 threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/web-vitals.md"
+
+      - alert: SlowFID
+        expr: web_vital_fid_seconds{quantile="0.75"} > 0.3
+        for: 5m
+        labels:
+          severity: warning
+          team: frontend
+          service: web
+        annotations:
+          summary: "Slow First Input Delay detected"
+          description: "75th percentile FID is {{ $value }}s, which exceeds the 300ms threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/web-vitals.md"
+
+      # Bundle Size Alerts
+      - alert: LargeJavaScriptBundle
+        expr: bundle_size_bytes{type="js"} > 500000
+        for: 0m
+        labels:
+          severity: warning
+          team: frontend
+          service: build
+        annotations:
+          summary: "Large JavaScript bundle detected"
+          description: "JavaScript bundle size is {{ $value | humanizeBytes }}, which exceeds the 500KB threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/bundle-size.md"
+
+      - alert: LargeCSSBundle
+        expr: bundle_size_bytes{type="css"} > 50000
+        for: 0m
+        labels:
+          severity: warning
+          team: frontend
+          service: build
+        annotations:
+          summary: "Large CSS bundle detected"
+          description: "CSS bundle size is {{ $value | humanizeBytes }}, which exceeds the 50KB threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/bundle-size.md"
+
+      # Email Processing Alerts
+      - alert: EmailQueueBacklog
+        expr: email_queue_size > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          service: email
+        annotations:
+          summary: "Email processing queue backlog detected"
+          description: "Email queue size is {{ $value }}, which exceeds the 100 item threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/email-processing.md"
+
+      - alert: CriticalEmailQueueBacklog
+        expr: email_queue_size > 500
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+          service: email
+        annotations:
+          summary: "Critical email queue backlog detected"
+          description: "Email queue size is {{ $value }}, which exceeds the 500 item critical threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/email-processing.md"
+
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+          service: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}%, which exceeds the 80% threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/system-resources.md"
+
+      - alert: CriticalCPUUsage
+        expr: cpu_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+          service: system
+        annotations:
+          summary: "Critical CPU usage detected"
+          description: "CPU usage is {{ $value }}%, which exceeds the 95% critical threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/system-resources.md"
+
+      - alert: HighMemoryUsage
+        expr: memory_usage_bytes / memory_total_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+          service: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }}, which exceeds the 85% threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/system-resources.md"
+
+      - alert: CriticalMemoryUsage
+        expr: memory_usage_bytes / memory_total_bytes > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+          service: system
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }}, which exceeds the 95% critical threshold"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/system-resources.md"
+
+      # Availability Alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: devops
+          service: availability
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.instance }} has been down for more than 1 minute"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/service-availability.md"
+
+      # Performance Regression Alerts
+      - alert: PerformanceRegressionDetected
+        expr: increase(performance_regression_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          team: performance
+          service: monitoring
+        annotations:
+          summary: "Performance regression detected"
+          description: "Performance regression has been detected in recent changes"
+          runbook_url: "https://github.com/stillontime/docs/blob/main/runbooks/performance-regression.md"

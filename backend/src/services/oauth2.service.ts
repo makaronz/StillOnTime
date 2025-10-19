@@ -10,6 +10,7 @@ export interface OAuthStatus {
   isAuthenticated: boolean;
   scopes: string[];
   expiresAt?: Date;
+  tokenExpiry?: Date;
   needsReauth: boolean;
 }
 

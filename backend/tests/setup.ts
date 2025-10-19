@@ -4,7 +4,9 @@ import { config } from "@/config/config";
 process.env.NODE_ENV = "test";
 process.env.DATABASE_URL =
   "postgresql://test_user:test_password@localhost:5432/stillontime_test";
-process.env.JWT_SECRET = "test-jwt-secret";
+process.env.JWT_SECRET = "test-jwt-secret-that-is-at-least-32-characters-long";
+process.env.JWT_REFRESH_SECRET = "test-refresh-secret-that-is-at-least-32-characters-long";
+process.env.REDIS_URL = "redis://localhost:6379/1";
 
 // Mock external APIs for testing
 jest.mock("googleapis");

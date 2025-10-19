@@ -1,18 +1,18 @@
 [
   {
-    "id": "cmd-hooks-1760486488339",
-    "type": "hooks",
+    "id": "cmd-hive-mind-1760832491470",
+    "type": "hive-mind",
     "success": true,
-    "duration": 18.269374999999997,
-    "timestamp": 1760486488357,
+    "duration": 19.074332999999996,
+    "timestamp": 1760832491489,
     "metadata": {}
   },
   {
-    "id": "cmd-hooks-1760487168482",
+    "id": "cmd-hooks-1760838192205",
     "type": "hooks",
     "success": true,
-    "duration": 3010.154375,
-    "timestamp": 1760487171493,
+    "duration": 3012.304291,
+    "timestamp": 1760838195217,
     "metadata": {}
   }
 ]

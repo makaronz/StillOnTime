@@ -626,21 +626,21 @@ export class EnhancedCalendarService extends CalendarService {
     // Weather warnings
     if (weather.warnings && Array.isArray(weather.warnings) && weather.warnings.length > 0) {
       sections.push("⚠️ WEATHER ALERTS:");
-      weather.warnings.forEach((warning) => sections.push(`• ${warning}`));
+      weather.warnings.forEach((warning: any) => sections.push(`• ${warning}`));
     }
 
     // Equipment list
     if (scheduleData.equipment && Array.isArray(scheduleData.equipment)) {
       sections.push("");
       sections.push("🎥 EQUIPMENT CHECKLIST");
-      scheduleData.equipment.forEach((item) => sections.push(`• ${item}`));
+      scheduleData.equipment.forEach((item: any) => sections.push(`• ${item}`));
     }
 
     // Contact information
     if (scheduleData.contacts && Array.isArray(scheduleData.contacts)) {
       sections.push("");
       sections.push("📞 KEY CONTACTS");
-      scheduleData.contacts.forEach((contact) => {
+      scheduleData.contacts.forEach((contact: any) => {
         if (typeof contact === "object" && contact !== null && !Array.isArray(contact)) {
           const contactObj = contact as { name?: string; role?: string; phone?: string };
           if (contactObj.name) {

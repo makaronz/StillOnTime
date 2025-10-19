@@ -21,42 +21,41 @@ import { APIError } from '../utils/errors';
  * Uses LangChain + OpenAI for embeddings and generation.
  */
 export class CodeNetRAGService {
-  private embeddings: OpenAIEmbeddings;
-  private llm: ChatOpenAI;
+  private embeddings!: OpenAIEmbeddings;
+  private llm!: ChatOpenAI;
   private enabled: boolean;
 
   constructor() {
-    this.enabled = config.codenet.enableRAG;
-    
+    this.enabled = config.codenet.enableRAG && !!config.apis.openaiApiKey;
+
     if (!this.enabled) {
-      logger.warn('CodeNet RAG is disabled. Set CODENET_ENABLE_RAG=true to enable.');
+      logger.warn('CodeNet RAG is disabled. Set CODENET_ENABLE_RAG=true and OPENAI_API_KEY to enable.');
       return;
     }
 
-    if (!config.apis.openaiApiKey) {
-      logger.error('OpenAI API key not configured. CodeNet RAG will not work.');
+    try {
+      // Initialize OpenAI embeddings (ada-002)
+      this.embeddings = new OpenAIEmbeddings({
+        openAIApiKey: config.apis.openaiApiKey,
+        modelName: 'text-embedding-ada-002'
+      });
+
+      // Initialize LLM for code generation
+      this.llm = new ChatOpenAI({
+        openAIApiKey: config.apis.openaiApiKey,
+        modelName: 'gpt-4',
+        temperature: 0.2, // Lower temperature for more deterministic code
+        maxTokens: 2000
+      });
+
+      logger.info('CodeNet RAG Service initialized', {
+        embeddingsModel: 'text-embedding-ada-002',
+        llmModel: 'gpt-4'
+      });
+    } catch (error) {
+      logger.error('Failed to initialize OpenAI services for CodeNet RAG', { error });
       this.enabled = false;
-      return;
     }
-
-    // Initialize OpenAI embeddings (ada-002)
-    this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: config.apis.openaiApiKey,
-      modelName: 'text-embedding-ada-002'
-    });
-
-    // Initialize LLM for code generation
-    this.llm = new ChatOpenAI({
-      openAIApiKey: config.apis.openaiApiKey,
-      modelName: 'gpt-4',
-      temperature: 0.2, // Lower temperature for more deterministic code
-      maxTokens: 2000
-    });
-
-    logger.info('CodeNet RAG Service initialized', {
-      embeddingsModel: 'text-embedding-ada-002',
-      llmModel: 'gpt-4'
-    });
   }
 
   /**

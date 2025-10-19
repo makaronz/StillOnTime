@@ -191,7 +191,7 @@ export class CalendarManagerService {
       if (eventIds) {
         eventsToSync = await Promise.all(
           eventIds.map((id) => this.calendarEventRepository.findById(id))
-        ).then((events) => events.filter((e) => e !== null) as CalendarEvent[]);
+        ).then((events) => events.filter((e: CalendarEvent | null) => e !== null) as CalendarEvent[]);
       } else {
         eventsToSync =
           await this.calendarEventRepository.findEventsNeedingSync();
@@ -266,7 +266,7 @@ export class CalendarManagerService {
       if (eventIds) {
         events = await Promise.all(
           eventIds.map((id) => this.calendarEventRepository.findById(id))
-        ).then((events) => events.filter((e) => e !== null) as CalendarEvent[]);
+        ).then((events) => events.filter((e: CalendarEvent | null) => e !== null) as CalendarEvent[]);
       } else {
         events = await this.calendarEventRepository.findByUserId(userId);
       }

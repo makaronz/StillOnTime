@@ -1,25 +1,33 @@
 {
   "name": "stillontime-frontend",
   "version": "1.0.0",
-  "description": "StillOnTime Film Schedule Automation System - Frontend Dashboard",
+  "description": "StillOnTime Film Schedule Automation System - Performance Optimized Frontend Dashboard",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:optimized": "vite --config vite.optimized.config.ts",
     "build": "tsc && vite build",
+    "build:optimized": "tsc && vite build --config vite.optimized.config.ts",
+    "build:analyze": "ANALYZE=true npm run build:optimized",
     "preview": "vite preview",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "test:performance": "vitest --run && npm run build:optimized",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --ext ts,tsx --fix"
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "size-check": "npm run build:optimized && bundlesize"
   },
   "keywords": [
     "react",
     "vite",
     "typescript",
     "tailwind",
-    "oauth2"
+    "oauth2",
+    "performance",
+    "optimization",
+    "web-vitals"
   ],
   "author": "StillOnTime Team",
   "license": "MIT",
@@ -28,6 +36,7 @@
     "axios": "^1.6.0",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
+    "lodash-es": "^4.17.21",
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -36,6 +45,7 @@
     "react-router-dom": "^6.18.0",
     "recharts": "^2.8.0",
     "tailwind-merge": "^2.0.0",
+    "web-vitals": "^3.5.0",
     "zod": "^3.22.4",
     "zustand": "^4.4.6"
   },
@@ -43,6 +53,7 @@
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.5.1",
+    "@types/lodash-es": "^4.17.12",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
@@ -50,17 +61,39 @@
     "@vitejs/plugin-react": "^4.1.1",
     "@vitest/coverage-v8": "^0.34.6",
     "@vitest/ui": "^0.34.6",
+    "@rollup/plugin-bundle-analyzer": "^0.6.3",
     "autoprefixer": "^10.4.16",
+    "babel-plugin-import": "^1.13.8",
+    "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
+    "bundlesize": "^0.18.1",
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
     "jsdom": "^22.1.0",
     "postcss": "^8.4.31",
+    "rollup-plugin-visualizer": "^5.9.2",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.2.2",
     "vite": "^4.5.0",
     "vitest": "^0.34.6"
   },
+  "bundlesize": [
+    {
+      "path": "./dist/assets/index-*.js",
+      "maxSize": "500kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/assets/vendor-*.js",
+      "maxSize": "300kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/assets/*.css",
+      "maxSize": "50kb",
+      "compression": "gzip"
+    }
+  ],
   "engines": {
     "node": ">=18.0.0"
   }

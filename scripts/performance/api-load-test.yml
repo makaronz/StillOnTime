@@ -1,0 +1,256 @@
+# Artillery API Load Test Configuration
+# Tests API performance under various load conditions
+
+config:
+  target: '{{ $processEnvironment.API_BASE_URL || "http://localhost:3001" }}'
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+
+    # Ramp-up phase
+    - duration: 120
+      arrivalRate: 5
+      rampTo: 20
+      name: "Ramp up load"
+
+    # Sustained load phase
+    - duration: 300
+      arrivalRate: 20
+      name: "Sustained load"
+
+    # Peak load phase
+    - duration: 60
+      arrivalRate: 50
+      name: "Peak load"
+
+    # Cool-down phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Cool down"
+
+  # Processor for environment variables
+  processor: "./scripts/performance/load-test-processor.js"
+
+  # Default headers
+  headers:
+    Content-Type: "application/json"
+    User-Agent: "StillOnTime-Performance-Test/1.0"
+
+  # HTTP defaults
+  http:
+    timeout: 30
+    pool: 50
+
+scenarios:
+  - name: "Authentication Flow"
+    weight: 20
+    flow:
+      # Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "testpassword"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+
+      # Get user profile
+      - get:
+          url: "/api/user/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Update user preferences
+      - patch:
+          url: "/api/user/preferences"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            theme: "dark"
+            notifications: true
+
+  - name: "Dashboard Loading"
+    weight: 40
+    flow:
+      # Login (if not already authenticated)
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "testpassword"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+
+      # Load dashboard data
+      - get:
+          url: "/api/dashboard"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Get dashboard stats
+      - get:
+          url: "/api/dashboard/stats"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Load recent schedules
+      - get:
+          url: "/api/schedules?limit=10&offset=0"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Load email history
+      - get:
+          url: "/api/emails/history?limit=20&offset=0"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  - name: "Schedule Management"
+    weight: 20
+    flow:
+      # Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "testpassword"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+
+      # Create new schedule
+      - post:
+          url: "/api/schedules"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            title: "Performance Test Schedule {{ $randomString() }}"
+            description: "Test schedule for performance testing"
+            shootingDate: "2024-12-01T09:00:00Z"
+            location: "Test Location"
+            status: "planned"
+          capture:
+            - json: "$.id"
+              as: "scheduleId"
+
+      # Get schedule details
+      - get:
+          url: "/api/schedules/{{ scheduleId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Update schedule
+      - patch:
+          url: "/api/schedules/{{ scheduleId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            status: "confirmed"
+            notes: "Updated via performance test"
+
+      # Delete schedule (cleanup)
+      - delete:
+          url: "/api/schedules/{{ scheduleId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  - name: "Email Processing"
+    weight: 15
+    flow:
+      # Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "testpassword"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+
+      # Process new email
+      - post:
+          url: "/api/emails/process"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            messageId: "test-message-{{ $randomString() }}"
+            subject: "Performance Test Email"
+            from: "test@example.com"
+            to: "user@example.com"
+            body: "This is a test email for performance testing"
+            receivedAt: "{{ $timestamp }}"
+
+      # Get email processing status
+      - get:
+          url: "/api/emails/status/test-message-{{ $randomString() }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Get processed emails list
+      - get:
+          url: "/api/emails/processed?limit=50&offset=0"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  - name: "Search and Filtering"
+    weight: 5
+    flow:
+      # Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "testpassword"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+
+      # Search schedules
+      - get:
+          url: "/api/schedules/search?q=test&limit=20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Filter schedules by date range
+      - get:
+          url: "/api/schedules?startDate=2024-12-01&endDate=2024-12-31"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Search emails
+      - get:
+          url: "/api/emails/search?q=performance&limit=30"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+      # Get analytics data
+      - get:
+          url: "/api/analytics/overview?period=7d"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  # Stress test scenario
+  - name: "Stress Test"
+    weight: 0
+    flow:
+      # Rapid API calls to stress the system
+      - loop:
+          - get:
+              url: "/api/health"
+        count: 10
+
+      - loop:
+          - post:
+              url: "/api/auth/login"
+              json:
+                email: "stress-test@example.com"
+                password: "testpassword"
+        count: 5

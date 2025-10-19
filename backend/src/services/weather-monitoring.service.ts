@@ -136,7 +136,7 @@ export class WeatherMonitoringService {
           humidity: existingWeather.humidity || 0,
           warnings: Array.isArray(existingWeather.warnings)
             ? existingWeather.warnings.filter(
-                (w): w is string => typeof w === "string"
+                (w: any) => typeof w === "string"
               )
             : [],
           fetchedAt: existingWeather.fetchedAt,

@@ -635,7 +635,7 @@ export class CalendarService {
         weather.warnings.length > 0
       ) {
         sections.push("⚠️ OSTRZEŻENIA:");
-        weather.warnings.forEach((warning) => sections.push(`• ${warning}`));
+        weather.warnings.forEach((warning: any) => sections.push(`• ${warning}`));
       }
     }
 
@@ -650,7 +650,7 @@ export class CalendarService {
     if (scheduleData.contacts && Array.isArray(scheduleData.contacts)) {
       sections.push("");
       sections.push("📞 KONTAKTY");
-      scheduleData.contacts.forEach((contact) => {
+      scheduleData.contacts.forEach((contact: any) => {
         if (
           typeof contact === "object" &&
           contact !== null &&
@@ -675,7 +675,7 @@ export class CalendarService {
     if (scheduleData.equipment && Array.isArray(scheduleData.equipment)) {
       sections.push("");
       sections.push("🎥 SPRZĘT");
-      scheduleData.equipment.forEach((item) => sections.push(`• ${item}`));
+      scheduleData.equipment.forEach((item: any) => sections.push(`• ${item}`));
     }
 
     // Additional notes
@@ -765,3 +765,5 @@ export class CalendarService {
     throw new Error("Cannot update event without full schedule data");
   }
 }
+
+// Fixed TypeScript compilation errors

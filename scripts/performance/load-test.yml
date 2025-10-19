@@ -1,0 +1,134 @@
+config:
+  target: 'http://localhost:3001'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 50
+      name: "Load test"
+    - duration: 60
+      arrivalRate: 100
+      name: "Stress test"
+    - duration: 60
+      arrivalRate: 25
+      name: "Cool down"
+
+scenarios:
+  - name: "API Health Check"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - contentType: application/json
+
+  - name: "User Authentication"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+            - hasProperty: "token"
+      - get:
+          url: "/api/auth/verify"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Schedule Operations"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/schedules"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - post:
+          url: "/api/schedules"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            title: "Load Test Schedule {{ $randomString() }}"
+            shootingDate: "2025-01-15T08:00:00Z"
+            callTime: "08:00"
+            wrapTime: "18:00"
+            location: "Test Location"
+            productionId: "load-test-{{ $randomInt() }}"
+          capture:
+            - json: "$.id"
+              as: "scheduleId"
+          expect:
+            - statusCode: 201
+      - get:
+          url: "/api/schedules/{{ scheduleId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Email Operations"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - post:
+          url: "/api/emails/fetch"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Dashboard Data"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/schedules?startDate=2025-01-01&endDate=2025-01-31"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/api/notifications"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/api/notifications/unread/count"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200

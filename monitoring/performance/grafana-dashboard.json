@@ -1,0 +1,310 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "StillOnTime Performance Monitoring",
+    "tags": ["stillontime", "performance", "monitoring"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response Time (seconds)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "Requests/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m])",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Error Rate",
+            "min": 0,
+            "max": 1,
+            "format": "percentunit"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Database Query Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(db_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Query Time (seconds)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m]))",
+            "legendFormat": "Hit Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 0.8
+                },
+                {
+                  "color": "green",
+                  "value": 0.9
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Active Users",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "active_users_total",
+            "legendFormat": "Active Users"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Email Processing Queue",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "email_queue_size",
+            "legendFormat": "Queue Size"
+          },
+          {
+            "expr": "rate(email_processing_duration_seconds[5m])",
+            "legendFormat": "Processing Rate"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Count",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 8,
+        "title": "Frontend Performance - Web Vitals",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "web_vital_lcp_seconds",
+            "legendFormat": "LCP (seconds)"
+          },
+          {
+            "expr": "web_vital_fid_seconds",
+            "legendFormat": "FID (seconds)"
+          },
+          {
+            "expr": "web_vital_cls",
+            "legendFormat": "CLS"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Value",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 9,
+        "title": "Bundle Size Tracking",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "bundle_size_bytes{type=\"js\"}",
+            "legendFormat": "JavaScript"
+          },
+          {
+            "expr": "bundle_size_bytes{type=\"css\"}",
+            "legendFormat": "CSS"
+          },
+          {
+            "expr": "bundle_size_bytes{type=\"total\"}",
+            "legendFormat": "Total"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Size (bytes)",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      },
+      {
+        "id": 10,
+        "title": "System Resources",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(cpu_usage_percent[5m])",
+            "legendFormat": "CPU Usage"
+          },
+          {
+            "expr": "memory_usage_bytes / memory_total_bytes",
+            "legendFormat": "Memory Usage"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Usage",
+            "min": 0,
+            "max": 1,
+            "format": "percentunit"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 32
+        }
+      },
+      {
+        "id": 11,
+        "title": "Slow Queries",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, db_slow_queries_total)",
+            "legendFormat": "Slow Queries"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 32
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  },
+  "overwrite": true
+}

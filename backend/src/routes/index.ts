@@ -11,6 +11,7 @@ import { createMonitoringRoutes } from "./monitoring.routes";
 import enhancedRoutes from "./enhanced.routes";
 import { analyticsRoutes } from "./analytics.routes";
 import { oauthSettingsRoutes } from "./oauth-settings.routes";
+import { systemConfigRoutes } from "./system-config.routes";
 import codenetRoutes from "./codenet.routes";
 import { HealthController } from "../controllers/health.controller";
 import { MonitoringMiddleware } from "../middleware/monitoring.middleware";
@@ -56,6 +57,9 @@ router.use("/analytics", analyticsRoutes);
 
 // OAuth settings routes - /api/oauth/*
 router.use("/oauth", oauthSettingsRoutes);
+
+// System configuration routes - /api/config/*
+router.use("/config", systemConfigRoutes);
 
 // CodeNet RAG routes - /api/codenet/*
 router.use("/codenet", codenetRoutes);

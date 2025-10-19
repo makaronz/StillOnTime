@@ -93,7 +93,7 @@ export class TextContentGenerator {
       Array.isArray(scheduleData.equipment)
     ) {
       content += `${templates.sections.equipment}\n`;
-      scheduleData.equipment.forEach((item) => {
+      scheduleData.equipment.forEach((item: any) => {
         content += `• ${item}\n`;
       });
       content += "\n";
@@ -292,7 +292,7 @@ export class HtmlContentGenerator {
           <h2>${templates.sections.equipment}</h2>
           <ul class="equipment-list">
       `;
-      scheduleData.equipment.forEach((item) => {
+      scheduleData.equipment.forEach((item: any) => {
         html += `<li>${item}</li>`;
       });
       html += `
