@@ -15,6 +15,7 @@ const Configuration = lazy(() => import('@/pages/Configuration'))
 const History = lazy(() => import('@/pages/History'))
 const Monitoring = lazy(() => import('@/pages/Monitoring').then(module => ({ default: module.Monitoring })))
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'))
+const Onboarding = lazy(() => import('@/pages/Onboarding/OnboardingFlow'))
 
 function App(): JSX.Element {
   const { checkAuth } = useAuthStore()
@@ -32,6 +33,16 @@ function App(): JSX.Element {
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<OAuthCallback />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+            {/* Onboarding route - protected but without layout */}
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Protected routes */}
             <Route

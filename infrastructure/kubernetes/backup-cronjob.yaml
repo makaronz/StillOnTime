@@ -1,0 +1,158 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: stillontime
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: postgres-backup
+            image: postgres:15-alpine
+            command:
+            - /bin/bash
+            - -c
+            - |
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="stillontime_backup_${TIMESTAMP}.sql"
+
+              echo "Starting backup at $(date)"
+
+              # Create backup
+              pg_dump -h postgres -U postgres -d stillontime > "/backups/${BACKUP_FILE}"
+
+              # Compress backup
+              gzip "/backups/${BACKUP_FILE}"
+
+              # Remove backups older than 30 days
+              find /backups -name "*.sql.gz" -mtime +30 -delete
+
+              echo "Backup completed: ${BACKUP_FILE}.gz"
+
+              # Upload to cloud storage (optional)
+              if [ -n "$AWS_S3_BUCKET" ]; then
+                aws s3 cp "/backups/${BACKUP_FILE}.gz" "s3://${AWS_S3_BUCKET}/postgres/${BACKUP_FILE}.gz"
+                echo "Backup uploaded to S3"
+              fi
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: database-password
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: aws-s3-bucket
+                  optional: true
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            - name: aws-credentials
+              mountPath: /root/.aws
+              readOnly: true
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: postgres-backup-pvc
+          - name: aws-credentials
+            secret:
+              secretName: aws-credentials
+              optional: true
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            fsGroup: 1001
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-backup-pvc
+  namespace: stillontime
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: gp2
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: stillontime
+data:
+  aws-s3-bucket: "stillontime-backups"
+  backup-retention-days: "30"
+  backup-compression: "true"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+  namespace: stillontime
+spec:
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: redis-backup
+            image: redis:7-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="redis_backup_${TIMESTAMP}.rdb"
+
+              echo "Starting Redis backup at $(date)"
+
+              # Create backup
+              redis-cli -h redis --rdb "/backups/${BACKUP_FILE}"
+
+              # Compress backup
+              gzip "/backups/${BACKUP_FILE}"
+
+              # Remove backups older than 7 days
+              find /backups -name "*.rdb.gz" -mtime +7 -delete
+
+              echo "Redis backup completed: ${BACKUP_FILE}.gz"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: redis-backup-pvc
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            fsGroup: 1001
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-backup-pvc
+  namespace: stillontime
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: gp2

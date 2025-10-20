@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stillontime
+  labels:
+    name: stillontime
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stillontime-staging
+  labels:
+    name: stillontime-staging
+    environment: staging

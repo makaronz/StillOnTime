@@ -1,0 +1,203 @@
+groups:
+  - name: stillontime.rules
+    rules:
+      # Backend alerts
+      - alert: BackendDown
+        expr: up{job="stillontime-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: stillontime-backend
+        annotations:
+          summary: "Backend service is down"
+          description: "Backend service {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: BackendHighErrorRate
+        expr: rate(http_requests_total{job="stillontime-backend",status=~"5.."}[5m]) / rate(http_requests_total{job="stillontime-backend"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: stillontime-backend
+        annotations:
+          summary: "Backend high error rate"
+          description: "Backend error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      - alert: BackendHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="stillontime-backend"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: stillontime-backend
+        annotations:
+          summary: "Backend high latency"
+          description: "Backend 95th percentile latency is {{ $value }}s for the last 5 minutes."
+
+      - alert: BackendHighMemoryUsage
+        expr: container_memory_usage_bytes{pod=~"backend-.*"} / container_spec_memory_limit_bytes{pod=~"backend-.*"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: stillontime-backend
+        annotations:
+          summary: "Backend high memory usage"
+          description: "Backend memory usage is {{ $value | humanizePercentage }} of the limit."
+
+      - alert: BackendHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{pod=~"backend-.*"}[5m]) / container_spec_cpu_quota{pod=~"backend-.*"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: stillontime-backend
+        annotations:
+          summary: "Backend high CPU usage"
+          description: "Backend CPU usage is {{ $value | humanizePercentage }} of the limit."
+
+      # Frontend alerts
+      - alert: FrontendDown
+        expr: up{job="stillontime-frontend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: stillontime-frontend
+        annotations:
+          summary: "Frontend service is down"
+          description: "Frontend service {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: FrontendHighErrorRate
+        expr: rate(nginx_http_requests_total{job="stillontime-frontend",status=~"5.."}[5m]) / rate(nginx_http_requests_total{job="stillontime-frontend"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: stillontime-frontend
+        annotations:
+          summary: "Frontend high error rate"
+          description: "Frontend error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      # Database alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: PostgreSQLHighConnections
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL high connection usage"
+          description: "PostgreSQL connection usage is {{ $value | humanizePercentage }}."
+
+      - alert: PostgreSQLSlowQueries
+        expr: rate(pg_stat_statements_mean_time_seconds[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL slow queries"
+          description: "PostgreSQL average query time is {{ $value }}s for the last 5 minutes."
+
+      # Redis alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}."
+
+      # Kubernetes alerts
+      - alert: KubernetesPodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod is crash looping"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping."
+
+      - alert: KubernetesNodeReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 10m
+        labels:
+          severity: critical
+          service: kubernetes
+        annotations:
+          summary: "Kubernetes node not ready"
+          description: "Node {{ $labels.node }} has been not ready for more than 10 minutes."
+
+      - alert: KubernetesPodNotReady
+        expr: kube_pod_status_ready{condition="true"} == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod not ready"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has been not ready for more than 10 minutes."
+
+      # External URL monitoring
+      - alert: ExternalURLDown
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: external
+        annotations:
+          summary: "External URL is down"
+          description: "External URL {{ $labels.instance }} is down."
+
+      - alert: ExternalURLSlow
+        expr: probe_duration_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: external
+        annotations:
+          summary: "External URL is slow"
+          description: "External URL {{ $labels.instance }} took {{ $value }}s to respond."
+
+  - name: stillontime.recording
+    interval: 30s
+    rules:
+      # Recording rules for better performance
+      - record: stillontime:http_requests:rate5m
+        expr: rate(http_requests_total{job="stillontime-backend"}[5m])
+
+      - record: stillontime:http_request_duration:rate5m
+        expr: rate(http_request_duration_seconds_sum{job="stillontime-backend"}[5m]) / rate(http_request_duration_seconds_count{job="stillontime-backend"}[5m])
+
+      - record: stillontime:http_requests:by_status:rate5m
+        expr: sum without(status) (rate(http_requests_total{job="stillontime-backend"}[5m]))
+
+      - record: stillontime:backend_cpu:rate5m
+        expr: rate(container_cpu_usage_seconds_total{pod=~"backend-.*"}[5m])
+
+      - record: stillontime:backend_memory:bytes
+        expr: container_memory_usage_bytes{pod=~"backend-.*"}
+
+      - record: stillontime:nginx_requests:rate5m
+        expr: rate(nginx_http_requests_total{job="stillontime-frontend"}[5m])
+
+      - record: stillontime:postgres_connections:current
+        expr: pg_stat_activity_count

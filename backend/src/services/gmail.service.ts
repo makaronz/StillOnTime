@@ -480,6 +480,8 @@ export class GmailService {
 
       // Create processed email record
       const emailData: CreateProcessedEmailInput = {
+        id: crypto.randomUUID(), // Generate unique ID
+        userId, // Add userId
         messageId: email.id,
         subject,
         sender: from,
@@ -488,9 +490,7 @@ export class GmailService {
         processed: false,
         processingStatus: "pending",
         pdfHash,
-        user: {
-          connect: { id: userId },
-        },
+        updatedAt: new Date(), // Add updatedAt
       };
 
       await this.markAsProcessed(emailData);

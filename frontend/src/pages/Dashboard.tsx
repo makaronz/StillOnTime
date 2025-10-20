@@ -4,6 +4,8 @@ import RecentActivityCard from '@/components/dashboard/RecentActivityCard'
 import UpcomingSchedulesCard from '@/components/dashboard/UpcomingSchedulesCard'
 import ProcessingControlCard from '@/components/dashboard/ProcessingControlCard'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { SetupStatusWidget } from '@/components/dashboard/SetupStatusWidget'
+import { InitializationCheck } from '@/components/setup/InitializationCheck'
 import { AlertCircle } from 'lucide-react'
 
 export default function Dashboard(): JSX.Element {
@@ -47,14 +49,18 @@ export default function Dashboard(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Monitor your film schedule automation system</p>
-      </div>
+    <InitializationCheck showSetupPrompt={false}>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Monitor your film schedule automation system</p>
+        </div>
 
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Setup Status Widget */}
+        <SetupStatusWidget />
+
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* System Status */}
         <SystemStatusCard
           systemStatus={systemStatus}
@@ -96,6 +102,7 @@ export default function Dashboard(): JSX.Element {
           <LoadingSpinner size="sm" text="Refreshing..." />
         </div>
       )}
-    </div>
+      </div>
+    </InitializationCheck>
   )
 }
