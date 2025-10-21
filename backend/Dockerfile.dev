@@ -12,8 +12,8 @@ COPY . .
 # Create logs directory
 RUN mkdir -p logs
 
-# Generate Prisma client
-RUN npx prisma generate
+# Skip TypeScript build for development
+# RUN npm run build
 
 EXPOSE 3001
 
