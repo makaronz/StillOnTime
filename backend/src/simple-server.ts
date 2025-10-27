@@ -214,7 +214,7 @@ app.use(
 );
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 StillOnTime Demo Backend running on port ${PORT}`);
   console.log(
     `📱 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}`
