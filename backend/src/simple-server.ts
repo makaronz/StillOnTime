@@ -14,9 +14,12 @@ app.use(
     origin: [
       process.env.FRONTEND_URL || "http://localhost:3000",
       "https://fast-deployment.preview.emergentagent.com",
-      "http://localhost:3000"
+      "http://localhost:3000",
+      /\.emergentagent\.com$/
     ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
