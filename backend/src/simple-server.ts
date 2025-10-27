@@ -47,20 +47,29 @@ app.get("/api/auth/login", (req, res) => {
   });
 });
 
-app.post("/api/auth/callback", (req, res) => {
+app.post("/api/auth/callback", async (req, res) => {
   const { code, state } = req.body;
-
-  // Mock successful authentication
-  res.json({
-    success: true,
-    user: {
-      id: "demo-user-123",
-      email: "demo@stillontime.com",
-      name: "Demo User",
-    },
-    token: "demo-jwt-token-replace-with-real-jwt",
-    message: "Demo authentication successful",
-  });
+  
+  try {
+    // In a real implementation, exchange the code for tokens here
+    // For now, return a mock successful response
+    
+    res.json({
+      success: true,
+      user: {
+        id: "demo-user-123",
+        email: "demo@stillontime.com",
+        name: "Demo User",
+      },
+      token: "demo-jwt-token-replace-with-real-jwt",
+      message: "Authentication successful (demo mode)",
+    });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: "Authentication failed",
+    });
+  }
 });
 
 app.get("/api/auth/status", (req, res) => {
