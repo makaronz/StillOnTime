@@ -26,11 +26,24 @@ app.use(express.json());
 
 // Simple auth routes for frontend compatibility
 app.get("/api/auth/login", (req, res) => {
+  // Determine redirect URI based on the request origin or host
+  const origin = req.get('origin') || req.get('referer') || 'http://localhost:3000';
+  let redirectUri = 'http://localhost:3000/auth/callback';
+  
+  // If accessed from preview domain, use that
+  if (origin.includes('preview.emergentagent.com')) {
+    redirectUri = 'https://fast-deployment.preview.emergentagent.com/auth/callback';
+  }
+  
+  const clientId = process.env.GOOGLE_CLIENT_ID || 'demo';
+  const scopes = encodeURIComponent('openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar');
+  
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}&access_type=offline&prompt=consent`;
+  
   res.json({
     success: true,
-    authUrl:
-      "https://accounts.google.com/oauth/authorize?client_id=demo&redirect_uri=http://localhost:3000/auth/callback&response_type=code&scope=email%20profile",
-    message: "Demo auth URL - replace with real Google OAuth",
+    authUrl,
+    message: "Google OAuth authentication",
   });
 });
 
