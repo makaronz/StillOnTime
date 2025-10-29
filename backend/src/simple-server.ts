@@ -6,41 +6,70 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app: express.Application = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || "8001", 10);
 
 // Middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: [
+      process.env.FRONTEND_URL || "http://localhost:3000",
+      "https://fast-deployment.preview.emergentagent.com",
+      "http://localhost:3000",
+      /\.emergentagent\.com$/
+    ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
 
 // Simple auth routes for frontend compatibility
 app.get("/api/auth/login", (req, res) => {
+  // Determine redirect URI based on the request origin or host
+  const origin = req.get('origin') || req.get('referer') || 'http://localhost:3000';
+  let redirectUri = 'http://localhost:3000/auth/callback';
+  
+  // If accessed from preview domain, use that
+  if (origin.includes('preview.emergentagent.com')) {
+    redirectUri = 'https://fast-deployment.preview.emergentagent.com/auth/callback';
+  }
+  
+  const clientId = process.env.GOOGLE_CLIENT_ID || 'demo';
+  const scopes = encodeURIComponent('openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar');
+  
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}&access_type=offline&prompt=consent`;
+  
   res.json({
     success: true,
-    authUrl:
-      "https://accounts.google.com/oauth/authorize?client_id=demo&redirect_uri=http://localhost:3000/auth/callback&response_type=code&scope=email%20profile",
-    message: "Demo auth URL - replace with real Google OAuth",
+    authUrl,
+    message: "Google OAuth authentication",
   });
 });
 
-app.post("/api/auth/callback", (req, res) => {
+app.post("/api/auth/callback", async (req, res) => {
   const { code, state } = req.body;
-
-  // Mock successful authentication
-  res.json({
-    success: true,
-    user: {
-      id: "demo-user-123",
-      email: "demo@stillontime.com",
-      name: "Demo User",
-    },
-    token: "demo-jwt-token-replace-with-real-jwt",
-    message: "Demo authentication successful",
-  });
+  
+  try {
+    // In a real implementation, exchange the code for tokens here
+    // For now, return a mock successful response
+    
+    res.json({
+      success: true,
+      user: {
+        id: "demo-user-123",
+        email: "demo@stillontime.com",
+        name: "Demo User",
+      },
+      token: "demo-jwt-token-replace-with-real-jwt",
+      message: "Authentication successful (demo mode)",
+    });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: "Authentication failed",
+    });
+  }
 });
 
 app.get("/api/auth/status", (req, res) => {
@@ -214,7 +243,7 @@ app.use(
 );
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 StillOnTime Demo Backend running on port ${PORT}`);
   console.log(
     `📱 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}`
