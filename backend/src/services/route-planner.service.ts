@@ -2,6 +2,7 @@ import { GoogleMapsService } from "./google-maps.service";
 import { UserConfigRepository } from "../repositories/user-config.repository";
 import { RoutePlanRepository } from "../repositories/route-plan.repository";
 import { logger } from "../utils/logger";
+import { randomUUID } from "crypto";
 import {
   ScheduleData,
   RoutePlan,
@@ -181,14 +182,16 @@ export class RoutePlannerService {
     userId: string
   ): Promise<RoutePlan> {
     const routePlanData: CreateRoutePlanInput = {
+      id: randomUUID(), // Generate unique ID
       wakeUpTime: routeCalculation.wakeUpTime,
       departureTime: routeCalculation.departureTime,
       arrivalTime: routeCalculation.arrivalTime,
       totalTravelMinutes: routeCalculation.totalTravelMinutes,
       routeSegments: routeCalculation.routeSegments as any,
       buffers: routeCalculation.buffers as any,
-      user: { connect: { id: userId } },
-      schedule: { connect: { id: scheduleId } },
+      calculatedAt: new Date(), // Set current timestamp
+      userId: userId,
+      scheduleId: scheduleId,
     };
 
     return this.routePlanRepository.create(routePlanData);

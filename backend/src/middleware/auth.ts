@@ -6,19 +6,23 @@ import { scheduleDataRepository } from '@/repositories/schedule-data.repository'
 import { processedEmailRepository } from '@/repositories/processed-email.repository';
 import { routePlanRepository } from '@/repositories/route-plan.repository';
 import { logger } from '@/utils/logger';
-import { applyRateLimit } from './rateLimit';
+import { createRateLimitMiddleware, rateLimitConfigs } from './rateLimit';
+
+// Unified user interface for Express Request
+interface AuthenticatedUser {
+  userId: string;
+  email: string;
+  name?: string;
+  role?: string;
+  tier?: string;
+  fingerprint?: string;
+}
 
 // Extend Request interface to include user
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        userId: string;
-        email: string;
-        name?: string;
-        role?: string;
-        tier?: string;
-      };
+      user?: AuthenticatedUser;
     }
   }
 }
@@ -47,33 +51,44 @@ export const verifyToken = (token: string): Promise<JWTPayload> => {
 
 // Generate JWT token
 export const generateToken = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string => {
-  return jwt.sign(payload, process.env.JWT_SECRET!, {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+
+  return jwt.sign(payload, secret, {
     expiresIn: process.env.JWT_EXPIRES_IN || '1h',
     issuer: 'stillontime-api',
     audience: 'stillontime-client'
-  });
+  } as jwt.SignOptions);
 };
 
 // Generate refresh token
 export const generateRefreshToken = (userId: string): string => {
+  const refreshSecret = process.env.JWT_REFRESH_SECRET;
+  if (!refreshSecret) {
+    throw new Error('JWT_REFRESH_SECRET environment variable is not set');
+  }
+
   return jwt.sign(
     { userId, type: 'refresh' },
-    process.env.JWT_REFRESH_SECRET!,
+    refreshSecret,
     { expiresIn: '7d' }
   );
 };
 
 // Authentication middleware
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Get token from header
     const authHeader = req.get('Authorization');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'No valid authorization header provided'
       });
+      return;
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -85,10 +100,11 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     const user = await userRepository.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'User not found'
       });
+      return;
     }
 
     // Add user to request object
@@ -111,19 +127,21 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     next();
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Token expired',
         message: 'Your session has expired. Please log in again.',
         code: 'TOKEN_EXPIRED'
       });
+      return;
     }
 
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Invalid token',
         message: 'Invalid authentication token.',
         code: 'INVALID_TOKEN'
       });
+      return;
     }
 
     logger.error('Authentication error', {
@@ -132,7 +150,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       path: req.path
     });
 
-    return res.status(401).json({
+    res.status(401).json({
       error: 'Authentication failed',
       message: 'Unable to authenticate user'
     });
@@ -140,7 +158,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 };
 
 // Optional authentication - doesn't fail if no token
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.get('Authorization');
 
@@ -170,22 +188,24 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
 
 // Role-based authorization
 export const requireRole = (roles: string | string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'Authentication required'
       });
+      return;
     }
 
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
     const userRole = req.user.role || 'user';
 
     if (!allowedRoles.includes(userRole)) {
-      return res.status(403).json({
+      res.status(403).json({
         error: 'Forbidden',
         message: 'Insufficient permissions'
       });
+      return;
     }
 
     next();
@@ -194,24 +214,26 @@ export const requireRole = (roles: string | string[]) => {
 
 // Tier-based authorization
 export const requireTier = (tiers: string | string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'Authentication required'
       });
+      return;
     }
 
     const allowedTiers = Array.isArray(tiers) ? tiers : [tiers];
     const userTier = req.user.tier || 'free';
 
     if (!allowedTiers.includes(userTier)) {
-      return res.status(403).json({
+      res.status(403).json({
         error: 'Upgrade required',
         message: `This feature requires a ${allowedTiers.join(' or ')} plan`,
         requiredTier: allowedTiers[0],
         currentTier: userTier
       });
+      return;
     }
 
     next();
@@ -220,13 +242,14 @@ export const requireTier = (tiers: string | string[]) => {
 
 // Resource owner verification
 export const requireOwnership = (resourceIdParam: string = 'id') => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
-        return res.status(401).json({
+        res.status(401).json({
           error: 'Unauthorized',
           message: 'Authentication required'
         });
+        return;
       }
 
       const resourceId = req.params[resourceIdParam];
@@ -252,28 +275,30 @@ export const requireOwnership = (resourceIdParam: string = 'id') => {
           break;
 
         default:
-          return res.status(400).json({
+          res.status(400).json({
             error: 'Invalid resource type',
             message: 'Cannot verify ownership for this resource type'
           });
+          return;
       }
 
       if (!isOwner) {
-        return res.status(403).json({
+        res.status(403).json({
           error: 'Forbidden',
           message: 'You do not have permission to access this resource'
         });
+        return;
       }
 
       next();
     } catch (error) {
       logger.error('Ownership verification error', {
-        error: error.message,
+        error: (error as Error).message,
         resourceId: req.params[resourceIdParam],
         userId: req.user?.userId
       });
 
-      return res.status(500).json({
+      res.status(500).json({
         error: 'Internal server error',
         message: 'Unable to verify resource ownership'
       });
@@ -282,15 +307,16 @@ export const requireOwnership = (resourceIdParam: string = 'id') => {
 };
 
 // API key authentication (for service-to-service communication)
-export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const apiKey = req.get('X-API-Key');
 
     if (!apiKey) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'API key required'
       });
+      return;
     }
 
     // TODO: Implement API key validation
@@ -298,10 +324,11 @@ export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction
     const validKey = false; // Mock validation
 
     if (!validKey) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid API key'
       });
+      return;
     }
 
     // Add service context to request
@@ -310,7 +337,7 @@ export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction
     next();
   } catch (error) {
     logger.error('API key authentication error', error);
-    return res.status(500).json({
+    res.status(500).json({
       error: 'Internal server error',
       message: 'Unable to authenticate with API key'
     });
@@ -318,33 +345,36 @@ export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction
 };
 
 // Refresh token middleware
-export const refreshTokenMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const refreshTokenMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Bad request',
         message: 'Refresh token is required'
       });
+      return;
     }
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as any;
 
     if (decoded.type !== 'refresh') {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Invalid token',
         message: 'Invalid refresh token'
       });
+      return;
     }
 
     const user = await userRepository.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Invalid token',
         message: 'User not found'
       });
+      return;
     }
 
     // Generate new access token
@@ -360,13 +390,14 @@ export const refreshTokenMiddleware = async (req: Request, res: Response, next: 
     });
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
+      res.status(401).json({
         error: 'Token expired',
         message: 'Refresh token has expired. Please log in again.'
       });
+      return;
     }
 
-    return res.status(401).json({
+    res.status(401).json({
       error: 'Invalid token',
       message: 'Invalid refresh token'
     });

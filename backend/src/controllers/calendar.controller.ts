@@ -79,10 +79,15 @@ export class CalendarController {
       }
 
       // Create calendar event using the correct method signature
+      // Handle weatherData array vs single object
+      const weatherData = schedule.weatherData && Array.isArray(schedule.weatherData)
+        ? schedule.weatherData[0] || undefined
+        : schedule.weatherData || undefined;
+
       const newEvent = await services.calendarManager.createCalendarEvent(
         schedule,
         schedule.routePlan || undefined,
-        schedule.weatherData || undefined,
+        weatherData,
         req.user.userId
       );
 
@@ -323,6 +328,11 @@ export class CalendarController {
 
           // Create or update calendar event
           let calendarEvent;
+          // Handle weatherData array vs single object
+          const weatherDataForEvent = schedule.weatherData && Array.isArray(schedule.weatherData)
+            ? schedule.weatherData[0] || undefined
+            : schedule.weatherData || undefined;
+
           if (schedule.calendarEvent) {
             // Update existing event
             calendarEvent =
@@ -330,7 +340,7 @@ export class CalendarController {
                 schedule.calendarEvent.calendarEventId,
                 schedule,
                 schedule.routePlan || undefined,
-                schedule.weatherData || undefined,
+                weatherDataForEvent,
                 req.user.userId
               );
           } else {
@@ -338,7 +348,7 @@ export class CalendarController {
             calendarEvent = await services.calendarManager.createCalendarEvent(
               schedule,
               schedule.routePlan || undefined,
-              schedule.weatherData || undefined,
+              weatherDataForEvent,
               req.user.userId
             );
           }

@@ -74,11 +74,12 @@ export class ScheduleDataRepository implements IScheduleDataRepository {
 
   async create(data: CreateScheduleDataInput): Promise<ScheduleData> {
     const id = this.generateCuid();
+    const { id: _, ...dataWithoutId } = data;
     return await db
       .insertInto("schedule_data")
       .values({
         id,
-        ...data,
+        ...dataWithoutId,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as unknown as NewScheduleData)

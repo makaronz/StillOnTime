@@ -9,6 +9,7 @@ import { WeatherData, CreateWeatherDataInput, WeatherForecast } from "@/types";
 import { weatherCacheService, WeatherCacheData } from "./weather-cache.service";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
 import { logger } from "@/utils/logger";
+import { randomUUID } from "crypto";
 
 /**
  * Weather Service
@@ -445,6 +446,9 @@ export class WeatherService {
   ): Promise<WeatherData> {
     try {
       const weatherInput: CreateWeatherDataInput = {
+        id: randomUUID(),
+        userId,
+        scheduleId,
         forecastDate: new Date(weatherData.date),
         temperature: weatherData.temperature,
         description: weatherData.description,
@@ -452,8 +456,6 @@ export class WeatherService {
         precipitation: weatherData.precipitation,
         humidity: weatherData.humidity,
         warnings: weatherData.warnings,
-        user: { connect: { id: userId } },
-        schedule: { connect: { id: scheduleId } },
       };
 
       const storedWeather = await this.weatherRepository.create(

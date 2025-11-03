@@ -665,6 +665,7 @@ export class EnhancedGmailService extends GmailService {
     analysis: EnhancedEmailAnalysis
   ): Promise<void> {
     const emailData: CreateProcessedEmailInput = {
+      id: crypto.randomUUID(), // Generate unique ID
       messageId: email.id,
       subject: parsedEmail.subject || "",
       sender: parsedEmail.from?.text || "",
@@ -672,9 +673,8 @@ export class EnhancedGmailService extends GmailService {
       threadId: email.threadId,
       processed: analysis.isScheduleEmail,
       processingStatus: analysis.isScheduleEmail ? "completed" : "rejected",
-      user: {
-        connect: { id: userId },
-      },
+      userId: userId,
+      updatedAt: new Date(), // Set current timestamp
     };
 
     await this.markAsProcessed(emailData);

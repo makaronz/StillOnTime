@@ -26,13 +26,16 @@ export class WarningsCollector {
       language === "pl" ? this.polishTemplates : this.englishTemplates;
 
     // Weather warnings
-    if (scheduleData.weatherData?.warnings) {
-      const weatherWarnings = Array.isArray(scheduleData.weatherData.warnings)
-        ? scheduleData.weatherData.warnings.filter(
-            (warning: any): warning is string => typeof warning === "string"
-          )
-        : [];
-      warnings.push(...weatherWarnings);
+    if (scheduleData.weatherData && scheduleData.weatherData.length > 0) {
+      const weather = scheduleData.weatherData[0];
+      if (weather?.warnings) {
+        const weatherWarnings = Array.isArray(weather.warnings)
+          ? weather.warnings.filter(
+              (warning: any): warning is string => typeof warning === "string"
+            )
+          : [];
+        warnings.push(...weatherWarnings);
+      }
     }
 
     // Early wake up warning
@@ -52,8 +55,9 @@ export class WarningsCollector {
     }
 
     // EXT shoot weather warning
-    if (scheduleData.sceneType === "EXT" && scheduleData.weatherData) {
-      const temp = scheduleData.weatherData.temperature;
+    if (scheduleData.sceneType === "EXT" && scheduleData.weatherData && scheduleData.weatherData.length > 0) {
+      const weather = scheduleData.weatherData[0];
+      const temp = weather.temperature;
       if (temp !== null && temp !== undefined) {
         if (temp < 0) {
           warnings.push(templates.warnings.coldWeather);

@@ -59,10 +59,11 @@ const DEFAULT_CACHE_CONFIG: Partial<CacheConfig> = {
 export function createCacheMiddleware(config: CacheConfig = {}) {
   const finalConfig = { ...DEFAULT_CACHE_CONFIG, ...config };
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     // Check if we should skip cache
     if (finalConfig.skipCache?.(req)) {
-      return next();
+      next();
+      return;
     }
 
     // Generate cache key
@@ -82,10 +83,11 @@ export function createCacheMiddleware(config: CacheConfig = {}) {
             "X-Cache": "HIT",
             "X-Cache-Key": cacheKey,
             "Cache-Control": `public, max-age=${finalConfig.ttl}`,
-            "Content-Type": cachedResponse.contentType || "application/json",
+            "Content-Type": (cachedResponse as any).contentType || "application/json",
           });
 
-          return res.send(cachedResponse.data);
+          res.send((cachedResponse as any).data);
+          return;
         }
 
         // Cache miss - intercept response to cache it
@@ -108,7 +110,7 @@ function generateCacheKey(req: Request, prefix?: string): string {
     url: req.url,
     query: req.query,
     // Include relevant headers for user-specific caching
-    user: req.user?.id || req.headers["x-user-id"],
+    user: req.user?.userId || req.headers["x-user-id"],
   };
 
   const keyString = JSON.stringify(keyData);
@@ -203,7 +205,7 @@ export function createCacheInvalidationMiddleware(config: {
   keyPrefix?: string;
   tags?: string[];
 }) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const originalSend = res.send;
 
     res.send = function(data: any) {
@@ -322,7 +324,7 @@ export const cacheMiddleware = {
     ttl: 300,
     keyPrefix: "user:",
     generateKey: (req) => {
-      const userId = req.user?.id || req.headers["x-user-id"];
+      const userId = req.user?.userId || req.headers["x-user-id"];
       return `user:${userId}:${req.route?.path || req.path}:${JSON.stringify(req.query)}`;
     },
   }),

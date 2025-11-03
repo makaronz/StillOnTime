@@ -97,7 +97,12 @@ export const skipCsrfForRoutes = (
     }
 
     // Apply CSRF protection
-    csrfProtection(req, res, next);
+    csrfProtection(req, res, (err) => {
+      if (err) {
+        return csrfErrorHandler(err, req, res, next);
+      }
+      next();
+    });
   };
 };
 

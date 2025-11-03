@@ -3,10 +3,11 @@ import {
   ScheduleDataWithRelations,
   GeneratedSummary,
   SummaryGenerationOptions,
-  CreateSummaryInput,
 } from "../../types";
+import { NewSummary } from "../../config/database-types";
 import { SummaryRepository } from "../../repositories/summary.repository";
 import { logger } from "../../utils/logger";
+import { randomUUID } from "crypto";
 
 /**
  * Base Summary Service
@@ -24,15 +25,18 @@ export class BaseSummaryService {
     generatedSummary: GeneratedSummary
   ): Promise<Summary> {
     try {
-      const createData: CreateSummaryInput = {
-        user: { connect: { id: userId } },
-        schedule: { connect: { id: scheduleId } },
+      const createData: NewSummary = {
+        id: randomUUID(),
+        userId,
+        scheduleId,
         language: generatedSummary.metadata.language,
         content: generatedSummary.content,
         htmlContent: generatedSummary.htmlContent,
         timeline: generatedSummary.timeline as any,
         weatherSummary: generatedSummary.weatherSummary,
         warnings: generatedSummary.warnings as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       const updateData = {

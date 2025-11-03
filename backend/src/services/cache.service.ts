@@ -297,6 +297,24 @@ export class CacheService {
       console.error("Cache flush error:", error);
     }
   }
+
+  /**
+   * Alias for flush() method - used by memory recovery controller
+   */
+  async flushAll(): Promise<void> {
+    return this.flush();
+  }
+
+  /**
+   * Clear cache with specific prefix or all cache - used by memory recovery controller
+   */
+  async clearCache(prefix?: string): Promise<void> {
+    if (prefix) {
+      await this.clearPrefix(prefix);
+    } else {
+      await this.flush();
+    }
+  }
 }
 
 // Export singleton instance

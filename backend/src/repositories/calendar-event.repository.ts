@@ -53,11 +53,12 @@ export class CalendarEventRepository implements ICalendarEventRepository {
 
   async create(data: CreateCalendarEventInput): Promise<CalendarEvent> {
     const id = this.generateCuid();
+    const { id: _, ...dataWithoutId } = data;
     return await db
       .insertInto("calendar_events")
       .values({
         id,
-        ...data,
+        ...dataWithoutId,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as unknown as NewCalendarEvent)

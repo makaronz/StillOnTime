@@ -3,14 +3,20 @@ import { services } from "@/services";
 import { SecureCookieManager } from "@/utils/cookies";
 import { logger } from "@/utils/logger";
 
+// Unified user interface for Express Request (same as in auth.ts)
+interface AuthenticatedUser {
+  userId: string;
+  email: string;
+  name?: string;
+  role?: string;
+  tier?: string;
+  fingerprint?: string;
+}
+
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        userId: string;
-        email: string;
-        fingerprint?: string;
-      };
+      user?: AuthenticatedUser;
     }
   }
 }

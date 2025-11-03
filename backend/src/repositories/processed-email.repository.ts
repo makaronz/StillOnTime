@@ -61,11 +61,12 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
 
   async create(data: CreateProcessedEmailInput): Promise<ProcessedEmail> {
     const id = this.generateCuid();
+    const { id: _, ...dataWithoutId } = data;
     return await db
       .insertInto("processed_emails")
       .values({
         id,
-        ...data,
+        ...dataWithoutId,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as unknown as NewProcessedEmail)

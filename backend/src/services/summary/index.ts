@@ -87,9 +87,9 @@ export class SummaryService extends BaseSummaryService {
 
       // Generate weather summary
       const weatherSummary =
-        includeWeather && scheduleData.weatherData
+        includeWeather && scheduleData.weatherData && scheduleData.weatherData.length > 0
           ? this.weatherSummaryGenerator.generateWeatherSummary(
-              scheduleData.weatherData,
+              scheduleData.weatherData[0],
               language
             )
           : undefined;
