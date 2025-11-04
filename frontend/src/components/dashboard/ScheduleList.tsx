@@ -8,7 +8,7 @@ import {
   MapPinIcon,
   FilmIcon,
   UserIcon,
-  ChevronRightIcon,
+  ChevronRight,
   ChevronDownIcon
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
@@ -192,7 +192,7 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
                     {expandedId === schedule.id ? (
                       <ChevronDownIcon className="w-4 h-4" />
                     ) : (
-                      <ChevronRightIcon className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4" />
                     )}
                   </Button>
                 </div>

@@ -8,7 +8,7 @@ import {
   WindIcon,
   DropletsIcon,
   EyeIcon,
-  ThermometerIcon,
+  Thermometer,
   AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';

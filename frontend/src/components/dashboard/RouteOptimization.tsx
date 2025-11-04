@@ -8,8 +8,8 @@ import {
   CarIcon,
   NavigationIcon,
   XIcon,
-  ChevronRightIcon,
-  PlayIcon,
+  ChevronRight,
+  Play,
   RefreshCw
 } from 'lucide-react';
 import { Schedule } from '@/types/schedule';

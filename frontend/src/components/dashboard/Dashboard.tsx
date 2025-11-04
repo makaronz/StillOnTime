@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 import { Calendar } from '../ui/Calendar';
 import { ScheduleList } from './ScheduleList';
 import { WeatherWidget } from './WeatherWidget';
@@ -10,7 +9,7 @@ import { EmailProcessor } from './EmailProcessor';
 import { NotificationsPanel } from './NotificationsPanel';
 import { PerformanceMetrics } from './PerformanceMetrics';
 import {
-  Calendar,
+  Calendar as CalendarIcon,
   Clock,
   MapPin,
   Mail,

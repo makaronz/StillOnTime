@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, CheckCircle, AlertCircle, Sync, Clock } from 'lucide-react'
+import { Calendar, CheckCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
 const syncIntervals = [
@@ -14,7 +14,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
   const [isConnecting, setIsConnecting] = useState(false)
   const [calendars, setCalendars] = useState<Array<{ id: string; name: string; primary: boolean }>>([])
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'error'>('idle')
-  const [lastSync, setLastSync] = useState<Date | null>(null)
+  const [lastRefreshCw, setLastRefreshCw] = useState<Date | null>(null)
 
   useEffect(() => {
     // Simulate fetching calendars
@@ -24,7 +24,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
         { id: 'work', name: 'Work Calendar', primary: false },
         { id: 'personal', name: 'Personal Calendar', primary: false },
       ])
-      setLastSync(new Date())
+      setLastRefreshCw(new Date())
     }
   }, [connectionStatus])
 
@@ -57,7 +57,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
     })
   }
 
-  const handleSyncSettingChange = (setting: string, value: any) => {
+  const handleRefreshCwSettingChange = (setting: string, value: any) => {
     updateData({
       calendarIntegration: {
         ...data.calendarIntegration,
@@ -69,14 +69,14 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
     })
   }
 
-  const handleTestSync = async () => {
+  const handleTestRefreshCw = async () => {
     setIsConnecting(true)
     try {
       // Simulate sync process
       await new Promise(resolve => setTimeout(resolve, 3000))
-      setLastSync(new Date())
+      setLastRefreshCw(new Date())
     } catch (error) {
-      console.error('Sync failed:', error)
+      console.error('RefreshCw failed:', error)
     } finally {
       setIsConnecting(false)
     }
@@ -128,10 +128,10 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                 }
               </p>
             </div>
-            {lastSync && (
+            {lastRefreshCw && (
               <div className="text-xs text-gray-500 flex items-center">
                 <Clock className="w-3 h-3 mr-1" />
-                Last sync: {lastSync.toLocaleTimeString()}
+                Last sync: {lastRefreshCw.toLocaleTimeString()}
               </div>
             )}
           </div>
@@ -182,10 +182,10 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
           </div>
         )}
 
-        {/* Sync settings */}
+        {/* RefreshCw settings */}
         {connectionStatus === 'connected' && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Sync Settings</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">RefreshCw Settings</h3>
 
             <div className="space-y-4">
               {/* Auto sync */}
@@ -193,26 +193,26 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={data.calendarIntegration.syncSettings.autoSync}
-                    onChange={(e) => handleSyncSettingChange('autoSync', e.target.checked)}
+                    checked={data.calendarIntegration.syncSettings.autoRefreshCw}
+                    onChange={(e) => handleRefreshCwSettingChange('autoRefreshCw', e.target.checked)}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
                   />
                   <div>
-                    <span className="text-sm font-medium text-gray-900">Enable Automatic Sync</span>
+                    <span className="text-sm font-medium text-gray-900">Enable Automatic RefreshCw</span>
                     <p className="text-xs text-gray-500">Automatically sync calendar events</p>
                   </div>
                 </div>
               </label>
 
-              {/* Sync interval */}
-              {data.calendarIntegration.syncSettings.autoSync && (
+              {/* RefreshCw interval */}
+              {data.calendarIntegration.syncSettings.autoRefreshCw && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sync Frequency
+                    RefreshCw Frequency
                   </label>
                   <select
                     value={data.calendarIntegration.syncSettings.syncInterval}
-                    onChange={(e) => handleSyncSettingChange('syncInterval', parseInt(e.target.value))}
+                    onChange={(e) => handleRefreshCwSettingChange('syncInterval', parseInt(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {syncIntervals.map((interval) => (
@@ -230,7 +230,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                   <input
                     type="checkbox"
                     checked={data.calendarIntegration.syncSettings.createEvents}
-                    onChange={(e) => handleSyncSettingChange('createEvents', e.target.checked)}
+                    onChange={(e) => handleRefreshCwSettingChange('createEvents', e.target.checked)}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
                   />
                   <div>
@@ -244,7 +244,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
             {/* Test sync button */}
             <div className="mt-4">
               <button
-                onClick={handleTestSync}
+                onClick={handleTestRefreshCw}
                 disabled={isConnecting}
                 className="w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -252,12 +252,12 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                   {isConnecting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      Syncing...
+                      RefreshCwing...
                     </>
                   ) : (
                     <>
-                      <Sync className="w-4 h-4 mr-2" aria-hidden="true" />
-                      Test Sync Now
+                      <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
+                      Test RefreshCw Now
                     </>
                   )}
                 </div>
