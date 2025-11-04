@@ -18,11 +18,11 @@ export const useWebVitals = () => {
   useEffect(() => {
     // Import web-vitals library dynamically
     import("web-vitals").then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-      getCLS((metric) => setVitals(prev => ({ ...prev, cls: metric.value })));
-      getFID((metric) => setVitals(prev => ({ ...prev, fid: metric.value })));
-      getFCP((metric) => setVitals(prev => ({ ...prev, fcp: metric.value })));
-      getLCP((metric) => setVitals(prev => ({ ...prev, lcp: metric.value })));
-      getTTFB((metric) => setVitals(prev => ({ ...prev, ttfb: metric.value })));
+      getCLS((metric: any) => setVitals(prev => ({ ...prev, cls: metric.value })));
+      getFID((metric: any) => setVitals(prev => ({ ...prev, fid: metric.value })));
+      getFCP((metric: any) => setVitals(prev => ({ ...prev, fcp: metric.value })));
+      getLCP((metric: any) => setVitals(prev => ({ ...prev, lcp: metric.value })));
+      getTTFB((metric: any) => setVitals(prev => ({ ...prev, ttfb: metric.value })));
     });
   }, []);
 
@@ -43,7 +43,7 @@ export const usePerformanceMonitor = (componentName: string) => {
       }
 
       // Send metrics to backend
-      if (typeof window !== "undefined" && window.fetch) {
+      if (typeof window !== "undefined" && typeof window.fetch === "function") {
         fetch("/api/performance/component-render", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -61,10 +61,10 @@ export const usePerformanceMonitor = (componentName: string) => {
 };
 
 // Memoized component wrapper
-export const withPerformanceOptimization = <P extends object>(
+export const withPerformanceOptimization = function <P extends Record<string, any>>(
   Component: React.ComponentType<P>,
   componentName: string
-) => {
+) {
   const MemoizedComponent = memo(Component, (prevProps, nextProps) => {
     // Custom comparison function for shallow equality
     const prevKeys = Object.keys(prevProps);
@@ -80,7 +80,7 @@ export const withPerformanceOptimization = <P extends object>(
 
       if (Array.isArray(prevValue) && Array.isArray(nextValue)) {
         return prevValue.length === nextValue.length &&
-               prevValue.every((item, index) => item === nextValue[index]);
+               prevValue.every((item: any, index: number) => item === nextValue[index]);
       }
 
       return prevValue === nextValue;
@@ -89,7 +89,7 @@ export const withPerformanceOptimization = <P extends object>(
 
   const WrappedComponent = (props: P) => {
     usePerformanceMonitor(componentName);
-    return <MemoizedComponent {...props} />;
+    return <MemoizedComponent {...(props as any)} />;
   };
 
   WrappedComponent.displayName = `withPerformanceOptimization(${componentName})`;
@@ -361,7 +361,7 @@ export const BundleAnalyzer: React.FC = memo(() => {
   useEffect(() => {
     // Analyze bundle size if in development
     if (process.env.NODE_ENV === "development") {
-      import("../utils/bundle-analyzer").then(analyzer => {
+      import("../../utils/bundle-analyzer").then(analyzer => {
         analyzer.getBundleInfo().then(setBundleInfo);
       });
     }
@@ -405,10 +405,10 @@ BundleAnalyzer.displayName = "BundleAnalyzer";
 // Performance optimization utilities
 export const performanceUtils = {
   // Debounce function
-  debounce: <T extends (...args: any[]) => any>(
+  debounce: function <T extends (...args: any[]) => any>(
     func: T,
     wait: number
-  ): ((...args: Parameters<T>) => void) => {
+  ): ((...args: Parameters<T>) => void) {
     let timeout: NodeJS.Timeout;
     return (...args: Parameters<T>) => {
       clearTimeout(timeout);
@@ -417,10 +417,10 @@ export const performanceUtils = {
   },
 
   // Throttle function
-  throttle: <T extends (...args: any[]) => any>(
+  throttle: function <T extends (...args: any[]) => any>(
     func: T,
     limit: number
-  ): ((...args: Parameters<T>) => void) => {
+  ): ((...args: Parameters<T>) => void) {
     let inThrottle: boolean;
     return (...args: Parameters<T>) => {
       if (!inThrottle) {
@@ -432,7 +432,7 @@ export const performanceUtils = {
   },
 
   // Memoize expensive computations
-  memoize: <T extends (...args: any[]) => any>(func: T): T => {
+  memoize: function <T extends (...args: any[]) => any>(func: T): T {
     const cache = new Map();
     return ((...args: Parameters<T>) => {
       const key = JSON.stringify(args);
@@ -453,7 +453,7 @@ export const performanceUtils = {
   },
 
   // Measure performance
-  measure: <T>(name: string, fn: () => T): T => {
+  measure: function <T>(name: string, fn: () => T): T {
     const start = performance.now();
     const result = fn();
     const end = performance.now();

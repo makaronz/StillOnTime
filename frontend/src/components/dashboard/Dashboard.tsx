@@ -10,14 +10,14 @@ import { EmailProcessor } from './EmailProcessor';
 import { NotificationsPanel } from './NotificationsPanel';
 import { PerformanceMetrics } from './PerformanceMetrics';
 import {
-  CalendarIcon,
-  ClockIcon,
-  MapPinIcon,
-  EnvelopeIcon,
-  BellIcon,
-  ChartBarIcon,
-  CogIcon,
-  RefreshCwIcon
+  Calendar,
+  Clock,
+  MapPin,
+  Mail,
+  Bell,
+  BarChart3,
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSchedules } from '@/hooks/useSchedules';
@@ -137,11 +137,11 @@ export const Dashboard: React.FC = () => {
                 disabled={isRefreshing}
                 className="flex items-center space-x-2"
               >
-                <RefreshCwIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </Button>
               <Button variant="outline">
-                <CogIcon className="w-4 h-4" />
+                <Settings className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -154,26 +154,26 @@ export const Dashboard: React.FC = () => {
           <StatCard
             title="Total Schedules"
             value={stats.totalSchedules}
-            icon={<CalendarIcon className="w-6 h-6 text-blue-600" />}
+            icon={<Calendar className="w-6 h-6 text-blue-600" />}
             color="blue"
           />
           <StatCard
             title="Upcoming"
             value={stats.upcomingSchedules}
-            icon={<ClockIcon className="w-6 h-6 text-green-600" />}
+            icon={<Clock className="w-6 h-6 text-green-600" />}
             color="green"
             trend={{ value: 12, direction: 'up' }}
           />
           <StatCard
             title="Processed Emails"
             value={stats.processedEmails}
-            icon={<EnvelopeIcon className="w-6 h-6 text-purple-600" />}
+            icon={<Mail className="w-6 h-6 text-purple-600" />}
             color="purple"
           />
           <StatCard
             title="Notifications"
             value={stats.activeNotifications}
-            icon={<BellIcon className="w-6 h-6 text-red-600" />}
+            icon={<Bell className="w-6 h-6 text-red-600" />}
             color="red"
           />
         </div>
@@ -185,7 +185,7 @@ export const Dashboard: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <CalendarIcon className="w-5 h-5" />
+                  <Calendar className="w-5 h-5" />
                   <span>Production Calendar</span>
                 </CardTitle>
               </CardHeader>
@@ -256,7 +256,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => setActiveWidget('email-processor')}
               >
-                <EnvelopeIcon className="w-4 h-4" />
+                <Mail className="w-4 h-4" />
                 <span>Check Emails</span>
               </Button>
               <Button
@@ -264,7 +264,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => window.location.href = '/schedules/new'}
               >
-                <CalendarIcon className="w-4 h-4" />
+                <Calendar className="w-4 h-4" />
                 <span>Add Schedule</span>
               </Button>
               <Button
@@ -272,7 +272,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => window.location.href = '/routes'}
               >
-                <MapPinIcon className="w-4 h-4" />
+                <MapPin className="w-4 h-4" />
                 <span>View Routes</span>
               </Button>
               <Button
@@ -280,7 +280,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => window.location.href = '/analytics'}
               >
-                <ChartBarIcon className="w-4 h-4" />
+                <BarChart3 className="w-4 h-4" />
                 <span>Analytics</span>
               </Button>
             </div>

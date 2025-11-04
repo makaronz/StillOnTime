@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import {
-  EnvelopeIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ClockIcon,
-  RefreshCwIcon,
-  DocumentTextIcon
+  Mail,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  RefreshCw,
+  FileText
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -103,13 +103,13 @@ export const EmailProcessor: React.FC = () => {
   const getStatusIcon = (emailStatus: string) => {
     switch (emailStatus) {
       case 'processed':
-        return <CheckCircleIcon className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'pending':
-        return <ClockIcon className="w-4 h-4 text-yellow-600" />;
+        return <Clock className="w-4 h-4 text-yellow-600" />;
       case 'failed':
-        return <ExclamationCircleIcon className="w-4 h-4 text-red-600" />;
+        return <AlertCircle className="w-4 h-4 text-red-600" />;
       default:
-        return <EnvelopeIcon className="w-4 h-4 text-gray-600" />;
+        return <Mail className="w-4 h-4 text-gray-600" />;
     }
   };
 
@@ -131,7 +131,7 @@ export const EmailProcessor: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center space-x-2">
-            <EnvelopeIcon className="w-5 h-5" />
+            <Mail className="w-5 h-5" />
             <span>Email Processor</span>
           </span>
           <Button
@@ -142,12 +142,12 @@ export const EmailProcessor: React.FC = () => {
           >
             {status.isProcessing ? (
               <>
-                <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" />
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 Processing...
               </>
             ) : (
               <>
-                <RefreshCwIcon className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Check Now
               </>
             )}
@@ -160,14 +160,14 @@ export const EmailProcessor: React.FC = () => {
           <div className="bg-green-50 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <span className="text-sm text-green-600">Processed</span>
-              <CheckCircleIcon className="w-4 h-4 text-green-600" />
+              <CheckCircle className="w-4 h-4 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-green-900">{status.processed}</p>
           </div>
           <div className="bg-yellow-50 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <span className="text-sm text-yellow-600">Pending</span>
-              <ClockIcon className="w-4 h-4 text-yellow-600" />
+              <Clock className="w-4 h-4 text-yellow-600" />
             </div>
             <p className="text-2xl font-bold text-yellow-900">{status.pending}</p>
           </div>
@@ -177,7 +177,7 @@ export const EmailProcessor: React.FC = () => {
           <div className="bg-red-50 p-3 rounded-lg">
             <div className="flex items-center justify-between">
               <span className="text-sm text-red-600">Failed</span>
-              <ExclamationCircleIcon className="w-4 h-4 text-red-600" />
+              <AlertCircle className="w-4 h-4 text-red-600" />
             </div>
             <p className="text-2xl font-bold text-red-900">{status.failed}</p>
           </div>
@@ -219,7 +219,7 @@ export const EmailProcessor: React.FC = () => {
                     {getStatusBadge(email.status)}
                     {email.status === 'processed' && (
                       <Button size="sm" variant="ghost">
-                        <DocumentTextIcon className="w-4 h-4" />
+                        <FileText className="w-4 h-4" />
                       </Button>
                     )}
                   </div>

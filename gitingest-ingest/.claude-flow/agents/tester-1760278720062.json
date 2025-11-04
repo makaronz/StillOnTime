@@ -1,0 +1,15 @@
+{
+  "id": "tester-1760278720062",
+  "name": "IntegrationTester",
+  "type": "tester",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1760278720062,
+  "capabilities": [
+    "Testing",
+    "Validation",
+    "Quality Assurance",
+    "Performance Testing"
+  ],
+  "createdAt": 1760278720062
+}

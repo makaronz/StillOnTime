@@ -10,7 +10,7 @@ import {
   XIcon,
   ChevronRightIcon,
   PlayIcon,
-  RefreshCwIcon
+  RefreshCw
 } from 'lucide-react';
 import { Schedule } from '@/types/schedule';
 
@@ -221,12 +221,12 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
           >
             {optimizing ? (
               <>
-                <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" />
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 Optimizing...
               </>
             ) : (
               <>
-                <RefreshCwIcon className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Re-optimize
               </>
             )}

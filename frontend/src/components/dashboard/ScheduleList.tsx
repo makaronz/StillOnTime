@@ -109,9 +109,9 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
   };
 
   const getSceneTypeColor = (type: string) => {
-    if (type.includes('Day')) return 'yellow';
-    if (type.includes('Night')) return 'indigo';
-    if (type.includes('Dawn') || type.includes('Dusk')) return 'purple';
+    if (type.includes('Day')) return 'warning';
+    if (type.includes('Night')) return 'primary';
+    if (type.includes('Dawn') || type.includes('Dusk')) return 'secondary';
     return 'primary';
   };
 
@@ -176,7 +176,7 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
                       </div>
                       <div className="flex items-center space-x-2">
                         <MapPinIcon className="w-4 h-4" />
-                        <span>{schedule.baseLocation}</span>
+                        <span>{schedule.baseLocation || 'Not specified'}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <FilmIcon className="w-4 h-4" />
