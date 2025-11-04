@@ -2,22 +2,9 @@ import { Request } from "express";
 import { AuthenticatedUser } from "./express";
 
 // Extended Request interface with all Express properties
-export interface AppRequest extends Request {
+export interface AppRequest extends Omit<Request, 'ip'> {
   user?: AuthenticatedUser;
   csrfToken?(): string;
-  // Ensure all Express Request properties are available
-  query: any;
-  params: any;
-  ip: string;
-  get(name: string): string | undefined;
-  body: any;
-  path: string;
-  method: string;
-  headers: any;
-  cookies: any;
-  url: string;
-  originalUrl: string;
-  baseUrl: string;
-  connection: any;
-  route: any;
+  ip: string; // Override ip to be required string instead of string | undefined
+  // All other Express Request properties are inherited automatically
 }

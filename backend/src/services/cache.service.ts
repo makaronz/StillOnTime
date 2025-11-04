@@ -29,7 +29,18 @@ export class CacheService {
    * Initialize cache service
    */
   async initialize(): Promise<void> {
-    this.client = await getRedisClient();
+    // In development mode, don't force Redis connection during initialization
+    const { config } = await import("@/config/config");
+    if (config.nodeEnv === "development") {
+      try {
+        this.client = await getRedisClient();
+      } catch (error) {
+        console.warn("⚠️ Development mode: Cache service initialized without Redis connection");
+        // Don't throw error in development mode
+      }
+    } else {
+      this.client = await getRedisClient();
+    }
   }
 
   /**
@@ -39,7 +50,41 @@ export class CacheService {
     if (!this.client) {
       await this.initialize();
     }
+
+    // In development mode, if client is still not available, return a mock client
+    const { config } = await import("@/config/config");
+    if (config.nodeEnv === "development" && !this.client) {
+      console.warn("⚠️ Development mode: Cache operations disabled - no Redis connection");
+      return this.createMockClient();
+    }
+
     return this.client!;
+  }
+
+  /**
+   * Create mock client for development mode
+   */
+  private createMockClient(): RedisClient {
+    const mockClient = {
+      get: async () => null,
+      set: async () => "OK",
+      setEx: async () => "OK",
+      del: async () => 1,
+      exists: async () => 0,
+      expire: async () => 1,
+      keys: async () => [],
+      flushAll: async () => "OK",
+      multi: () => mockClient,
+      exec: async () => [],
+      mGet: async () => [],
+      connect: async () => {},
+      disconnect: async () => {},
+      quit: async () => {},
+      isOpen: false,
+      ping: async () => "PONG",
+    } as any;
+
+    return mockClient;
   }
 
   /**

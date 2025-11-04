@@ -12,7 +12,7 @@ export class AuthController {
    * Initiate OAuth 2.0 authentication flow
    * GET /auth/login
    */
-  async login(req: AppRequest, res: Response): Promise<void> {
+  async login(req: any, res: Response): Promise<void> {
     try {
       const state = req.query.state as string;
       const { authUrl, state: generatedState } = await services.oauth2.getAuthUrl(state);
@@ -49,7 +49,7 @@ export class AuthController {
    * Handle OAuth 2.0 callback from Google
    * POST /auth/callback
    */
-  async callback(req: AppRequest, res: Response): Promise<void> {
+  async callback(req: any, res: Response): Promise<void> {
     try {
       const { code, state, error } = req.body;
 
@@ -154,7 +154,7 @@ export class AuthController {
    * Refresh JWT session token
    * POST /auth/refresh
    */
-  async refresh(req: AppRequest, res: Response): Promise<void> {
+  async refresh(req: any, res: Response): Promise<void> {
     try {
       if (!(req as any).user) {
         res.status(401).json({
@@ -220,7 +220,7 @@ export class AuthController {
    * Logout user and revoke tokens
    * POST /auth/logout
    */
-  async logout(req: AppRequest, res: Response): Promise<void> {
+  async logout(req: any, res: Response): Promise<void> {
     try {
       if (!(req as any).user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -272,7 +272,7 @@ export class AuthController {
    * Get current user's authentication status
    * GET /auth/status
    */
-  async status(req: AppRequest, res: Response): Promise<void> {
+  async status(req: any, res: Response): Promise<void> {
     try {
       if (!(req as any).user) {
         res.json({
@@ -329,7 +329,7 @@ export class AuthController {
    * Force OAuth re-authentication
    * POST /auth/reauth
    */
-  async reauth(req: AppRequest, res: Response): Promise<void> {
+  async reauth(req: any, res: Response): Promise<void> {
     try {
       if (!(req as any).user) {
         res.status(401).json({
@@ -376,7 +376,7 @@ export class AuthController {
    * Get user profile information
    * GET /auth/profile
    */
-  async profile(req: AppRequest, res: Response): Promise<void> {
+  async profile(req: any, res: Response): Promise<void> {
     try {
       if (!(req as any).user) {
         res.status(401).json({
@@ -445,7 +445,7 @@ export class AuthController {
    * Test OAuth connection by making a simple Gmail API call
    * GET /auth/test
    */
-  async testConnection(req: AppRequest, res: Response): Promise<void> {
+  async testConnection(req: any, res: Response): Promise<void> {
     try {
       if (!(req as any).user) {
         res.status(401).json({

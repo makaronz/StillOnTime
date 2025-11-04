@@ -10,11 +10,6 @@ export interface AuthenticatedUser {
   fingerprint?: string;
 }
 
-// Extended Request interface with user property
-export interface AppRequest extends ExpressRequest {
-  user?: AuthenticatedUser;
-}
-
 declare global {
   namespace Express {
     interface Request extends ExpressRequest {

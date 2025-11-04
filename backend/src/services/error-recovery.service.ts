@@ -353,7 +353,7 @@ export class ErrorRecoveryService {
         warnings.push(...(fallbackResult.warnings || []));
 
         if (options.cacheFailureData && fallbackResult.data) {
-          await this.cacheFailureData(context, fallbackResult.data);
+          await this.cacheFailureData(context, fallbackResult.data as any);
         }
 
         if (

@@ -67,6 +67,13 @@ export const initializeDatabase = async (): Promise<void> => {
     }
   } catch (error) {
     logger.error("❌ Failed to connect to database", { error });
+
+    // In development, allow server to start without database
+    if (config.nodeEnv === "development") {
+      logger.warn("⚠️ Development mode: Continuing without database connection");
+      return;
+    }
+
     throw error;
   }
 };
