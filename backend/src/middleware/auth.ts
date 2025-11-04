@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AppRequest } from '@/types/requests';
 import { db } from '@/config/database';
 import { userRepository } from '@/repositories/user.repository';
 import { scheduleDataRepository } from '@/repositories/schedule-data.repository';
@@ -18,14 +19,6 @@ interface AuthenticatedUser {
   fingerprint?: string;
 }
 
-// Extend Request interface to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthenticatedUser;
-    }
-  }
-}
 
 // JWT token interface
 interface JWTPayload {
@@ -78,7 +71,7 @@ export const generateRefreshToken = (userId: string): string => {
 };
 
 // Authentication middleware
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authMiddleware = async (req: AppRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Get token from header
     const authHeader = req.get('Authorization');
@@ -158,7 +151,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 };
 
 // Optional authentication - doesn't fail if no token
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const optionalAuth = async (req: AppRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.get('Authorization');
 
@@ -188,7 +181,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
 
 // Role-based authorization
 export const requireRole = (roles: string | string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: AppRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         error: 'Unauthorized',
@@ -214,7 +207,7 @@ export const requireRole = (roles: string | string[]) => {
 
 // Tier-based authorization
 export const requireTier = (tiers: string | string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: AppRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         error: 'Unauthorized',
@@ -242,7 +235,7 @@ export const requireTier = (tiers: string | string[]) => {
 
 // Resource owner verification
 export const requireOwnership = (resourceIdParam: string = 'id') => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: AppRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -307,7 +300,7 @@ export const requireOwnership = (resourceIdParam: string = 'id') => {
 };
 
 // API key authentication (for service-to-service communication)
-export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const apiKeyAuth = async (req: AppRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const apiKey = req.get('X-API-Key');
 
@@ -345,7 +338,7 @@ export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction
 };
 
 // Refresh token middleware
-export const refreshTokenMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const refreshTokenMiddleware = async (req: AppRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 

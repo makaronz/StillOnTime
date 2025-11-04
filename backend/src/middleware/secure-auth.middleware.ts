@@ -1,32 +1,15 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { services } from "@/services";
 import { SecureCookieManager } from "@/utils/cookies";
 import { logger } from "@/utils/logger";
-
-// Unified user interface for Express Request (same as in auth.ts)
-interface AuthenticatedUser {
-  userId: string;
-  email: string;
-  name?: string;
-  role?: string;
-  tier?: string;
-  fingerprint?: string;
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthenticatedUser;
-    }
-  }
-}
+import { AppRequest } from "@/types/requests";
 
 /**
  * Enhanced Authentication Middleware using Secure HttpOnly Cookies
  * Replaces localStorage-based authentication with secure cookie approach
  */
 export const secureAuth = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -92,7 +75,7 @@ export const secureAuth = async (
  * Doesn't fail if no token is provided but validates if present
  */
 export const optionalSecureAuth = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -141,7 +124,7 @@ export const optionalSecureAuth = async (
  * Combines cookie-based auth with CSRF protection
  */
 export const secureAuthWithCSRF = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -227,7 +210,7 @@ export const secureAuthWithCSRF = async (
  * Middleware to validate refresh token from secure cookie
  */
 export const validateRefreshToken = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -289,7 +272,7 @@ export const validateRefreshToken = async (
  * Middleware to ensure authentication state consistency
  */
 export const ensureAuthConsistency = (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {

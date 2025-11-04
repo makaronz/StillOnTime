@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { RoutePlanRepository } from "@/repositories/route-plan.repository";
 import { services } from "@/services";
@@ -20,7 +21,7 @@ export class ScheduleRouteController extends BaseScheduleController {
    * Get route plan for schedule
    * GET /api/schedule/:scheduleId/route
    */
-  async getRoutePlan(req: Request, res: Response): Promise<void> {
+  async getRoutePlan(req: AppRequest, res: Response): Promise<void> {
     if (!req.user) {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -81,7 +82,7 @@ export class ScheduleRouteController extends BaseScheduleController {
    * PUT /api/schedule/:scheduleId/route
    */
   async updateRoutePlan(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     if (!req.user) {
@@ -160,7 +161,7 @@ export class ScheduleRouteController extends BaseScheduleController {
    * POST /api/schedule/:scheduleId/route/recalculate
    */
   async recalculateRoute(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     if (!req.user) {

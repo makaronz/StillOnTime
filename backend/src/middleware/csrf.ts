@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { AppRequest } from "@/types/requests";
 import csrf from "csurf";
 import { config } from "@/config/config";
 import { logger } from "@/utils/logger";
@@ -25,7 +26,7 @@ export const csrfProtection = csrf({
  */
 export const csrfErrorHandler = (
   err: Error,
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {
@@ -84,20 +85,20 @@ export const csrfErrorHandler = (
  */
 export const skipCsrfForRoutes = (
   excludedPaths: string[]
-): ((req: Request, res: Response, next: NextFunction) => void) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+): ((req: AppRequest, res: Response, next: NextFunction) => void) => {
+  return (req: AppRequest, res: Response, next: NextFunction): void => {
     // Skip CSRF for excluded paths
     if (excludedPaths.some((path) => req.path.startsWith(path))) {
-      return next();
+      return (next as any)();
     }
 
     // Skip CSRF for GET, HEAD, OPTIONS requests (safe methods)
     if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
-      return next();
+      return (next as any)();
     }
 
     // Apply CSRF protection
-    csrfProtection(req, res, (err) => {
+    (csrfProtection as any)(req, res, (err: any) => {
       if (err) {
         return csrfErrorHandler(err, req, res, next);
       }
@@ -111,13 +112,13 @@ export const skipCsrfForRoutes = (
  * Frontend can read this token from XSRF-TOKEN cookie
  */
 export const setCsrfTokenCookie = (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {
   if (req.csrfToken) {
     try {
-      const token = req.csrfToken();
+      const token = (req as any).csrfToken();
       res.cookie("XSRF-TOKEN", token, {
         httpOnly: false, // Frontend needs to read this
         secure: config.nodeEnv === "production",
@@ -145,9 +146,9 @@ export const setCsrfTokenCookie = (
 /**
  * Enhanced route handler to provide CSRF token to frontend with additional security
  */
-export const getCsrfToken = (req: Request, res: Response): void => {
+export const getCsrfToken = (req: AppRequest, res: Response): void => {
   try {
-    const token = req.csrfToken();
+    const token = (req as any).csrfToken();
 
     // Set both cookie and header for maximum compatibility
     res.cookie("XSRF-TOKEN", token, {
@@ -189,7 +190,7 @@ export const getCsrfToken = (req: Request, res: Response): void => {
  * Validates CSRF token from both header and body with fallback logic
  */
 export const validateCsrfToken = (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {
@@ -227,7 +228,7 @@ export const validateCsrfToken = (
   }
 
   // Validate the token using the built-in CSRF middleware
-  csrfProtection(req, res, (err) => {
+  (csrfProtection as any)(req, res, (err: any) => {
     if (err) {
       return csrfErrorHandler(err, req, res, next);
     }

@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { logger } from "@/utils/logger";
 import { db } from "@/config/database";
 import { sql } from "kysely";
@@ -13,7 +14,7 @@ export class SystemController {
    * Get system status
    * GET /api/system/status
    */
-  async getStatus(req: Request, res: Response): Promise<void> {
+  async getStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -94,7 +95,7 @@ export class SystemController {
    * Get API connection status
    * GET /api/system/connections
    */
-  async getConnections(req: Request, res: Response): Promise<void> {
+  async getConnections(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -212,7 +213,7 @@ export class SystemController {
    * Test API connection
    * POST /api/system/test-connection/:service
    */
-  async testConnection(req: Request, res: Response): Promise<void> {
+  async testConnection(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });

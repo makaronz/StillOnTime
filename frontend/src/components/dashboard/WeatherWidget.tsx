@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import {
-  CloudIcon,
-  SunIcon,
-  CloudRainIcon,
-  WindIcon,
-  DropletsIcon,
-  EyeIcon,
+  Cloud,
+  Sun,
+  CloudRain,
+  Wind,
+  Droplets,
+  Eye,
   Thermometer,
   AlertTriangle
 } from 'lucide-react';
@@ -103,14 +103,14 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
   const getWeatherIcon = (icon: string) => {
     switch (icon) {
       case 'sunny':
-        return <SunIcon className="w-8 h-8 text-yellow-500" />;
+        return <Sun className="w-8 h-8 text-yellow-500" />;
       case 'cloudy':
       case 'partly-cloudy':
-        return <CloudIcon className="w-8 h-8 text-gray-500" />;
+        return <Cloud className="w-8 h-8 text-gray-500" />;
       case 'rainy':
-        return <CloudRainIcon className="w-8 h-8 text-blue-500" />;
+        return <CloudRain className="w-8 h-8 text-blue-500" />;
       default:
-        return <SunIcon className="w-8 h-8 text-yellow-500" />;
+        return <Sun className="w-8 h-8 text-yellow-500" />;
     }
   };
 
@@ -140,7 +140,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <CloudIcon className="w-5 h-5" />
+            <Cloud className="w-5 h-5" />
             <span>Weather</span>
           </CardTitle>
         </CardHeader>
@@ -163,7 +163,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <CloudIcon className="w-5 h-5" />
+            <Cloud className="w-5 h-5" />
             <span>Weather</span>
           </CardTitle>
         </CardHeader>
@@ -182,7 +182,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center space-x-2">
-            <CloudIcon className="w-5 h-5" />
+            <Cloud className="w-5 h-5" />
             <span>Weather</span>
           </span>
           {isGoodForFilming(weather) ? (
@@ -211,21 +211,21 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
         {/* Weather Details */}
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="bg-blue-50 p-3 rounded-lg">
-            <WindIcon className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+            <Wind className="w-4 h-4 text-blue-600 mx-auto mb-1" />
             <p className="text-xs text-blue-600">Wind</p>
             <p className="text-sm font-semibold text-blue-900">
               {weather.current.windSpeed} mph
             </p>
           </div>
           <div className="bg-green-50 p-3 rounded-lg">
-            <DropletsIcon className="w-4 h-4 text-green-600 mx-auto mb-1" />
+            <Droplets className="w-4 h-4 text-green-600 mx-auto mb-1" />
             <p className="text-xs text-green-600">Humidity</p>
             <p className="text-sm font-semibold text-green-900">
               {weather.current.humidity}%
             </p>
           </div>
           <div className="bg-purple-50 p-3 rounded-lg">
-            <EyeIcon className="w-4 h-4 text-purple-600 mx-auto mb-1" />
+            <Eye className="w-4 h-4 text-purple-600 mx-auto mb-1" />
             <p className="text-xs text-purple-600">Visibility</p>
             <p className="text-sm font-semibold text-purple-900">
               {weather.current.visibility} mi

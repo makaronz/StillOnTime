@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express";
+import { AppRequest } from "@/types/requests";
 import { OAuth2Service, JWTPayload } from "./oauth2.service";
 import { UserRepository } from "@/repositories/user.repository";
 import { SecureCookieManager } from "@/utils/cookies";
@@ -91,7 +92,7 @@ export class SecureAuthService {
    * OAuth callback handler that sets secure cookies
    */
   async handleOAuthCallback(
-    req: Request,
+    req: AppRequest,
     res: Response,
     code: string,
     state: string
@@ -155,7 +156,7 @@ export class SecureAuthService {
   /**
    * Refresh JWT token using refresh token from secure cookie
    */
-  async refreshToken(req: Request, res: Response): Promise<TokenRefreshResponse> {
+  async refreshToken(req: AppRequest, res: Response): Promise<TokenRefreshResponse> {
     try {
       const refreshToken = SecureCookieManager.getRefreshToken(req);
 
@@ -191,9 +192,9 @@ export class SecureAuthService {
 
       // Update user tokens in database
       await this.userRepository.update(user.id, {
-        accessToken: this.oauth2Service.encryptToken(newTokens.access_token),
+        accessToken: (this.oauth2Service as any).encryptToken(newTokens.access_token),
         refreshToken: newTokens.refresh_token
-          ? this.oauth2Service.encryptToken(newTokens.refresh_token)
+          ? (this.oauth2Service as any).encryptToken(newTokens.refresh_token)
           : user.refreshToken,
         tokenExpiry: new Date(Date.now() + newTokens.expires_in * 1000),
       });
@@ -244,7 +245,7 @@ export class SecureAuthService {
   /**
    * Secure logout that clears all authentication cookies
    */
-  async logout(req: Request, res: Response): Promise<{ success: boolean; message: string }> {
+  async logout(req: AppRequest, res: Response): Promise<{ success: boolean; message: string }> {
     try {
       const token = SecureCookieManager.getJWTToken(req);
 
@@ -290,7 +291,7 @@ export class SecureAuthService {
   /**
    * Validate current session from secure cookies
    */
-  async validateSession(req: Request): Promise<SecureAuthResponse> {
+  async validateSession(req: AppRequest): Promise<SecureAuthResponse> {
     try {
       const token = SecureCookieManager.getJWTToken(req);
 
@@ -359,7 +360,7 @@ export class SecureAuthService {
   /**
    * Validate OAuth state from secure cookie
    */
-  validateOAuthState(req: Request, state: string): boolean {
+  validateOAuthState(req: AppRequest, state: string): boolean {
     const storedState = req.cookies?.oauth_state;
 
     if (!storedState) {

@@ -1,5 +1,6 @@
 import rateLimit from 'express-rate-limit';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AppRequest } from '@/types/requests';
 import { logger } from '@/utils/logger';
 
 // Use existing Redis client from config to avoid conflicts
@@ -61,7 +62,7 @@ export const rateLimitConfigs = {
       retryAfter: 900 // 15 minutes
     },
     // store: Will be added dynamically if Redis is available
-    keyGenerator: (req: Request) => {
+    keyGenerator: (req: any) => {
       // Use user ID if authenticated, otherwise IP
       return (req as any).user?.userId || req.ip;
     }
@@ -77,7 +78,7 @@ export const rateLimitConfigs = {
       retryAfter: 900
     },
     // store: Will be added dynamically if Redis is available
-    keyGenerator: (req: Request) => {
+    keyGenerator: (req: any) => {
       const email = req.body?.email || req.ip;
       return `auth:${email}`;
     },
@@ -94,7 +95,7 @@ export const rateLimitConfigs = {
       retryAfter: 3600
     },
     // store: Will be added dynamically if Redis is available
-    keyGenerator: (req: Request) => {
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   },
@@ -109,7 +110,7 @@ export const rateLimitConfigs = {
       retryAfter: 3600
     },
     // store: Will be added dynamically if Redis is available
-    keyGenerator: (req: Request) => {
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   },
@@ -124,7 +125,7 @@ export const rateLimitConfigs = {
       retryAfter: 60
     },
     // store: Will be added dynamically if Redis is available
-    keyGenerator: (req: Request) => {
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   }
@@ -143,7 +144,7 @@ export const rateLimiters = {
 export const createRateLimitMiddleware = (config: typeof rateLimitConfigs.general) => {
   const limiter = rateLimit({
     ...config,
-    handler: (req: Request, res: Response) => {
+    handler: (req: any, res: Response) => {
       const retryAfter = config.message.retryAfter;
 
       // Log rate limit violation
@@ -173,7 +174,7 @@ export const createRateLimitMiddleware = (config: typeof rateLimitConfigs.genera
 };
 
 // Dynamic rate limiting based on user tier
-export const dynamicRateLimit = async (req: Request, res: Response, next: NextFunction) => {
+export const dynamicRateLimit = async (req: any, res: Response, next: NextFunction) => {
   const user = (req as any).user;
 
   // Default limits for anonymous users
@@ -183,7 +184,7 @@ export const dynamicRateLimit = async (req: Request, res: Response, next: NextFu
   if (user) {
     // TODO: Fetch user tier from database
     // const userTier = await getUserTier(user.userId);
-    const userTier: 'free' | 'premium' | 'enterprise' = 'premium'; // Mock tier
+    const userTier = 'premium' as 'free' | 'premium' | 'enterprise'; // Mock tier
 
     switch (userTier) {
       case 'free':
@@ -210,7 +211,7 @@ export const dynamicRateLimit = async (req: Request, res: Response, next: NextFu
       retryAfter: Math.ceil(windowMs / 1000)
     },
     // store: Will be added dynamically if Redis is available
-    keyGenerator: (req: Request) => {
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   });

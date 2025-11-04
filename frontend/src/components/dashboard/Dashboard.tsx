@@ -34,7 +34,7 @@ interface DashboardStats {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { schedules, loading: schedulesLoading, refresh: refreshSchedules } = useSchedules();
+  const { schedules, refresh: refreshSchedules } = useSchedules();
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const [stats, setStats] = useState<DashboardStats>({
     totalSchedules: 0,
@@ -153,7 +153,7 @@ export const Dashboard: React.FC = () => {
           <StatCard
             title="Total Schedules"
             value={stats.totalSchedules}
-            icon={<Calendar className="w-6 h-6 text-blue-600" />}
+            icon={<CalendarIcon className="w-6 h-6 text-blue-600" />}
             color="blue"
           />
           <StatCard
@@ -184,7 +184,7 @@ export const Dashboard: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="w-5 h-5" />
+                  <CalendarIcon className="w-5 h-5" />
                   <span>Production Calendar</span>
                 </CardTitle>
               </CardHeader>
@@ -263,7 +263,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => window.location.href = '/schedules/new'}
               >
-                <Calendar className="w-4 h-4" />
+                <CalendarIcon className="w-4 h-4" />
                 <span>Add Schedule</span>
               </Button>
               <Button

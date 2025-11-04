@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { AppRequest } from "@/types/requests";
 import { logger, structuredLogger } from "@/utils/logger";
 import {
   BaseError,
@@ -44,7 +45,7 @@ export class AppError extends Error {
 
 export const errorHandler = (
   error: Error | BaseError | AppError,
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {
@@ -275,14 +276,14 @@ function isRateLimitError(error: Error): boolean {
 
 // Async error handler wrapper
 export const asyncHandler = (fn: Function) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: AppRequest, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
 
 // Not found handler
 export const notFoundHandler = (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {

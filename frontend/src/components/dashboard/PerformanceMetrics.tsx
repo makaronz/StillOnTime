@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import {
   BarChart3,
-  CpuIcon,
-  ServerIcon,
+  Cpu,
+  Server,
   Clock,
   CheckCircle,
   AlertTriangle,
-  TrendingUpIcon,
-  TrendingDownIcon
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 
 interface Metric {
@@ -165,9 +165,9 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {metric.trend && (
           <div className="flex items-center space-x-1">
             {metric.trend === 'up' ? (
-              <TrendingUpIcon className="w-3 h-3 text-red-500" />
+              <TrendingUp className="w-3 h-3 text-red-500" />
             ) : (
-              <TrendingDownIcon className="w-3 h-3 text-green-500" />
+              <TrendingDown className="w-3 h-3 text-green-500" />
             )}
             <span className="text-xs text-gray-500">{metric.trendValue}%</span>
           </div>
@@ -216,7 +216,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {/* System Metrics */}
         <div>
           <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center space-x-2">
-            <CpuIcon className="w-4 h-4" />
+            <Cpu className="w-4 h-4" />
             <span>System</span>
           </h4>
           <div className="space-y-2">
@@ -229,7 +229,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {/* API Metrics */}
         <div>
           <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center space-x-2">
-            <ServerIcon className="w-4 h-4" />
+            <Server className="w-4 h-4" />
             <span>API</span>
           </h4>
           <div className="space-y-2">

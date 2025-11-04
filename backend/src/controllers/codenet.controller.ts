@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AppRequest } from '@/types/requests';
 import { codenetRAGService } from '../services/codenet-rag.service';
 import { qdrantService } from '../services/qdrant.service';
 import logger from '../utils/logger';
@@ -15,7 +16,7 @@ export class CodeNetController {
    * GET /api/codenet/search
    * Search for similar code examples
    */
-  async search(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async search(req: AppRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { query, language, limit } = req.query;
 
@@ -66,7 +67,7 @@ export class CodeNetController {
    * POST /api/codenet/generate
    * Generate code with RAG context
    */
-  async generate(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async generate(req: AppRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { task, language, existingCode } = req.body;
 
@@ -113,7 +114,7 @@ export class CodeNetController {
    * GET /api/codenet/patterns
    * Get common code patterns
    */
-  async getPatterns(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getPatterns(req: AppRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { codeContext } = req.query;
 
@@ -139,7 +140,7 @@ export class CodeNetController {
    * GET /api/codenet/stats
    * Get dataset statistics
    */
-  async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getStats(req: AppRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       logger.info('CodeNet stats request');
 
@@ -162,7 +163,7 @@ export class CodeNetController {
    * GET /api/codenet/health
    * Health check for CodeNet service
    */
-  async healthCheck(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async healthCheck(req: AppRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const qdrantHealthy = await qdrantService.healthCheck();
       const ragEnabled = codenetRAGService.isEnabled();
@@ -184,7 +185,7 @@ export class CodeNetController {
    * POST /api/codenet/initialize
    * Initialize Qdrant collection (admin only)
    */
-  async initialize(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async initialize(req: AppRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       logger.warn('Initializing Qdrant collection');
 

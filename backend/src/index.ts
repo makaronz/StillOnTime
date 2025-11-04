@@ -1,4 +1,5 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Response, NextFunction } from "express";
+import { AppRequest } from "@/types/requests";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
@@ -37,7 +38,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   // Skip rate limiting for health checks
-  skip: (req) => req.path === "/health" || req.path.startsWith("/health/"),
+  skip: (req: any) => req.path === "/health" || req.path.startsWith("/health/"),
 });
 
 // Stricter rate limiting for authentication endpoints
@@ -73,7 +74,7 @@ const csrfProtection = csrf({
 });
 
 // Apply CSRF protection to all routes except health checks and OAuth callback
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: any, res: Response, next: NextFunction) => {
   // Skip CSRF for health checks, OAuth callbacks, GET requests, and development API calls
   if (
     req.path === "/health" ||
@@ -90,7 +91,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // CSRF token endpoint - provides token to frontend
-app.get("/api/csrf-token", (req: Request, res: Response, next: NextFunction) => {
+app.get("/api/csrf-token", (req: any, res: Response, next: NextFunction) => {
   (csrfProtection as any)(req, res, (err: any) => {
     if (err) return next(err);
     res.json({ csrfToken: (req as any).csrfToken() });
@@ -110,7 +111,7 @@ app.use((req: any, res: Response, next: NextFunction) => {
 });
 
 // Request ID middleware for tracing
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: any, res: Response, next: NextFunction) => {
   const requestId =
     (req.headers["x-request-id"] as string) ||
     `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -138,10 +139,14 @@ app.use("/health", healthRoutes);
 app.use("/api", apiRoutes);
 
 // 404 handler
-app.use(notFoundHandler);
+app.use((req: any, res: Response, next: NextFunction) => {
+  notFoundHandler(req, res, next);
+});
 
 // Error handling middleware (must be last)
-app.use(errorHandler);
+app.use((error: any, req: any, res: Response, next: NextFunction) => {
+  errorHandler(error, req, res, next);
+});
 
 // Initialize database and start server
 async function startServer() {

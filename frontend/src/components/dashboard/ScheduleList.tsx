@@ -159,7 +159,7 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
                       <Badge variant={getSceneTypeColor(schedule.sceneType)}>
                         {schedule.sceneType}
                       </Badge>
-                      <Badge variant={getStatusColor(schedule.status)}>
+                      <Badge variant={getStatusColor(schedule.status || 'unknown')}>
                         {schedule.status}
                       </Badge>
                       {isPast(new Date(schedule.shootingDate)) && (

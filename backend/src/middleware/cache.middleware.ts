@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { AppRequest } from "@/types/requests";
 import { cacheService } from "@/services/cache.service";
 import { logger } from "@/utils/logger";
 import crypto from "crypto";
@@ -9,9 +10,9 @@ import crypto from "crypto";
 export interface CacheConfig {
   ttl?: number; // Time to live in seconds
   keyPrefix?: string;
-  skipCache?: (req: Request) => boolean;
-  shouldCache?: (req: Request, res: Response) => boolean;
-  generateKey?: (req: Request) => string;
+  skipCache?: (req: AppRequest) => boolean;
+  shouldCache?: (req: AppRequest, res: Response) => boolean;
+  generateKey?: (req: AppRequest) => string;
   invalidateOn?: string[]; // Request methods that invalidate cache
   tags?: string[]; // Cache tags for selective invalidation
 }
@@ -59,7 +60,7 @@ const DEFAULT_CACHE_CONFIG: Partial<CacheConfig> = {
 export function createCacheMiddleware(config: CacheConfig = {}) {
   const finalConfig = { ...DEFAULT_CACHE_CONFIG, ...config };
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: AppRequest, res: Response, next: NextFunction): void => {
     // Check if we should skip cache
     if (finalConfig.skipCache?.(req)) {
       next();
@@ -104,7 +105,7 @@ export function createCacheMiddleware(config: CacheConfig = {}) {
 /**
  * Generate cache key from request
  */
-function generateCacheKey(req: Request, prefix?: string): string {
+function generateCacheKey(req: AppRequest, prefix?: string): string {
   const keyData = {
     method: req.method,
     url: req.url,
@@ -123,7 +124,7 @@ function generateCacheKey(req: Request, prefix?: string): string {
  * Intercept response to cache it
  */
 function interceptResponse(
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction,
   cacheKey: string,
@@ -205,7 +206,7 @@ export function createCacheInvalidationMiddleware(config: {
   keyPrefix?: string;
   tags?: string[];
 }) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: AppRequest, res: Response, next: NextFunction): Promise<void> => {
     const originalSend = res.send;
 
     res.send = function(data: any) {

@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express";
+import { AppRequest } from "@/types/requests";
 import * as crypto from "crypto";
 import { config } from "@/config/config";
 import { logger } from "@/utils/logger";
@@ -98,7 +99,7 @@ export class SecureCookieManager {
   /**
    * Get JWT token from secure cookie
    */
-  static getJWTToken(req: Request): string | null {
+  static getJWTToken(req: AppRequest): string | null {
     try {
       const token = req.cookies?.[this.JWT_COOKIE_NAME];
 
@@ -123,7 +124,7 @@ export class SecureCookieManager {
   /**
    * Get refresh token from secure cookie
    */
-  static getRefreshToken(req: Request): string | null {
+  static getRefreshToken(req: AppRequest): string | null {
     try {
       const refreshToken = req.cookies?.[this.REFRESH_COOKIE_NAME];
 
@@ -191,7 +192,7 @@ export class SecureCookieManager {
   /**
    * Check if user is authenticated based on cookie presence
    */
-  static isAuthenticated(req: Request): boolean {
+  static isAuthenticated(req: AppRequest): boolean {
     const token = this.getJWTToken(req);
     return !!token;
   }
@@ -199,7 +200,7 @@ export class SecureCookieManager {
   /**
    * Generate secure fingerprint for additional security
    */
-  static generateFingerprint(req: Request): string {
+  static generateFingerprint(req: AppRequest): string {
     const userAgent = req.get("User-Agent") || "";
     const acceptLanguage = req.get("Accept-Language") || "";
     const acceptEncoding = req.get("Accept-Encoding") || "";
@@ -217,7 +218,7 @@ export class SecureCookieManager {
   /**
    * Validate request fingerprint against stored fingerprint
    */
-  static validateFingerprint(req: Request, storedFingerprint: string): boolean {
+  static validateFingerprint(req: AppRequest, storedFingerprint: string): boolean {
     const currentFingerprint = this.generateFingerprint(req);
     return crypto.timingSafeEqual(
       Buffer.from(currentFingerprint, "hex"),
@@ -248,7 +249,7 @@ export class SecureCookieManager {
   /**
    * Get CSRF token from cookie or header
    */
-  static getCSRFToken(req: Request): string | null {
+  static getCSRFToken(req: AppRequest): string | null {
     return req.cookies?.[this.CSRF_COOKIE_NAME] || req.get("X-CSRF-Token") || null;
   }
 }

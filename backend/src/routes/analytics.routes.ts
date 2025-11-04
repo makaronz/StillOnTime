@@ -1,17 +1,17 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { authenticateToken } from "@/middleware/auth.middleware";
-import { Request, Response } from "express";
+import { AppRequest } from "@/types/requests";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
 import { logger } from "@/utils/logger";
 
-const router = Router();
+const router: Router = Router();
 const processedEmailRepository = new ProcessedEmailRepository();
 
 /**
  * GET /api/analytics/processing
  * Get processing analytics
  */
-router.get("/processing", authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.get("/processing", authenticateToken as any, async (req: AppRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({ error: "Unauthorized" });

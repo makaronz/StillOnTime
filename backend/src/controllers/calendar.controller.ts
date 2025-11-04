@@ -1,9 +1,10 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { services } from "@/services";
 import { scheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { userConfigRepository } from "@/repositories";
 import { logger } from "@/utils/logger";
 import { requireValidOAuth } from "@/middleware/auth.middleware";
+import { AppRequest } from "@/types/requests";
 
 /**
  * Calendar Controller
@@ -22,7 +23,7 @@ export class CalendarController {
    * Get calendar events for user
    * GET /api/calendar/events
    */
-  async getCalendarEvents(req: Request, res: Response): Promise<void> {
+  async getCalendarEvents(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -58,7 +59,7 @@ export class CalendarController {
    * Create calendar event for schedule
    * POST /api/calendar/events
    */
-  async createCalendarEvent(req: Request, res: Response): Promise<void> {
+  async createCalendarEvent(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -130,7 +131,7 @@ export class CalendarController {
    * Update calendar event
    * PUT /api/calendar/events/:eventId
    */
-  async updateCalendarEvent(req: Request, res: Response): Promise<void> {
+  async updateCalendarEvent(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -187,7 +188,7 @@ export class CalendarController {
    * Delete calendar event
    * DELETE /api/calendar/events/:eventId
    */
-  async deleteCalendarEvent(req: Request, res: Response): Promise<void> {
+  async deleteCalendarEvent(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -229,7 +230,7 @@ export class CalendarController {
    * Get calendar sync status
    * GET /api/calendar/sync/status
    */
-  async getSyncStatus(req: Request, res: Response): Promise<void> {
+  async getSyncStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -288,7 +289,7 @@ export class CalendarController {
    * Sync calendar events for schedules
    * POST /api/calendar/sync
    */
-  async syncCalendarEvents(req: Request, res: Response): Promise<void> {
+  async syncCalendarEvents(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -411,7 +412,7 @@ export class CalendarController {
    * Get calendar settings
    * GET /api/calendar/settings
    */
-  async getCalendarSettings(req: Request, res: Response): Promise<void> {
+  async getCalendarSettings(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });

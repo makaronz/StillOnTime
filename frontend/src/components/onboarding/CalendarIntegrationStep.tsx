@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, CheckCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
 const syncIntervals = [
@@ -57,7 +57,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
     })
   }
 
-  const handleRefreshCwSettingChange = (setting: string, value: any) => {
+  const handleSyncSettingChange = (setting: string, value: any) => {
     updateData({
       calendarIntegration: {
         ...data.calendarIntegration,
@@ -108,7 +108,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
             ) : connectionStatus === 'error' ? (
               <AlertCircle className="w-5 h-5 text-red-600 mr-3" aria-hidden="true" />
             ) : (
-              <Calendar className="w-5 h-5 text-gray-600 mr-3" aria-hidden="true" />
+              <CalendarIcon className="w-5 h-5 text-gray-600 mr-3" aria-hidden="true" />
             )}
             <div className="flex-1">
               <h3 className="font-medium text-gray-900">
@@ -193,26 +193,26 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                 <div className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={data.calendarIntegration.syncSettings.autoRefreshCw}
-                    onChange={(e) => handleRefreshCwSettingChange('autoRefreshCw', e.target.checked)}
+                    checked={data.calendarIntegration.syncSettings.autoSync}
+                    onChange={(e) => handleSyncSettingChange('autoSync', e.target.checked)}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
                   />
                   <div>
-                    <span className="text-sm font-medium text-gray-900">Enable Automatic RefreshCw</span>
+                    <span className="text-sm font-medium text-gray-900">Enable Automatic Sync</span>
                     <p className="text-xs text-gray-500">Automatically sync calendar events</p>
                   </div>
                 </div>
               </label>
 
-              {/* RefreshCw interval */}
-              {data.calendarIntegration.syncSettings.autoRefreshCw && (
+              {/* Sync interval */}
+              {data.calendarIntegration.syncSettings.autoSync && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    RefreshCw Frequency
+                    Sync Frequency
                   </label>
                   <select
                     value={data.calendarIntegration.syncSettings.syncInterval}
-                    onChange={(e) => handleRefreshCwSettingChange('syncInterval', parseInt(e.target.value))}
+                    onChange={(e) => handleSyncSettingChange('syncInterval', parseInt(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {syncIntervals.map((interval) => (
@@ -230,7 +230,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                   <input
                     type="checkbox"
                     checked={data.calendarIntegration.syncSettings.createEvents}
-                    onChange={(e) => handleRefreshCwSettingChange('createEvents', e.target.checked)}
+                    onChange={(e) => handleSyncSettingChange('createEvents', e.target.checked)}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
                   />
                   <div>
@@ -252,12 +252,12 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                   {isConnecting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      RefreshCwing...
+                      Syncing...
                     </>
                   ) : (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
-                      Test RefreshCw Now
+                      Test Sync Now
                     </>
                   )}
                 </div>

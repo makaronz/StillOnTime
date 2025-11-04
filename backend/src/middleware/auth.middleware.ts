@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { AppRequest } from "@/types/requests";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
 
@@ -7,7 +8,7 @@ import { logger } from "@/utils/logger";
  * and attaches user information to the request
  */
 export const authenticateToken = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -64,7 +65,7 @@ export const authenticateToken = async (
  * but still verifies the token if present
  */
 export const optionalAuth = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -104,7 +105,7 @@ export const optionalAuth = async (
  * This checks the database for valid Google OAuth tokens
  */
 export const requireValidOAuth = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -178,7 +179,7 @@ export const authRateLimit = (
   const ipAttempts = new Map<string, { count: number; resetTime: number }>();
   const userAttempts = new Map<string, { count: number; resetTime: number }>();
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: AppRequest, res: Response, next: NextFunction): void => {
     const clientIp = req.ip || req.connection.remoteAddress || "unknown";
     const userAgent = req.get("User-Agent") || "unknown";
     const now = Date.now();
@@ -271,7 +272,7 @@ export const authRateLimit = (
  * Middleware to validate API key for webhook endpoints
  */
 export const validateApiKey = (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {
@@ -317,7 +318,7 @@ export const validateApiKey = (
  */
 export const authErrorHandler = (
   error: Error,
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {

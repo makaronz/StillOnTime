@@ -3,11 +3,12 @@
  * Records performance metrics and error rates for all requests
  */
 
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { structuredLogger } from "../utils/logger";
 import { MonitoringService } from "../services/monitoring.service";
+import { AppRequest } from "@/types/requests";
 
-export interface MonitoringRequest extends Request {
+export interface MonitoringRequest extends AppRequest {
   startTime?: number;
   requestId?: string;
 }

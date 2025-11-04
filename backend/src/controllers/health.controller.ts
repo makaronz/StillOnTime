@@ -3,7 +3,8 @@
  * Provides detailed service status and health metrics
  */
 
-import { Request, Response } from "express";
+import { Response } from "express";
+import { AppRequest } from "@/types/requests";
 import { logger, structuredLogger } from "../utils/logger";
 import { CircuitBreakerRegistry } from "../utils/circuit-breaker";
 import { CacheService } from "../services/cache.service";
@@ -75,7 +76,7 @@ export class HealthController {
   /**
    * Basic health check endpoint
    */
-  async getHealth(req: Request, res: Response): Promise<void> {
+  async getHealth(req: AppRequest, res: Response): Promise<void> {
     const startTime = Date.now();
 
     try {
@@ -110,7 +111,7 @@ export class HealthController {
   /**
    * Detailed health check with all services
    */
-  async getDetailedHealth(req: Request, res: Response): Promise<void> {
+  async getDetailedHealth(req: AppRequest, res: Response): Promise<void> {
     const startTime = Date.now();
 
     try {
@@ -146,7 +147,7 @@ export class HealthController {
   /**
    * Readiness probe for Kubernetes
    */
-  async getReadiness(req: Request, res: Response): Promise<void> {
+  async getReadiness(req: AppRequest, res: Response): Promise<void> {
     try {
       const criticalServices = await this.checkCriticalServices();
       const allHealthy = criticalServices.every(
@@ -182,7 +183,7 @@ export class HealthController {
   /**
    * Liveness probe for Kubernetes
    */
-  async getLiveness(req: Request, res: Response): Promise<void> {
+  async getLiveness(req: AppRequest, res: Response): Promise<void> {
     try {
       // Basic liveness check - just verify the application is running
       const uptime = process.uptime();
@@ -475,7 +476,7 @@ export class HealthController {
   /**
    * Get comprehensive monitoring dashboard
    */
-  async getMonitoringDashboard(req: Request, res: Response): Promise<void> {
+  async getMonitoringDashboard(req: AppRequest, res: Response): Promise<void> {
     const startTime = Date.now();
 
     try {
@@ -509,7 +510,7 @@ export class HealthController {
   /**
    * Get performance metrics history
    */
-  async getPerformanceHistory(req: Request, res: Response): Promise<void> {
+  async getPerformanceHistory(req: AppRequest, res: Response): Promise<void> {
     try {
       const hours = parseInt(req.query.hours as string) || 24;
       const history = this.monitoringService.getPerformanceHistory(hours);
@@ -539,7 +540,7 @@ export class HealthController {
   /**
    * Get service health history
    */
-  async getServiceHealthHistory(req: Request, res: Response): Promise<void> {
+  async getServiceHealthHistory(req: AppRequest, res: Response): Promise<void> {
     try {
       const serviceName = req.params.serviceName;
       const hours = parseInt(req.query.hours as string) || 24;
@@ -585,7 +586,7 @@ export class HealthController {
   /**
    * Get error metrics and statistics
    */
-  async getErrorMetrics(req: Request, res: Response): Promise<void> {
+  async getErrorMetrics(req: AppRequest, res: Response): Promise<void> {
     try {
       const errorMetrics = this.errorHandlerService.getErrorMetrics();
       const criticalFailures = this.errorHandlerService.getCriticalFailures();
@@ -622,7 +623,7 @@ export class HealthController {
   /**
    * Get circuit breaker status for all services
    */
-  async getCircuitBreakerStatus(req: Request, res: Response): Promise<void> {
+  async getCircuitBreakerStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       const circuitBreakers = this.circuitBreakerRegistry.getAllStats();
 
@@ -664,7 +665,7 @@ export class HealthController {
   /**
    * Reset circuit breakers (admin endpoint)
    */
-  async resetCircuitBreakers(req: Request, res: Response): Promise<void> {
+  async resetCircuitBreakers(req: AppRequest, res: Response): Promise<void> {
     try {
       const serviceName = req.body.serviceName;
 
@@ -717,7 +718,7 @@ export class HealthController {
   /**
    * Get APM metrics history
    */
-  async getAPMMetricsHistory(req: Request, res: Response): Promise<void> {
+  async getAPMMetricsHistory(req: AppRequest, res: Response): Promise<void> {
     try {
       const hours = parseInt(req.query.hours as string) || 24;
       const history = this.monitoringService.getAPMMetricsHistory(hours);
@@ -770,7 +771,7 @@ export class HealthController {
   /**
    * Get custom metrics
    */
-  async getCustomMetrics(req: Request, res: Response): Promise<void> {
+  async getCustomMetrics(req: AppRequest, res: Response): Promise<void> {
     try {
       const customMetrics = this.monitoringService.getCustomMetrics();
 
@@ -798,7 +799,7 @@ export class HealthController {
   /**
    * Record custom metric (POST endpoint)
    */
-  async recordCustomMetric(req: Request, res: Response): Promise<void> {
+  async recordCustomMetric(req: AppRequest, res: Response): Promise<void> {
     try {
       const { name, value, unit, tags, description } = req.body;
 
@@ -846,7 +847,7 @@ export class HealthController {
   /**
    * Get alerting rules
    */
-  async getAlertingRules(req: Request, res: Response): Promise<void> {
+  async getAlertingRules(req: AppRequest, res: Response): Promise<void> {
     try {
       const rules = this.monitoringService.getAlertingRules();
 
@@ -885,7 +886,7 @@ export class HealthController {
   /**
    * Update alerting rule
    */
-  async updateAlertingRule(req: Request, res: Response): Promise<void> {
+  async updateAlertingRule(req: AppRequest, res: Response): Promise<void> {
     try {
       const ruleId = req.params.ruleId;
       const updates = req.body;
@@ -939,7 +940,7 @@ export class HealthController {
   /**
    * Resolve alert
    */
-  async resolveAlert(req: Request, res: Response): Promise<void> {
+  async resolveAlert(req: AppRequest, res: Response): Promise<void> {
     try {
       const alertId = req.params.alertId;
 
@@ -988,7 +989,7 @@ export class HealthController {
   /**
    * Test endpoint for triggering alerts (development/testing only)
    */
-  async triggerTestAlert(req: Request, res: Response): Promise<void> {
+  async triggerTestAlert(req: AppRequest, res: Response): Promise<void> {
     if (process.env.NODE_ENV === "production") {
       res.status(403).json({
         error: "Test alerts not available in production",
