@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
-import "@/types/express"; // Import to ensure type augmentation is loaded
+import "../types/express"; // Import to ensure type augmentation is loaded
 
 /**
  * Authentication Controller

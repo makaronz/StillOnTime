@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import {
-  ChartBarIcon,
+  BarChart3,
   CpuIcon,
   ServerIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
   TrendingUpIcon,
   TrendingDownIcon
 } from 'lucide-react';
@@ -146,10 +146,10 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'good':
-        return <CheckCircleIcon className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'warning':
       case 'critical':
-        return <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600" />;
+        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
       default:
         return null;
     }
@@ -184,7 +184,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       <Card className={className}>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <ChartBarIcon className="w-5 h-5" />
+            <BarChart3 className="w-5 h-5" />
             <span>Performance</span>
           </CardTitle>
         </CardHeader>
@@ -204,7 +204,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center space-x-2">
-            <ChartBarIcon className="w-5 h-5" />
+            <BarChart3 className="w-5 h-5" />
             <span>Performance</span>
           </span>
           <Badge variant="success">
@@ -242,7 +242,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {/* Database Metrics */}
         <div>
           <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center space-x-2">
-            <ClockIcon className="w-4 h-4" />
+            <Clock className="w-4 h-4" />
             <span>Database</span>
           </h4>
           <div className="space-y-2">

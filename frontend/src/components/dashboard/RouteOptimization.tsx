@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import {
   MapPinIcon,
-  ClockIcon,
+  Clock,
   CarIcon,
   NavigationIcon,
   XIcon,
@@ -285,7 +285,7 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center space-x-2 mb-1">
-                  <ClockIcon className="w-4 h-4 text-gray-600" />
+                  <Clock className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-600">Travel Time</span>
                 </div>
                 <p className="text-xl font-bold text-gray-900">

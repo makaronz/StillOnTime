@@ -9,7 +9,7 @@ import {
   DropletsIcon,
   EyeIcon,
   ThermometerIcon,
-  ExclamationTriangleIcon
+  AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -169,7 +169,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500">
-            <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p className="text-sm">{error || 'Weather data unavailable'}</p>
           </div>
         </CardContent>
@@ -261,7 +261,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({
                 key={idx}
                 className="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg"
               >
-                <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     <Badge variant={getAlertColor(alert.severity)} size="sm">

@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import {
   CalendarIcon,
-  ClockIcon,
+  Clock,
   MapPinIcon,
   FilmIcon,
   UserIcon,
@@ -171,7 +171,7 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
-                        <ClockIcon className="w-4 h-4" />
+                        <Clock className="w-4 h-4" />
                         <span>Call: {schedule.callTime}</span>
                       </div>
                       <div className="flex items-center space-x-2">
