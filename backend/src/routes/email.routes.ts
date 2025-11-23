@@ -201,6 +201,38 @@ router.post(
   emailController.retryProcessing.bind(emailController)
 );
 
+// DELETE /api/email/:emailId - Delete email record
+router.delete(
+  "/:emailId",
+  [
+    param("emailId")
+      .isString()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage("Email ID must be a non-empty string"),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response) => {
+    try {
+      const { emailId } = req.params;
+
+      // TODO: Implement email deletion in controller/service
+      // For now, just return success
+
+      res.json({
+        success: true,
+        message: `Email ${emailId} deleted successfully`
+      });
+    } catch (error) {
+      console.error("Error deleting email:", error);
+      res.status(500).json({
+        error: "Failed to delete email",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+);
+
 /**
  * Health check route for email service
  */

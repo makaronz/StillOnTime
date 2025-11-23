@@ -191,7 +191,7 @@ class ApiService {
   // Health check method
   async healthCheck(): Promise<boolean> {
     try {
-      await this.client.get('/api/health', { timeout: 5000 });
+      await this.client.get('/health', { timeout: 5000 });
       return true;
     } catch (error) {
       return false;

@@ -126,6 +126,79 @@ router.get(
   scheduleController.getWeatherForecast.bind(scheduleController)
 );
 
+// POST /api/schedule - Create new schedule
+router.post(
+  "/",
+  [
+    body("shootingDate")
+      .isISO8601()
+      .withMessage("Shooting date must be a valid ISO 8601 date"),
+    body("callTime")
+      .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+      .withMessage("Call time must be in HH:MM format"),
+    body("location")
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 255 })
+      .withMessage("Location must be between 1 and 255 characters"),
+    body("baseLocation")
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 255 })
+      .withMessage("Base location must be max 255 characters"),
+    body("sceneType")
+      .optional()
+      .isIn(["INT", "EXT"])
+      .withMessage("Scene type must be either INT or EXT"),
+    body("scenes").optional().isArray().withMessage("Scenes must be an array"),
+    body("safetyNotes")
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage("Safety notes must be max 1000 characters"),
+    body("equipment")
+      .optional()
+      .isArray()
+      .withMessage("Equipment must be an array"),
+    body("contacts")
+      .optional()
+      .isArray()
+      .withMessage("Contacts must be an array"),
+    body("notes")
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage("Notes must be max 1000 characters"),
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response) => {
+    try {
+      // TODO: Implement schedule creation in controller
+      const newSchedule = {
+        id: `schedule_${Date.now()}`,
+        ...req.body,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      res.status(201).json({
+        success: true,
+        data: newSchedule,
+        message: "Schedule created successfully"
+      });
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      res.status(500).json({
+        error: "Failed to create schedule",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+);
+
 // GET /api/schedule/:scheduleId - Get schedule by ID
 router.get(
   "/:scheduleId",

@@ -269,17 +269,17 @@ export interface LivenessResponse {
 
 class MonitoringService {
   async getDashboard(): Promise<MonitoringDashboard> {
-    return api.get<MonitoringDashboard>("/monitoring/dashboard");
+    return api.get<MonitoringDashboard>("/api/monitoring/dashboard");
   }
 
   async getPerformanceHistory(hours = 24): Promise<PerformanceHistory> {
     return api.get<PerformanceHistory>(
-      `/monitoring/performance/history?hours=${hours}`
+      `/api/monitoring/performance/history?hours=${hours}`
     );
   }
 
   async getAPMHistory(hours = 24): Promise<APMHistory> {
-    return api.get<APMHistory>(`/monitoring/apm/history?hours=${hours}`);
+    return api.get<APMHistory>(`/api/monitoring/apm/history?hours=${hours}`);
   }
 
   async getServiceHealthHistory(
@@ -287,26 +287,26 @@ class MonitoringService {
     hours = 24
   ): Promise<ServiceHealthHistory> {
     return api.get<ServiceHealthHistory>(
-      `/monitoring/services/${serviceName}/history?hours=${hours}`
+      `/api/monitoring/services/${serviceName}/history?hours=${hours}`
     );
   }
 
   async getErrorMetrics(): Promise<ErrorMetricsResponse> {
-    return api.get<ErrorMetricsResponse>("/monitoring/errors/metrics");
+    return api.get<ErrorMetricsResponse>("/api/monitoring/errors/metrics");
   }
 
   async getCircuitBreakerStatus(): Promise<CircuitBreakerStatusResponse> {
     return api.get<CircuitBreakerStatusResponse>(
-      "/monitoring/circuit-breakers"
+      "/api/monitoring/circuit-breakers"
     );
   }
 
   async resetCircuitBreakers(serviceName?: string): Promise<void> {
-    await api.post("/monitoring/circuit-breakers/reset", { serviceName });
+    await api.post("/api/monitoring/circuit-breakers/reset", { serviceName });
   }
 
   async getCustomMetrics(): Promise<CustomMetricsResponse> {
-    return api.get<CustomMetricsResponse>("/monitoring/metrics/custom");
+    return api.get<CustomMetricsResponse>("/api/monitoring/metrics/custom");
   }
 
   async recordCustomMetric(
@@ -316,7 +316,7 @@ class MonitoringService {
     tags: Record<string, string> = {},
     description = ""
   ): Promise<void> {
-    await api.post("/monitoring/metrics/custom", {
+    await api.post("/api/monitoring/metrics/custom", {
       name,
       value,
       unit,
@@ -326,18 +326,18 @@ class MonitoringService {
   }
 
   async getAlertingRules(): Promise<AlertingRulesResponse> {
-    return api.get<AlertingRulesResponse>("/monitoring/alerts/rules");
+    return api.get<AlertingRulesResponse>("/api/monitoring/alerts/rules");
   }
 
   async updateAlertingRule(
     ruleId: string,
     updates: Partial<AlertingRule>
   ): Promise<void> {
-    await api.put(`/monitoring/alerts/rules/${ruleId}`, updates);
+    await api.put(`/api/monitoring/alerts/rules/${ruleId}`, updates);
   }
 
   async resolveAlert(alertId: string): Promise<void> {
-    await api.post(`/monitoring/alerts/${alertId}/resolve`);
+    await api.post(`/api/monitoring/alerts/${alertId}/resolve`);
   }
 
   async triggerTestAlert(
@@ -345,7 +345,7 @@ class MonitoringService {
     severity: AlertSeverity = "medium",
     metricValue?: number
   ): Promise<void> {
-    await api.post("/monitoring/test/alert", {
+    await api.post("/api/monitoring/test/alert", {
       alertType,
       severity,
       metricValue,
@@ -353,19 +353,19 @@ class MonitoringService {
   }
 
   async getHealth(): Promise<HealthStatusResponse> {
-    return api.get<HealthStatusResponse>("/monitoring/health");
+    return api.get<HealthStatusResponse>("/api/monitoring/health");
   }
 
   async getDetailedHealth(): Promise<HealthStatusResponse> {
-    return api.get<HealthStatusResponse>("/monitoring/health/detailed");
+    return api.get<HealthStatusResponse>("/api/monitoring/health/detailed");
   }
 
   async getReadiness(): Promise<ReadinessResponse> {
-    return api.get<ReadinessResponse>("/monitoring/health/readiness");
+    return api.get<ReadinessResponse>("/api/monitoring/health/readiness");
   }
 
   async getLiveness(): Promise<LivenessResponse> {
-    return api.get<LivenessResponse>("/monitoring/health/liveness");
+    return api.get<LivenessResponse>("/api/monitoring/health/liveness");
   }
 }
 
