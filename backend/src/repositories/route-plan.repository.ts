@@ -63,11 +63,13 @@ export class RoutePlanRepository implements IRoutePlanRepository {
 
   async create(data: CreateRoutePlanInput): Promise<RoutePlan> {
     const id = this.generateCuid();
+    // Remove id from data to prevent duplicate property error
+    const { id: _, ...dataWithoutId } = data;
     return await db
       .insertInto("route_plans")
       .values({
-        id,
-        ...data,
+        id: id, // Explicitly use generated id
+        ...dataWithoutId, // Spread data without id
         calculatedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),

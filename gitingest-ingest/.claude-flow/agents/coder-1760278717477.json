@@ -1,0 +1,15 @@
+{
+  "id": "coder-1760278717477",
+  "name": "ConfigPageImplementer",
+  "type": "coder",
+  "status": "active",
+  "activeTasks": 0,
+  "lastActivity": 1760278717477,
+  "capabilities": [
+    "Code Generation",
+    "Implementation",
+    "Refactoring",
+    "Debugging"
+  ],
+  "createdAt": 1760278717477
+}

@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AppRequest } from '@/types/requests';
 import { logger } from '@/utils/logger';
 
 // CORS configuration
@@ -50,11 +51,11 @@ const createRateLimiter = (windowMs: number, max: number, message?: string) => {
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req: Request) => {
+    keyGenerator: (req: any) => {
       // Use user ID if authenticated, otherwise IP
       return (req as any).user?.userId || req.ip;
     },
-    skip: (req: Request) => {
+    skip: (req: any) => {
       // Skip rate limiting for health checks
       return req.path === '/api/health' || req.path === '/api/ready';
     }
@@ -86,15 +87,16 @@ const rateLimiters = {
 };
 
 // Request validation middleware
-export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
+export const validateRequest = (req: AppRequest, res: Response, next: NextFunction): void => {
   // Validate content-type for POST/PUT requests
   if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
     const contentType = req.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Invalid Content-Type',
         message: 'Content-Type must be application/json'
       });
+      return;
     }
   }
 
@@ -137,7 +139,7 @@ const sanitizeRequestBody = (body: any): any => {
 };
 
 // Request logging middleware
-export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
+export const requestLogger = (req: AppRequest, res: Response, next: NextFunction) => {
   const start = Date.now();
   const { method, url, ip } = req;
   const userAgent = req.get('User-Agent') || '';
@@ -182,8 +184,21 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
 };
 
 // API versioning middleware
-export const apiVersioning = (req: Request, res: Response, next: NextFunction) => {
-  const version = req.get('API-Version') || req.query.v || '1';
+export const apiVersioning = (req: AppRequest, res: Response, next: NextFunction) => {
+  // Handle different types of version input
+  let version: string;
+  const headerVersion = req.get('API-Version');
+  const queryVersion = req.query.v;
+
+  if (typeof headerVersion === 'string') {
+    version = headerVersion;
+  } else if (typeof queryVersion === 'string') {
+    version = queryVersion;
+  } else if (Array.isArray(queryVersion) && queryVersion.length > 0 && typeof queryVersion[0] === 'string') {
+    version = queryVersion[0];
+  } else {
+    version = '1';
+  }
 
   // Add version to request object
   (req as any).apiVersion = version;
@@ -206,7 +221,7 @@ export const apiGatewayMiddleware = [
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
         scriptSrc: ["'self'"],
-        connectSrc: ["'self'", process.env.API_URL],
+        connectSrc: process.env.API_URL ? ["'self'", process.env.API_URL] : ["'self'"],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],

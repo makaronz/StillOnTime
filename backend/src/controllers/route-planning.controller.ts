@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { RoutePlannerService } from "../services/route-planner.service";
 import { TimeCalculationService } from "../services/time-calculation.service";
 import { GoogleMapsService } from "../services/google-maps.service";
@@ -25,7 +26,7 @@ export class RoutePlanningController {
   /**
    * Calculate route plan for a specific schedule
    */
-  async calculateRoutePlan(req: Request, res: Response): Promise<void> {
+  async calculateRoutePlan(req: AppRequest, res: Response): Promise<void> {
     try {
       const { scheduleId } = req.params;
       const userId = req.user?.userId;
@@ -86,7 +87,7 @@ export class RoutePlanningController {
   /**
    * Get optimized buffer recommendations
    */
-  async getBufferRecommendations(req: Request, res: Response): Promise<void> {
+  async getBufferRecommendations(req: AppRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;
       const {
@@ -149,7 +150,7 @@ export class RoutePlanningController {
   /**
    * Validate address using Google Maps
    */
-  async validateAddress(req: Request, res: Response): Promise<void> {
+  async validateAddress(req: AppRequest, res: Response): Promise<void> {
     try {
       const { address } = req.body;
 
@@ -180,7 +181,7 @@ export class RoutePlanningController {
   /**
    * Calculate time schedule with recommendations
    */
-  async calculateTimeSchedule(req: Request, res: Response): Promise<void> {
+  async calculateTimeSchedule(req: AppRequest, res: Response): Promise<void> {
     try {
       const {
         callTime,
@@ -240,7 +241,7 @@ export class RoutePlanningController {
   /**
    * Get alternative routes
    */
-  async getAlternativeRoutes(req: Request, res: Response): Promise<void> {
+  async getAlternativeRoutes(req: AppRequest, res: Response): Promise<void> {
     try {
       const { origin, destination, departureTime } = req.body;
 
@@ -280,7 +281,7 @@ export class RoutePlanningController {
   /**
    * Get route recommendations for a location
    */
-  async getRouteRecommendations(req: Request, res: Response): Promise<void> {
+  async getRouteRecommendations(req: AppRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;
       const { location } = req.params;

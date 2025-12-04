@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-11-04T03:48:44.024Z",
+  "summary": {
+    "optimizations": 4,
+    "warnings": 0,
+    "errors": 1
+  },
+  "details": {
+    "optimizations": [
+      "Dependency analysis completed",
+      "Database indexes migration ready",
+      "Redis configuration found",
+      "Cache middleware implemented"
+    ],
+    "warnings": [],
+    "errors": [
+      "Bundle analysis failed: Command failed: cd frontend && npm run build"
+    ]
+  },
+  "recommendations": [
+    {
+      "priority": "critical",
+      "title": "Fix Performance Errors",
+      "description": "Resolve 1 critical performance issues."
+    },
+    {
+      "priority": "medium",
+      "title": "Implement Service Worker",
+      "description": "Add service worker for offline support and better caching."
+    },
+    {
+      "priority": "medium",
+      "title": "Add Resource Hints",
+      "description": "Implement preconnect, prefetch, and preload directives for critical resources."
+    },
+    {
+      "priority": "low",
+      "title": "Monitor Core Web Vitals",
+      "description": "Set up ongoing monitoring of Core Web Vitals in production."
+    }
+  ]
+}

@@ -1,11 +1,12 @@
-import { Request, Response } from "express";
+import { Response } from "express";
+import { AppRequest } from "@/types/requests";
 import multer from "multer";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
 import { ScheduleData, RoutePlan, WeatherData } from "@/types";
 
 // Extend Request type to include file property
-interface RequestWithFile extends Request {
+interface RequestWithFile extends AppRequest {
   file?: Express.Multer.File;
 }
 
@@ -69,7 +70,7 @@ export class EnhancedController {
   /**
    * Monitor emails with enhanced service
    */
-  static async monitorEmailsEnhanced(req: Request, res: Response): Promise<void> {
+  static async monitorEmailsEnhanced(req: AppRequest, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
 
@@ -114,7 +115,7 @@ export class EnhancedController {
   /**
    * Calculate route with enhanced features
    */
-  static async calculateRouteEnhanced(req: Request, res: Response): Promise<void> {
+  static async calculateRouteEnhanced(req: AppRequest, res: Response): Promise<void> {
     try {
       const { scheduleData, userId, options } = req.body;
 
@@ -153,7 +154,7 @@ export class EnhancedController {
   /**
    * Optimize multi-destination route
    */
-  static async optimizeMultiDestinationRoute(req: Request, res: Response): Promise<void> {
+  static async optimizeMultiDestinationRoute(req: AppRequest, res: Response): Promise<void> {
     try {
       const { schedules, userId, options } = req.body;
 
@@ -190,7 +191,7 @@ export class EnhancedController {
   /**
    * Create enhanced calendar event
    */
-  static async createCalendarEventEnhanced(req: Request, res: Response): Promise<void> {
+  static async createCalendarEventEnhanced(req: AppRequest, res: Response): Promise<void> {
     try {
       const { scheduleData, routePlan, weather, userId, options } = req.body;
 
@@ -231,7 +232,7 @@ export class EnhancedController {
   /**
    * Get enhanced services health status
    */
-  static async getEnhancedServicesHealth(req: Request, res: Response): Promise<void> {
+  static async getEnhancedServicesHealth(req: AppRequest, res: Response): Promise<void> {
     try {
       const healthStatus = await services.enhancedServiceManager.getHealthStatus();
       const enabledServices = services.enhancedServiceManager.getEnabledServices();
@@ -257,7 +258,7 @@ export class EnhancedController {
   /**
    * Get enhanced services configuration
    */
-  static async getEnhancedServicesConfig(req: Request, res: Response): Promise<void> {
+  static async getEnhancedServicesConfig(req: AppRequest, res: Response): Promise<void> {
     try {
       const config = {
         enabledServices: services.enhancedServiceManager.getEnabledServices(),
@@ -287,7 +288,7 @@ export class EnhancedController {
   /**
    * Validate enhanced PDF extraction
    */
-  static async validatePDFExtraction(req: Request, res: Response): Promise<void> {
+  static async validatePDFExtraction(req: AppRequest, res: Response): Promise<void> {
     try {
       const { extractedData } = req.body;
 

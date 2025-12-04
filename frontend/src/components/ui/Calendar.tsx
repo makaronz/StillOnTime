@@ -13,7 +13,7 @@ import {
   isToday,
   isWeekend
 } from 'date-fns';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface CalendarEvent {
@@ -82,13 +82,13 @@ export const Calendar: React.FC<CalendarProps> = ({
             onClick={handlePreviousMonth}
             className="p-1 hover:bg-gray-100 rounded-md transition-colors"
           >
-            <ChevronLeftIcon className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
           <button
             onClick={handleNextMonth}
             className="p-1 hover:bg-gray-100 rounded-md transition-colors"
           >
-            <ChevronRightIcon className="w-5 h-5 text-gray-600" />
+            <ChevronRight className="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>

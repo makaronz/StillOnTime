@@ -1,9 +1,10 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { services } from "@/services";
 import { scheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { userConfigRepository } from "@/repositories";
 import { logger } from "@/utils/logger";
 import { requireValidOAuth } from "@/middleware/auth.middleware";
+import { AppRequest } from "@/types/requests";
 
 /**
  * Calendar Controller
@@ -22,7 +23,7 @@ export class CalendarController {
    * Get calendar events for user
    * GET /api/calendar/events
    */
-  async getCalendarEvents(req: Request, res: Response): Promise<void> {
+  async getCalendarEvents(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -58,7 +59,7 @@ export class CalendarController {
    * Create calendar event for schedule
    * POST /api/calendar/events
    */
-  async createCalendarEvent(req: Request, res: Response): Promise<void> {
+  async createCalendarEvent(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -79,10 +80,18 @@ export class CalendarController {
       }
 
       // Create calendar event using the correct method signature
+      // Handle weatherData array vs single object
+      let weatherData;
+      if (schedule.weatherData && Array.isArray(schedule.weatherData)) {
+        weatherData = schedule.weatherData[0] || undefined;
+      } else {
+        weatherData = schedule.weatherData || undefined;
+      }
+
       const newEvent = await services.calendarManager.createCalendarEvent(
         schedule,
         schedule.routePlan || undefined,
-        schedule.weatherData || undefined,
+        weatherData,
         req.user.userId
       );
 
@@ -125,7 +134,7 @@ export class CalendarController {
    * Update calendar event
    * PUT /api/calendar/events/:eventId
    */
-  async updateCalendarEvent(req: Request, res: Response): Promise<void> {
+  async updateCalendarEvent(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -182,7 +191,7 @@ export class CalendarController {
    * Delete calendar event
    * DELETE /api/calendar/events/:eventId
    */
-  async deleteCalendarEvent(req: Request, res: Response): Promise<void> {
+  async deleteCalendarEvent(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -224,7 +233,7 @@ export class CalendarController {
    * Get calendar sync status
    * GET /api/calendar/sync/status
    */
-  async getSyncStatus(req: Request, res: Response): Promise<void> {
+  async getSyncStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -283,7 +292,7 @@ export class CalendarController {
    * Sync calendar events for schedules
    * POST /api/calendar/sync
    */
-  async syncCalendarEvents(req: Request, res: Response): Promise<void> {
+  async syncCalendarEvents(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -323,6 +332,14 @@ export class CalendarController {
 
           // Create or update calendar event
           let calendarEvent;
+          // Handle weatherData array vs single object
+          let weatherDataForEvent;
+          if (schedule.weatherData && Array.isArray(schedule.weatherData)) {
+            weatherDataForEvent = schedule.weatherData[0] || undefined;
+          } else {
+            weatherDataForEvent = schedule.weatherData || undefined;
+          }
+
           if (schedule.calendarEvent) {
             // Update existing event
             calendarEvent =
@@ -330,7 +347,7 @@ export class CalendarController {
                 schedule.calendarEvent.calendarEventId,
                 schedule,
                 schedule.routePlan || undefined,
-                schedule.weatherData || undefined,
+                weatherDataForEvent,
                 req.user.userId
               );
           } else {
@@ -338,7 +355,7 @@ export class CalendarController {
             calendarEvent = await services.calendarManager.createCalendarEvent(
               schedule,
               schedule.routePlan || undefined,
-              schedule.weatherData || undefined,
+              weatherDataForEvent,
               req.user.userId
             );
           }
@@ -401,7 +418,7 @@ export class CalendarController {
    * Get calendar settings
    * GET /api/calendar/settings
    */
-  async getCalendarSettings(req: Request, res: Response): Promise<void> {
+  async getCalendarSettings(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });

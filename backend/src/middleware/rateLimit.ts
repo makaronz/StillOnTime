@@ -1,44 +1,53 @@
 import rateLimit from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
-import Redis from 'redis';
-import { Request, Response } from 'express';
+import { Response, NextFunction } from 'express';
+import { AppRequest } from '@/types/requests';
 import { logger } from '@/utils/logger';
 
+// Use existing Redis client from config to avoid conflicts
+import { getRedisClient } from '@/config/redis';
+
 // Initialize Redis client for rate limiting
-const redisClient = Redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-  retry_strategy: (options) => {
-    if (options.error && options.error.code === 'ECONNREFUSED') {
-      logger.error('Redis connection refused', { error: options.error });
-      return new Error('Redis server connection refused');
+let redisClient: any = null;
+
+// Async function to initialize Redis client
+const getRateLimitRedisClient = async () => {
+  if (!redisClient) {
+    try {
+      redisClient = await getRedisClient();
+      logger.info('Rate limiting Redis client initialized');
+    } catch (error) {
+      logger.error('Failed to initialize Redis client for rate limiting', { error });
+      // Return null to fallback to memory store
+      return null;
     }
-    if (options.total_retry_time > 1000 * 60 * 60) {
-      logger.error('Redis retry time exhausted');
-      return new Error('Retry time exhausted');
-    }
-    if (options.attempt > 10) {
-      logger.error('Redis retry attempts exhausted');
-      return undefined;
-    }
-    // Retry after min(options.attempt * 100, 3000) milliseconds
-    return Math.min(options.attempt * 100, 3000);
   }
-});
+  return redisClient;
+};
 
-redisClient.on('error', (err) => {
-  logger.error('Redis rate limit error', { error: err });
-});
-
-redisClient.on('connect', () => {
-  logger.info('Redis rate limiter connected');
-});
-
-// Create Redis store for rate limiting
-const createRedisStore = (prefix: string) => {
-  return new RedisStore({
-    sendCommand: (...args: string[]) => redisClient.call(...args) as Promise<any>,
-    prefix: `rl:${prefix}:`,
-  });
+// Create Redis store for rate limiting (fallback to memory store if Redis unavailable)
+const createRedisStore = async (prefix: string) => {
+  try {
+    const client = await getRateLimitRedisClient();
+    if (client) {
+      // Try to use rate-limit-redis if available
+      try {
+        // @ts-ignore - Dynamic import with type assertion
+        const RedisStoreModule = await import('rate-limit-redis');
+        const { RedisStore } = RedisStoreModule;
+        return new RedisStore({
+          // @ts-ignore - Dynamic Redis client compatibility
+          sendCommand: (...args: string[]) => client.call(...args),
+          prefix: `rl:${prefix}:`,
+        });
+      } catch (importError) {
+        logger.warn('rate-limit-redis not available, using memory store', { error: importError });
+        return undefined;
+      }
+    }
+  } catch (error) {
+    logger.warn('Failed to create Redis store, using memory store', { error });
+  }
+  return undefined; // Fallback to memory store
 };
 
 // Rate limiter configurations
@@ -52,8 +61,8 @@ export const rateLimitConfigs = {
       message: 'Rate limit exceeded. Please try again later.',
       retryAfter: 900 // 15 minutes
     },
-    store: createRedisStore('general'),
-    keyGenerator: (req: Request) => {
+    // store: Will be added dynamically if Redis is available
+    keyGenerator: (req: any) => {
       // Use user ID if authenticated, otherwise IP
       return (req as any).user?.userId || req.ip;
     }
@@ -68,8 +77,8 @@ export const rateLimitConfigs = {
       message: 'Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.',
       retryAfter: 900
     },
-    store: createRedisStore('auth'),
-    keyGenerator: (req: Request) => {
+    // store: Will be added dynamically if Redis is available
+    keyGenerator: (req: any) => {
       const email = req.body?.email || req.ip;
       return `auth:${email}`;
     },
@@ -85,8 +94,8 @@ export const rateLimitConfigs = {
       message: 'You have reached the hourly email processing limit. Please try again later.',
       retryAfter: 3600
     },
-    store: createRedisStore('email'),
-    keyGenerator: (req: Request) => {
+    // store: Will be added dynamically if Redis is available
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   },
@@ -100,8 +109,8 @@ export const rateLimitConfigs = {
       message: 'You have reached the hourly upload limit. Please try again later.',
       retryAfter: 3600
     },
-    store: createRedisStore('upload'),
-    keyGenerator: (req: Request) => {
+    // store: Will be added dynamically if Redis is available
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   },
@@ -115,8 +124,8 @@ export const rateLimitConfigs = {
       message: 'Too many search requests. Please wait a moment before searching again.',
       retryAfter: 60
     },
-    store: createRedisStore('search'),
-    keyGenerator: (req: Request) => {
+    // store: Will be added dynamically if Redis is available
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   }
@@ -135,7 +144,7 @@ export const rateLimiters = {
 export const createRateLimitMiddleware = (config: typeof rateLimitConfigs.general) => {
   const limiter = rateLimit({
     ...config,
-    handler: (req: Request, res: Response) => {
+    handler: (req: any, res: Response) => {
       const retryAfter = config.message.retryAfter;
 
       // Log rate limit violation
@@ -158,21 +167,14 @@ export const createRateLimitMiddleware = (config: typeof rateLimitConfigs.genera
 
       res.status(429).json(config.message);
     },
-    onLimitReached: (req: Request, res: Response) => {
-      logger.error('Rate limit reached', {
-        ip: req.ip,
-        userId: (req as any).user?.userId,
-        path: req.path,
-        method: req.method
-      });
-    }
+    // Note: onLimitReached removed as it's not supported in current express-rate-limit version
   });
 
   return limiter;
 };
 
 // Dynamic rate limiting based on user tier
-export const dynamicRateLimit = async (req: Request, res: Response, next: Function) => {
+export const dynamicRateLimit = async (req: any, res: Response, next: NextFunction) => {
   const user = (req as any).user;
 
   // Default limits for anonymous users
@@ -182,7 +184,7 @@ export const dynamicRateLimit = async (req: Request, res: Response, next: Functi
   if (user) {
     // TODO: Fetch user tier from database
     // const userTier = await getUserTier(user.userId);
-    const userTier = 'premium'; // Mock tier
+    const userTier = 'premium' as 'free' | 'premium' | 'enterprise'; // Mock tier
 
     switch (userTier) {
       case 'free':
@@ -208,8 +210,8 @@ export const dynamicRateLimit = async (req: Request, res: Response, next: Functi
       message: `Rate limit: ${max} requests per ${Math.ceil(windowMs / 60000)} minutes.`,
       retryAfter: Math.ceil(windowMs / 1000)
     },
-    store: createRedisStore('dynamic'),
-    keyGenerator: (req: Request) => {
+    // store: Will be added dynamically if Redis is available
+    keyGenerator: (req: any) => {
       return (req as any).user?.userId || req.ip;
     }
   });
@@ -219,10 +221,17 @@ export const dynamicRateLimit = async (req: Request, res: Response, next: Functi
 
 // Reset rate limit for a user (admin function)
 export const resetUserRateLimit = async (userId: string) => {
-  const keys = await redisClient.keys(`rl:*:${userId}`);
-  if (keys.length > 0) {
-    await redisClient.del(keys);
-    logger.info('Rate limit reset for user', { userId, keysDeleted: keys.length });
+  try {
+    const client = await getRateLimitRedisClient();
+    if (client) {
+      const keys = await client.keys(`rl:*:${userId}`);
+      if (keys.length > 0) {
+        await client.del(keys);
+        logger.info('Rate limit reset for user', { userId, keysDeleted: keys.length });
+      }
+    }
+  } catch (error) {
+    logger.error('Failed to reset user rate limit', { userId, error });
   }
 };
 

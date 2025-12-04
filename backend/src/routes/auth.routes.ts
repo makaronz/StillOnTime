@@ -16,7 +16,7 @@ const router = Router();
  * Validation middleware for request validation
  */
 const handleValidationErrors = (
-  req: Request,
+  req: any, // Use any to be compatible with Express Request
   res: Response,
   next: NextFunction
 ): void => {

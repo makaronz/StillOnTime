@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { body, validationResult } from "express-validator";
 import { NotificationService } from "../services/notification.service";
 import { UserRepository } from "../repositories/user.repository";
@@ -25,7 +26,7 @@ export class SMSController {
   /**
    * Configure SMS settings for user
    */
-  configureSMS = async (req: Request, res: Response): Promise<void> => {
+  configureSMS = async (req: AppRequest, res: Response): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -154,7 +155,7 @@ export class SMSController {
   /**
    * Verify SMS code
    */
-  verifySMS = async (req: Request, res: Response): Promise<void> => {
+  verifySMS = async (req: AppRequest, res: Response): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -256,7 +257,7 @@ export class SMSController {
    * Resend verification code
    */
   resendVerificationCode = async (
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> => {
     try {
@@ -314,7 +315,7 @@ export class SMSController {
   /**
    * Get SMS configuration status
    */
-  getSMSStatus = async (req: Request, res: Response): Promise<void> => {
+  getSMSStatus = async (req: AppRequest, res: Response): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -365,7 +366,7 @@ export class SMSController {
   /**
    * Test SMS delivery
    */
-  testSMS = async (req: Request, res: Response): Promise<void> => {
+  testSMS = async (req: AppRequest, res: Response): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -428,7 +429,7 @@ export class SMSController {
   /**
    * Handle Twilio webhook for delivery status updates
    */
-  handleWebhook = async (req: Request, res: Response): Promise<void> => {
+  handleWebhook = async (req: AppRequest, res: Response): Promise<void> => {
     try {
       const { MessageSid, MessageStatus, ErrorCode, ErrorMessage } = req.body;
 

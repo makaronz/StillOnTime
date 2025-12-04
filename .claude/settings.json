@@ -65,6 +65,10 @@
           {
             "type": "command",
             "command": "cat | jq -r '.tool_input.command // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow@alpha hooks post-command --command '{}' --track-metrics true --store-results true"
+          },
+          {
+            "type": "command",
+            "command": "cat | jq -r '.tool_result.exitCode // 0' | xargs -I {} sh -c 'if [ {} -ne 0 ]; then npx claude-flow@alpha hooks post-error --error-type \"command-failure\" --exit-code {} --auto-recover true --store-pattern true; fi'"
           }
         ]
       },
@@ -74,6 +78,10 @@
           {
             "type": "command",
             "command": "cat | jq -r '.tool_input.file_path // .tool_input.path // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow@alpha hooks post-edit --file '{}' --format true --update-memory true"
+          },
+          {
+            "type": "command",
+            "command": "cat | jq -r '.tool_result.error // empty' | if [ -n \"$0\" ]; then npx claude-flow@alpha hooks post-error --error-type \"syntax-error\" --auto-recover true --store-pattern true; fi"
           }
         ]
       }

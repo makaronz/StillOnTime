@@ -3,14 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import {
-  MapPinIcon,
-  ClockIcon,
-  CarIcon,
-  NavigationIcon,
-  XIcon,
-  ChevronRightIcon,
-  PlayIcon,
-  RefreshCwIcon
+  MapPin,
+  Clock,
+  Car,
+  Navigation,
+  X,
+  ChevronRight,
+  Play,
+  RefreshCw
 } from 'lucide-react';
 import { Schedule } from '@/types/schedule';
 
@@ -187,7 +187,7 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <MapPinIcon className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-400" />
           <p className="text-gray-600">Select a schedule to view route optimization</p>
         </CardContent>
       </Card>
@@ -203,14 +203,14 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
           className="absolute top-4 right-4"
           onClick={onClose}
         >
-          <XIcon className="w-4 h-4" />
+          <X className="w-4 h-4" />
         </Button>
       )}
 
       <CardHeader>
         <CardTitle className="flex items-center justify-between pr-8">
           <span className="flex items-center space-x-2">
-            <NavigationIcon className="w-5 h-5" />
+            <Navigation className="w-5 h-5" />
             <span>Route Optimization</span>
           </span>
           <Button
@@ -221,12 +221,12 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
           >
             {optimizing ? (
               <>
-                <RefreshCwIcon className="w-4 h-4 mr-2 animate-spin" />
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 Optimizing...
               </>
             ) : (
               <>
-                <RefreshCwIcon className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Re-optimize
               </>
             )}
@@ -276,7 +276,7 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center space-x-2 mb-1">
-                  <CarIcon className="w-4 h-4 text-gray-600" />
+                  <Car className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-600">Total Distance</span>
                 </div>
                 <p className="text-xl font-bold text-gray-900">
@@ -285,7 +285,7 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center space-x-2 mb-1">
-                  <ClockIcon className="w-4 h-4 text-gray-600" />
+                  <Clock className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-600">Travel Time</span>
                 </div>
                 <p className="text-xl font-bold text-gray-900">
@@ -363,18 +363,18 @@ export const RouteOptimization: React.FC<RouteOptimizationProps> = ({
             {/* Action Buttons */}
             <div className="flex space-x-3 pt-4 border-t">
               <Button className="flex-1">
-                <NavigationIcon className="w-4 h-4 mr-2" />
+                <Navigation className="w-4 h-4 mr-2" />
                 Start Navigation
               </Button>
               <Button variant="outline" className="flex-1">
-                <MapPinIcon className="w-4 h-4 mr-2" />
+                <MapPin className="w-4 h-4 mr-2" />
                 View on Map
               </Button>
             </div>
           </>
         ) : (
           <div className="text-center py-8">
-            <NavigationIcon className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <Navigation className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600">No route plan available</p>
             <Button
               className="mt-4"

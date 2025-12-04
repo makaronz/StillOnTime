@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, CheckCircle, AlertCircle, Sync, Clock } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
 const syncIntervals = [
@@ -14,7 +14,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
   const [isConnecting, setIsConnecting] = useState(false)
   const [calendars, setCalendars] = useState<Array<{ id: string; name: string; primary: boolean }>>([])
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'error'>('idle')
-  const [lastSync, setLastSync] = useState<Date | null>(null)
+  const [lastRefreshCw, setLastRefreshCw] = useState<Date | null>(null)
 
   useEffect(() => {
     // Simulate fetching calendars
@@ -24,7 +24,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
         { id: 'work', name: 'Work Calendar', primary: false },
         { id: 'personal', name: 'Personal Calendar', primary: false },
       ])
-      setLastSync(new Date())
+      setLastRefreshCw(new Date())
     }
   }, [connectionStatus])
 
@@ -69,14 +69,14 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
     })
   }
 
-  const handleTestSync = async () => {
+  const handleTestRefreshCw = async () => {
     setIsConnecting(true)
     try {
       // Simulate sync process
       await new Promise(resolve => setTimeout(resolve, 3000))
-      setLastSync(new Date())
+      setLastRefreshCw(new Date())
     } catch (error) {
-      console.error('Sync failed:', error)
+      console.error('RefreshCw failed:', error)
     } finally {
       setIsConnecting(false)
     }
@@ -108,7 +108,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
             ) : connectionStatus === 'error' ? (
               <AlertCircle className="w-5 h-5 text-red-600 mr-3" aria-hidden="true" />
             ) : (
-              <Calendar className="w-5 h-5 text-gray-600 mr-3" aria-hidden="true" />
+              <CalendarIcon className="w-5 h-5 text-gray-600 mr-3" aria-hidden="true" />
             )}
             <div className="flex-1">
               <h3 className="font-medium text-gray-900">
@@ -128,10 +128,10 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                 }
               </p>
             </div>
-            {lastSync && (
+            {lastRefreshCw && (
               <div className="text-xs text-gray-500 flex items-center">
                 <Clock className="w-3 h-3 mr-1" />
-                Last sync: {lastSync.toLocaleTimeString()}
+                Last sync: {lastRefreshCw.toLocaleTimeString()}
               </div>
             )}
           </div>
@@ -182,10 +182,10 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
           </div>
         )}
 
-        {/* Sync settings */}
+        {/* RefreshCw settings */}
         {connectionStatus === 'connected' && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Sync Settings</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">RefreshCw Settings</h3>
 
             <div className="space-y-4">
               {/* Auto sync */}
@@ -244,7 +244,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
             {/* Test sync button */}
             <div className="mt-4">
               <button
-                onClick={handleTestSync}
+                onClick={handleTestRefreshCw}
                 disabled={isConnecting}
                 className="w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -256,7 +256,7 @@ export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, 
                     </>
                   ) : (
                     <>
-                      <Sync className="w-4 h-4 mr-2" aria-hidden="true" />
+                      <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
                       Test Sync Now
                     </>
                   )}

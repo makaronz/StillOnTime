@@ -1,5 +1,5 @@
 import React from 'react'
-import { Cpu, FileText, Mail, RoutePlanning, Calendar, Brain } from 'lucide-react'
+import { Cpu, FileText, Mail, MapPin, Calendar as CalendarIcon, Brain } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
 const serviceFeatures = [

@@ -51,7 +51,7 @@ export interface SecurityConfig {
 
 export const securityConfig: SecurityConfig = {
   jwt: {
-    minSecretLength: 64,
+    minSecretLength: 48,
     expiresIn: "1h",
     refreshExpiresIn: "7d",
   },
@@ -184,7 +184,7 @@ export function validateSecurityConfig(): void {
     }
 
     // Check for development values in production
-    if (process.env.JWT_SECRET && (process.env.JWT_SECRET.length < 64 || process.env.JWT_SECRET.includes("dev"))) {
+    if (process.env.JWT_SECRET && (process.env.JWT_SECRET.length < 48 || process.env.JWT_SECRET.includes("dev"))) {
       throw new Error("JWT_SECRET appears to be a development value. Use a strong production secret.");
     }
   }

@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { logger } from "@/utils/logger";
 import { config } from "@/config/config";
 
@@ -11,7 +12,7 @@ export class SystemConfigController {
    * Get LLM configuration settings
    * GET /api/config/llm
    */
-  async getLLMConfig(req: Request, res: Response): Promise<void> {
+  async getLLMConfig(req: AppRequest, res: Response): Promise<void> {
     try {
       res.json({
         success: true,
@@ -49,7 +50,7 @@ export class SystemConfigController {
    * Update LLM configuration settings
    * PUT /api/config/llm
    */
-  async updateLLMConfig(req: Request, res: Response): Promise<void> {
+  async updateLLMConfig(req: AppRequest, res: Response): Promise<void> {
     try {
       const { openaiApiKey, codenet, enhancedServices } = req.body;
 
@@ -115,7 +116,7 @@ export class SystemConfigController {
    * Get mail parsing configuration settings
    * GET /api/config/mail-parsing
    */
-  async getMailParsingConfig(req: Request, res: Response): Promise<void> {
+  async getMailParsingConfig(req: AppRequest, res: Response): Promise<void> {
     try {
       res.json({
         success: true,
@@ -174,7 +175,7 @@ export class SystemConfigController {
    * Update mail parsing configuration settings
    * PUT /api/config/mail-parsing
    */
-  async updateMailParsingConfig(req: Request, res: Response): Promise<void> {
+  async updateMailParsingConfig(req: AppRequest, res: Response): Promise<void> {
     try {
       const { gmailIntegration, emailProcessing, parsingRules, processingSettings } = req.body;
 
@@ -223,7 +224,7 @@ export class SystemConfigController {
    * Get system status and API connections
    * GET /api/config/status
    */
-  async getSystemStatus(req: Request, res: Response): Promise<void> {
+  async getSystemStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       const status = {
         database: {
@@ -290,7 +291,7 @@ export class SystemConfigController {
    * Test API connections
    * POST /api/config/test-connections
    */
-  async testConnections(req: Request, res: Response): Promise<void> {
+  async testConnections(req: AppRequest, res: Response): Promise<void> {
     try {
       const results = {
         database: { connected: true, latency: "< 1ms" },

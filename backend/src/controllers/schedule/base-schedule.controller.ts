@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { logger } from "@/utils/logger";
 
@@ -17,7 +18,7 @@ export class BaseScheduleController {
    * Get all schedules for user with filtering and pagination
    * GET /api/schedule
    */
-  async getSchedules(req: Request, res: Response): Promise<void> {
+  async getSchedules(req: AppRequest, res: Response): Promise<void> {
     if (!req.user) {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -145,7 +146,7 @@ export class BaseScheduleController {
    * GET /api/schedule/:scheduleId
    */
   async getScheduleById(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     if (!req.user) {
@@ -233,7 +234,7 @@ export class BaseScheduleController {
    * Get upcoming schedules for dashboard
    * GET /api/schedules/upcoming?limit=5
    */
-  async getUpcoming(req: Request, res: Response): Promise<void> {
+  async getUpcoming(req: AppRequest, res: Response): Promise<void> {
     if (!req.user) {
       res.status(401).json({ error: "Unauthorized" });
       return;

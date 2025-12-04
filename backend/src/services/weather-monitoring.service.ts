@@ -127,19 +127,20 @@ export class WeatherMonitoringService {
       // Compare with existing data to detect changes
       let changeNotification: WeatherChangeNotification | null = null;
 
-      if (existingWeather) {
+      if (existingWeather && existingWeather.length > 0) {
+        const weather = existingWeather[0];
         const previousWeatherData: WeatherCacheData = {
-          temperature: existingWeather.temperature || 0,
-          description: existingWeather.description || "",
-          windSpeed: existingWeather.windSpeed || 0,
-          precipitation: existingWeather.precipitation || 0,
-          humidity: existingWeather.humidity || 0,
-          warnings: Array.isArray(existingWeather.warnings)
-            ? existingWeather.warnings.filter(
+          temperature: weather.temperature || 0,
+          description: weather.description || "",
+          windSpeed: weather.windSpeed || 0,
+          precipitation: weather.precipitation || 0,
+          humidity: weather.humidity || 0,
+          warnings: Array.isArray(weather.warnings)
+            ? weather.warnings.filter(
                 (w: any) => typeof w === "string"
               )
             : [],
-          fetchedAt: existingWeather.fetchedAt,
+          fetchedAt: weather.fetchedAt,
           location,
           date: dateStr,
         };
@@ -175,7 +176,7 @@ export class WeatherMonitoringService {
 
         // Update existing weather data
         await this.weatherService.updateWeatherData(
-          existingWeather.id,
+          weather.id,
           freshWeatherData
         );
       } else {
@@ -571,7 +572,7 @@ export class WeatherMonitoringService {
       // Create notification template data
       const templateData = {
         scheduleData: schedule,
-        weatherData: schedule.weatherData || undefined,
+        weatherData: schedule.weatherData && schedule.weatherData.length > 0 ? schedule.weatherData[0] : undefined,
         location,
         date,
         warnings: significantChanges

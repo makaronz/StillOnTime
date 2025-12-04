@@ -223,6 +223,13 @@ export class WeatherCacheService {
     const cachedData = await this.getCachedWeatherData(location, date);
     return cachedData!; // We know it exists because it's not stale
   }
+
+  /**
+   * Clear weather cache data - used by memory recovery controller
+   */
+  async clearCache(): Promise<void> {
+    await this.cache.clearCache(this.WEATHER_PREFIX);
+  }
 }
 
 // Export singleton instance

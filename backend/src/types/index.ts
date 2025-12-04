@@ -23,6 +23,8 @@ import {
   CalendarEventUpdate,
   NewUserConfig,
   UserConfigUpdate,
+  NewSummary,
+  SummaryUpdate,
 } from "@/config/database-types";
 import {
   CalendarConflict,
@@ -32,15 +34,31 @@ import {
 } from "./domain";
 
 // Re-export Kysely types for consistency
-export type User = User;
-export type ProcessedEmail = ProcessedEmail;
-export type ScheduleData = ScheduleData;
-export type RoutePlan = RoutePlan;
-export type WeatherData = WeatherData;
-export type CalendarEvent = CalendarEvent;
-export type UserConfig = UserConfig;
-export type Notification = Notification;
-export type Summary = Summary;
+export type {
+  User,
+  ProcessedEmail,
+  ScheduleData,
+  RoutePlan,
+  WeatherData,
+  CalendarEvent,
+  UserConfig,
+  Notification,
+  Summary,
+  NewUser,
+  UserUpdate,
+  NewProcessedEmail,
+  ProcessedEmailUpdate,
+  NewScheduleData,
+  ScheduleDataUpdate,
+  NewRoutePlan,
+  RoutePlanUpdate,
+  NewWeatherData,
+  WeatherDataUpdate,
+  NewCalendarEvent,
+  CalendarEventUpdate,
+  NewUserConfig,
+  UserConfigUpdate,
+} from "@/config/database-types";
 
 // Kysely input types for creating/updating records
 export type CreateUserInput = NewUser;

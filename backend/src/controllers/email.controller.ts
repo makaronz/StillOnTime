@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express";
+import { AppRequest } from "@/types/requests";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
 import { logger } from "@/utils/logger";
 import { services } from "@/services";
@@ -18,7 +19,7 @@ export class EmailController {
    * Trigger manual email processing
    * POST /api/email/process
    */
-  async triggerProcessing(req: Request, res: Response): Promise<void> {
+  async triggerProcessing(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -73,7 +74,7 @@ export class EmailController {
    * Get email processing status and history
    * GET /api/email/status
    */
-  async getProcessingStatus(req: Request, res: Response): Promise<void> {
+  async getProcessingStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -157,7 +158,7 @@ export class EmailController {
    * Get detailed email processing history
    * GET /api/email/history
    */
-  async getProcessingHistory(req: Request, res: Response): Promise<void> {
+  async getProcessingHistory(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -280,7 +281,7 @@ export class EmailController {
    * Retry failed email processing
    * POST /api/email/:emailId/retry
    */
-  async retryProcessing(req: Request, res: Response): Promise<void> {
+  async retryProcessing(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -362,7 +363,7 @@ export class EmailController {
    * Get processing statistics
    * GET /api/email/statistics
    */
-  async getStatistics(req: Request, res: Response): Promise<void> {
+  async getStatistics(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -477,7 +478,7 @@ export class EmailController {
    * Get email processing stats for dashboard
    * GET /api/emails/stats
    */
-  async getStats(req: Request, res: Response): Promise<void> {
+  async getStats(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -538,7 +539,7 @@ export class EmailController {
    * Get recent processed emails for dashboard
    * GET /api/emails/recent?limit=10
    */
-  async getRecent(req: Request, res: Response): Promise<void> {
+  async getRecent(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -595,7 +596,7 @@ export class EmailController {
    * Enable/disable periodic email monitoring
    * POST /api/email/monitoring
    */
-  async toggleMonitoring(req: Request, res: Response): Promise<void> {
+  async toggleMonitoring(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -672,7 +673,7 @@ export class EmailController {
    * Get email details by ID
    * GET /api/email/:emailId
    */
-  async getEmailDetails(req: Request, res: Response): Promise<void> {
+  async getEmailDetails(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });

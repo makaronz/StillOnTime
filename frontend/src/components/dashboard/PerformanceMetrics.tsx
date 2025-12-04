@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import {
-  ChartBarIcon,
-  CpuIcon,
-  ServerIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  TrendingUpIcon,
-  TrendingDownIcon
+  BarChart3,
+  Cpu,
+  Server,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 
 interface Metric {
@@ -146,10 +146,10 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'good':
-        return <CheckCircleIcon className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'warning':
       case 'critical':
-        return <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600" />;
+        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
       default:
         return null;
     }
@@ -165,9 +165,9 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {metric.trend && (
           <div className="flex items-center space-x-1">
             {metric.trend === 'up' ? (
-              <TrendingUpIcon className="w-3 h-3 text-red-500" />
+              <TrendingUp className="w-3 h-3 text-red-500" />
             ) : (
-              <TrendingDownIcon className="w-3 h-3 text-green-500" />
+              <TrendingDown className="w-3 h-3 text-green-500" />
             )}
             <span className="text-xs text-gray-500">{metric.trendValue}%</span>
           </div>
@@ -184,7 +184,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       <Card className={className}>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <ChartBarIcon className="w-5 h-5" />
+            <BarChart3 className="w-5 h-5" />
             <span>Performance</span>
           </CardTitle>
         </CardHeader>
@@ -204,7 +204,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center space-x-2">
-            <ChartBarIcon className="w-5 h-5" />
+            <BarChart3 className="w-5 h-5" />
             <span>Performance</span>
           </span>
           <Badge variant="success">
@@ -216,7 +216,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {/* System Metrics */}
         <div>
           <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center space-x-2">
-            <CpuIcon className="w-4 h-4" />
+            <Cpu className="w-4 h-4" />
             <span>System</span>
           </h4>
           <div className="space-y-2">
@@ -229,7 +229,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {/* API Metrics */}
         <div>
           <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center space-x-2">
-            <ServerIcon className="w-4 h-4" />
+            <Server className="w-4 h-4" />
             <span>API</span>
           </h4>
           <div className="space-y-2">
@@ -242,7 +242,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         {/* Database Metrics */}
         <div>
           <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center space-x-2">
-            <ClockIcon className="w-4 h-4" />
+            <Clock className="w-4 h-4" />
             <span>Database</span>
           </h4>
           <div className="space-y-2">

@@ -4,7 +4,7 @@ export interface User {
   id: string;
   email: string;
   name?: string;
-  googleId: string;
+  googleId?: string;
 }
 
 export interface ScheduleData {

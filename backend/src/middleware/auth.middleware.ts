@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { AppRequest } from "@/types/requests";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
 
@@ -7,7 +8,7 @@ import { logger } from "@/utils/logger";
  * and attaches user information to the request
  */
 export const authenticateToken = async (
-  req: Request,
+  req: any, // Use any to be compatible with Express Request
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -64,7 +65,7 @@ export const authenticateToken = async (
  * but still verifies the token if present
  */
 export const optionalAuth = async (
-  req: Request,
+  req: any, // Use any to be compatible with Express Request
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -104,7 +105,7 @@ export const optionalAuth = async (
  * This checks the database for valid Google OAuth tokens
  */
 export const requireValidOAuth = async (
-  req: Request,
+  req: any, // Use any to be compatible with Express Request
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -122,7 +123,7 @@ export const requireValidOAuth = async (
 
     // Check OAuth status
     const oauthStatus = await services.oauth2.getOAuthStatus(
-      (req as any).user.userId
+      req.user.userId
     );
 
     if (!oauthStatus.isAuthenticated) {
@@ -153,7 +154,7 @@ export const requireValidOAuth = async (
   } catch (error) {
     logger.error("OAuth validation failed", {
       error: error instanceof Error ? error.message : "Unknown error",
-      userId: (req as any).user?.userId,
+      userId: req.user?.userId,
       path: req.path,
     });
 
@@ -178,8 +179,9 @@ export const authRateLimit = (
   const ipAttempts = new Map<string, { count: number; resetTime: number }>();
   const userAttempts = new Map<string, { count: number; resetTime: number }>();
 
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+  return (req: any, res: Response, next: NextFunction): void => {
+    // Handle undefined ip safely - Express provides ip as string | undefined
+    const clientIp = (req.ip as string) || req.connection?.remoteAddress || "unknown";
     const userAgent = req.get("User-Agent") || "unknown";
     const now = Date.now();
 
@@ -271,7 +273,7 @@ export const authRateLimit = (
  * Middleware to validate API key for webhook endpoints
  */
 export const validateApiKey = (
-  req: Request,
+  req: any, // Use any to be compatible with Express Request
   res: Response,
   next: NextFunction
 ): void => {
@@ -296,7 +298,7 @@ export const validateApiKey = (
     logger.warn("Invalid API key provided", {
       providedKey: apiKey.substring(0, 8) + "...",
       path: req.path,
-      ip: req.ip,
+      ip: req.ip as string,
     });
 
     res.status(401).json({
@@ -317,7 +319,7 @@ export const validateApiKey = (
  */
 export const authErrorHandler = (
   error: Error,
-  req: Request,
+  req: any, // Use any to be compatible with Express Request
   res: Response,
   next: NextFunction
 ): void => {
@@ -327,7 +329,7 @@ export const authErrorHandler = (
     path: req.path,
     method: req.method,
     userAgent: req.get("User-Agent"),
-    ip: req.ip,
+    ip: req.ip as string,
   });
 
   // Check if response was already sent

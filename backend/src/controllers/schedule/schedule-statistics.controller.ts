@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { RoutePlanRepository } from "@/repositories/route-plan.repository";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
@@ -22,7 +23,7 @@ export class ScheduleStatisticsController extends BaseScheduleController {
    * Get schedule statistics
    * GET /api/schedule/statistics
    */
-  async getStatistics(req: Request, res: Response): Promise<void> {
+  async getStatistics(req: AppRequest, res: Response): Promise<void> {
     if (!req.user) {
       res.status(401).json({ error: "Unauthorized" });
       return;

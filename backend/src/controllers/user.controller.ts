@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { UserRepository } from "@/repositories/user.repository";
 import { UserConfigRepository } from "@/repositories/user-config.repository";
 import { ProcessedEmail } from "@/config/database-types";
@@ -25,7 +26,7 @@ export class UserController {
    * @param req Express Request object
    * @param res Express Response object
    */
-  async getProfile(req: Request, res: Response): Promise<void> {
+  async getProfile(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -101,7 +102,7 @@ export class UserController {
    * @param req Express Request object
    * @param res Express Response object
    */
-  async updateProfile(req: Request, res: Response): Promise<void> {
+  async updateProfile(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -163,7 +164,7 @@ export class UserController {
    * @param res Express Response object
    */
   async getConfiguration(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     try {
@@ -203,7 +204,7 @@ export class UserController {
    * @param res Express Response object
    */
   async updateConfiguration(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     try {
@@ -265,7 +266,7 @@ export class UserController {
    * @param res Express Response object
    */
   async updateAddresses(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     try {
@@ -361,7 +362,7 @@ export class UserController {
    * @param req Express Request object
    * @param res Express Response object
    */
-  async updateBuffers(req: Request, res: Response): Promise<void> {
+  async updateBuffers(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });
@@ -436,7 +437,7 @@ export class UserController {
    * @param res Express Response object
    */
   async updateNotificationPreferences(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     try {
@@ -506,7 +507,7 @@ export class UserController {
    * @param res Express Response object
    */
   async resetConfiguration(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     try {
@@ -551,7 +552,7 @@ export class UserController {
    * @param req Express Request object
    * @param res Express Response object
    */
-  async deleteAccount(req: Request, res: Response): Promise<void> {
+  async deleteAccount(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({ error: "Unauthorized" });

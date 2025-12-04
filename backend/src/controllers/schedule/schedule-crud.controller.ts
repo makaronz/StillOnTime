@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
@@ -13,7 +14,7 @@ export class ScheduleCrudController extends BaseScheduleController {
    * PUT /api/schedule/:scheduleId
    */
   async updateSchedule(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     if (!req.user) {
@@ -95,7 +96,7 @@ export class ScheduleCrudController extends BaseScheduleController {
    * DELETE /api/schedule/:scheduleId
    */
   async deleteSchedule(
-    req: Request,
+    req: AppRequest,
     res: Response
   ): Promise<void> {
     if (!req.user) {

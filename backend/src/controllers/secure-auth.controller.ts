@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { SecureAuthService } from "@/services/secure-auth.service";
 import { UserRepository } from "@/repositories/user.repository";
 import { logger } from "@/utils/logger";
@@ -21,7 +22,7 @@ export class SecureAuthController {
   /**
    * Initiate OAuth login flow with secure cookies
    */
-  async login(req: Request, res: Response): Promise<void> {
+  async login(req: AppRequest, res: Response): Promise<void> {
     try {
       const { state } = req.query;
 
@@ -63,7 +64,7 @@ export class SecureAuthController {
   /**
    * Handle OAuth callback with secure cookies
    */
-  async callback(req: Request, res: Response): Promise<void> {
+  async callback(req: AppRequest, res: Response): Promise<void> {
     try {
       const { code, state, error } = req.body;
 
@@ -158,7 +159,7 @@ export class SecureAuthController {
   /**
    * Refresh JWT token using secure cookies
    */
-  async refresh(req: Request, res: Response): Promise<void> {
+  async refresh(req: AppRequest, res: Response): Promise<void> {
     try {
       const result = await this.secureAuthService.refreshToken(req, res);
 
@@ -197,7 +198,7 @@ export class SecureAuthController {
   /**
    * Secure logout that clears all authentication cookies
    */
-  async logout(req: Request, res: Response): Promise<void> {
+  async logout(req: AppRequest, res: Response): Promise<void> {
     try {
       const result = await this.secureAuthService.logout(req, res);
 
@@ -224,7 +225,7 @@ export class SecureAuthController {
   /**
    * Force OAuth re-authentication
    */
-  async reauth(req: Request, res: Response): Promise<void> {
+  async reauth(req: AppRequest, res: Response): Promise<void> {
     try {
       // Clear current authentication cookies
       const { clearAuthCookies } = require("@/utils/cookies");
@@ -267,7 +268,7 @@ export class SecureAuthController {
   /**
    * Get authentication status from secure cookies
    */
-  async status(req: Request, res: Response): Promise<void> {
+  async status(req: AppRequest, res: Response): Promise<void> {
     try {
       const result = await this.secureAuthService.validateSession(req);
 
@@ -306,7 +307,7 @@ export class SecureAuthController {
   /**
    * Get user profile with secure authentication
    */
-  async profile(req: Request, res: Response): Promise<void> {
+  async profile(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!(req as any).user) {
         res.status(401).json({
@@ -375,7 +376,7 @@ export class SecureAuthController {
   /**
    * Get CSRF token for frontend
    */
-  async getCSRFToken(req: Request, res: Response): Promise<void> {
+  async getCSRFToken(req: AppRequest, res: Response): Promise<void> {
     try {
       const csrfToken = this.secureAuthService.getCSRFToken();
 

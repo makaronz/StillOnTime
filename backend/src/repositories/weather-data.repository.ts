@@ -51,11 +51,12 @@ export class WeatherDataRepository implements IWeatherDataRepository {
 
   async create(data: CreateWeatherDataInput): Promise<WeatherData> {
     const id = this.generateCuid();
+    const { id: _, ...dataWithoutId } = data;
     return await db
       .insertInto("weather_data")
       .values({
         id,
-        ...data,
+        ...dataWithoutId,
         fetchedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),

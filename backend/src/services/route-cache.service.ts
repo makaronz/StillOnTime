@@ -292,6 +292,13 @@ export class RouteCacheService {
     const match = durationStr.match(/(\d+)/);
     return match ? parseInt(match[1]) : null;
   }
+
+  /**
+   * Clear route cache data - used by memory recovery controller
+   */
+  async clearCache(): Promise<void> {
+    await this.cache.clearCache(this.ROUTE_PREFIX);
+  }
 }
 
 // Export singleton instance

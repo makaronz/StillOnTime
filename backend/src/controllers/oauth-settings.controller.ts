@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Response } from "express"
+import { AppRequest } from "@/types/requests";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
 
@@ -11,7 +12,7 @@ export class OAuthSettingsController {
    * Get OAuth connection status and details
    * GET /api/oauth/status
    */
-  async getStatus(req: Request, res: Response): Promise<void> {
+  async getStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -73,7 +74,7 @@ export class OAuthSettingsController {
    * Manually refresh OAuth access token
    * POST /api/oauth/refresh
    */
-  async refreshToken(req: Request, res: Response): Promise<void> {
+  async refreshToken(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -147,7 +148,7 @@ export class OAuthSettingsController {
    * Disconnect OAuth account and revoke tokens
    * POST /api/oauth/disconnect
    */
-  async disconnect(req: Request, res: Response): Promise<void> {
+  async disconnect(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -189,7 +190,7 @@ export class OAuthSettingsController {
    * Generate new OAuth authorization URL for reconnection
    * GET /api/oauth/reconnect
    */
-  async reconnect(req: Request, res: Response): Promise<void> {
+  async reconnect(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
@@ -233,7 +234,7 @@ export class OAuthSettingsController {
    * Test OAuth connection by making an API call
    * GET /api/oauth/test
    */
-  async testConnection(req: Request, res: Response): Promise<void> {
+  async testConnection(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({

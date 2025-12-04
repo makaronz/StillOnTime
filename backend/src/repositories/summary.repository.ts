@@ -66,11 +66,12 @@ export class SummaryRepository implements ISummaryRepository {
 
   async create(data: CreateSummaryInput): Promise<Summary> {
     const id = this.generateCuid();
+    const { id: _, ...dataWithoutId } = data;
     return await db
       .insertInto("summaries")
       .values({
         id,
-        ...data,
+        ...dataWithoutId,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as unknown as NewSummary)

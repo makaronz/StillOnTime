@@ -4,11 +4,11 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import {
   CalendarIcon,
-  ClockIcon,
+  Clock,
   MapPinIcon,
   FilmIcon,
   UserIcon,
-  ChevronRightIcon,
+  ChevronRight,
   ChevronDownIcon
 } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
@@ -109,9 +109,9 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
   };
 
   const getSceneTypeColor = (type: string) => {
-    if (type.includes('Day')) return 'yellow';
-    if (type.includes('Night')) return 'indigo';
-    if (type.includes('Dawn') || type.includes('Dusk')) return 'purple';
+    if (type.includes('Day')) return 'warning';
+    if (type.includes('Night')) return 'primary';
+    if (type.includes('Dawn') || type.includes('Dusk')) return 'secondary';
     return 'primary';
   };
 
@@ -159,7 +159,7 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
                       <Badge variant={getSceneTypeColor(schedule.sceneType)}>
                         {schedule.sceneType}
                       </Badge>
-                      <Badge variant={getStatusColor(schedule.status)}>
+                      <Badge variant={getStatusColor(schedule.status || 'unknown')}>
                         {schedule.status}
                       </Badge>
                       {isPast(new Date(schedule.shootingDate)) && (
@@ -171,12 +171,12 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
-                        <ClockIcon className="w-4 h-4" />
+                        <Clock className="w-4 h-4" />
                         <span>Call: {schedule.callTime}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <MapPinIcon className="w-4 h-4" />
-                        <span>{schedule.baseLocation}</span>
+                        <span>{schedule.baseLocation || 'Not specified'}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <FilmIcon className="w-4 h-4" />
@@ -192,7 +192,7 @@ export const ScheduleList: React.FC<ScheduleListProps> = ({
                     {expandedId === schedule.id ? (
                       <ChevronDownIcon className="w-4 h-4" />
                     ) : (
-                      <ChevronRightIcon className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4" />
                     )}
                   </Button>
                 </div>

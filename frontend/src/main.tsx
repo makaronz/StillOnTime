@@ -9,9 +9,13 @@ import './utils/sessionManager' // Initialize session management
 // Initialize connection check
 import './stores/connectionStore'
 
+// Register service worker for offline support
+import ServiceWorkerRegistration from './components/performance/ServiceWorkerRegistration'
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
+      <ServiceWorkerRegistration />
       <App />
       <Toaster
         position="top-right"

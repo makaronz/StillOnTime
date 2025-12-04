@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import {
-  BellIcon,
-  CheckIcon,
-  XIcon,
-  InformationCircleIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  ClockIcon
+  Bell,
+  Check,
+  X,
+  Info,
+  AlertTriangle,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -108,13 +108,13 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircleIcon className="w-5 h-5 text-green-600" />;
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
       case 'warning':
-        return <ExclamationTriangleIcon className="w-5 h-5 text-yellow-600" />;
+        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
       case 'error':
-        return <XIcon className="w-5 h-5 text-red-600" />;
+        return <X className="w-5 h-5 text-red-600" />;
       default:
-        return <InformationCircleIcon className="w-5 h-5 text-blue-600" />;
+        return <Info className="w-5 h-5 text-blue-600" />;
     }
   };
 
@@ -148,7 +148,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center space-x-2">
-            <BellIcon className="w-5 h-5" />
+            <Bell className="w-5 h-5" />
             <span>Notifications</span>
             {unreadCount > 0 && (
               <Badge variant="danger">{unreadCount}</Badge>
@@ -170,7 +170,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
       <CardContent className="space-y-3">
         {displayedNotifications.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <BellIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p className="text-sm">No notifications</p>
           </div>
         ) : (
@@ -201,11 +201,11 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                     </p>
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-500 flex items-center">
-                        <ClockIcon className="w-3 h-3 mr-1" />
+                        <Clock className="w-3 h-3 mr-1" />
                         {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
                       </p>
                       {notification.read ? (
-                        <CheckIcon className="w-4 h-4 text-green-600" />
+                        <Check className="w-4 h-4 text-green-600" />
                       ) : (
                         <Button
                           variant="ghost"

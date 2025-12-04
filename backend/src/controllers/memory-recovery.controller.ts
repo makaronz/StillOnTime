@@ -3,7 +3,8 @@
  * API endpoints for memory management and recovery
  */
 
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AppRequest } from '@/types/requests';
 import { emergencyMemoryRecoveryService } from '@/services/emergency-memory-recovery.service';
 import { memoryRecoveryMiddleware } from '@/middleware/memory-recovery.middleware';
 import { databaseConnectionOptimizerService } from '@/services/database-connection-optimizer.service';
@@ -13,7 +14,7 @@ export class MemoryRecoveryController {
   /**
    * Get current memory status
    */
-  public async getMemoryStatus(req: Request, res: Response): Promise<void> {
+  public async getMemoryStatus(req: AppRequest, res: Response): Promise<void> {
     try {
       const memoryStatus = memoryRecoveryMiddleware.getMemoryStatus();
       const dbHealth = databaseConnectionOptimizerService.getConnectionHealth();
@@ -45,7 +46,7 @@ export class MemoryRecoveryController {
   /**
    * Trigger manual recovery
    */
-  public async triggerRecovery(req: Request, res: Response): Promise<void> {
+  public async triggerRecovery(req: AppRequest, res: Response): Promise<void> {
     try {
       const { level = 'critical' } = req.body;
 
@@ -79,7 +80,7 @@ export class MemoryRecoveryController {
   /**
    * Get recovery history
    */
-  public async getRecoveryHistory(req: Request, res: Response): Promise<void> {
+  public async getRecoveryHistory(req: AppRequest, res: Response): Promise<void> {
     try {
       const history = emergencyMemoryRecoveryService.getRecoveryHistory();
 
@@ -103,7 +104,7 @@ export class MemoryRecoveryController {
   /**
    * Update memory thresholds
    */
-  public async updateThresholds(req: Request, res: Response): Promise<void> {
+  public async updateThresholds(req: AppRequest, res: Response): Promise<void> {
     try {
       const { warning, critical, emergency } = req.body;
 
@@ -172,7 +173,7 @@ export class MemoryRecoveryController {
   /**
    * Force garbage collection
    */
-  public async forceGarbageCollection(req: Request, res: Response): Promise<void> {
+  public async forceGarbageCollection(req: AppRequest, res: Response): Promise<void> {
     try {
       logger.info('Manual garbage collection triggered via API');
 
@@ -203,7 +204,7 @@ export class MemoryRecoveryController {
   /**
    * Clear application caches
    */
-  public async clearCaches(req: Request, res: Response): Promise<void> {
+  public async clearCaches(req: AppRequest, res: Response): Promise<void> {
     try {
       logger.info('Manual cache clearing triggered via API');
 
@@ -258,7 +259,7 @@ export class MemoryRecoveryController {
   /**
    * Optimize database connections
    */
-  public async optimizeDatabaseConnections(req: Request, res: Response): Promise<void> {
+  public async optimizeDatabaseConnections(req: AppRequest, res: Response): Promise<void> {
     try {
       logger.info('Database connection optimization triggered via API');
 

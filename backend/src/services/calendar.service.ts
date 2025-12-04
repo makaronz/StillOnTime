@@ -2,6 +2,7 @@ import { google, calendar_v3 } from "googleapis";
 import { OAuth2Service } from "./oauth2.service";
 import { CalendarEventRepository } from "@/repositories/calendar-event.repository";
 import { logger } from "@/utils/logger";
+import { randomUUID } from "crypto";
 import {
   CalendarEvent,
   ScheduleData,
@@ -122,14 +123,15 @@ export class CalendarService {
 
       // Store in local database
       const localEvent = await this.calendarEventRepository.create({
+        id: randomUUID(),
+        userId,
+        scheduleId: scheduleData.id,
         calendarEventId: googleEvent.id,
         title: eventData.title,
         startTime: eventData.startTime,
         endTime: eventData.endTime,
         description: eventData.description,
         location: eventData.location,
-        user: { connect: { id: userId } },
-        schedule: { connect: { id: scheduleData.id } },
       });
 
       logger.info("Successfully created calendar event", {

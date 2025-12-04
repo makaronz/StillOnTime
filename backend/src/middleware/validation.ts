@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
+import { AppRequest } from "@/types/requests";
 import { z } from "zod";
 
 export interface ValidationSchema {
@@ -8,7 +9,7 @@ export interface ValidationSchema {
 }
 
 export function validateRequest(schema: ValidationSchema) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: AppRequest, res: Response, next: NextFunction) => {
     try {
       if (schema.body) {
         req.body = schema.body.parse(req.body);

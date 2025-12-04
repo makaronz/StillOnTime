@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 import { Calendar } from '../ui/Calendar';
 import { ScheduleList } from './ScheduleList';
 import { WeatherWidget } from './WeatherWidget';
@@ -10,14 +9,14 @@ import { EmailProcessor } from './EmailProcessor';
 import { NotificationsPanel } from './NotificationsPanel';
 import { PerformanceMetrics } from './PerformanceMetrics';
 import {
-  CalendarIcon,
-  ClockIcon,
-  MapPinIcon,
-  EnvelopeIcon,
-  BellIcon,
-  ChartBarIcon,
-  CogIcon,
-  RefreshCwIcon
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin,
+  Mail,
+  Bell,
+  BarChart3,
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSchedules } from '@/hooks/useSchedules';
@@ -35,7 +34,7 @@ interface DashboardStats {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { schedules, loading: schedulesLoading, refresh: refreshSchedules } = useSchedules();
+  const { schedules, refresh: refreshSchedules } = useSchedules();
   const { notifications, unreadCount, markAsRead } = useNotifications();
   const [stats, setStats] = useState<DashboardStats>({
     totalSchedules: 0,
@@ -137,11 +136,11 @@ export const Dashboard: React.FC = () => {
                 disabled={isRefreshing}
                 className="flex items-center space-x-2"
               >
-                <RefreshCwIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </Button>
               <Button variant="outline">
-                <CogIcon className="w-4 h-4" />
+                <Settings className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -160,20 +159,20 @@ export const Dashboard: React.FC = () => {
           <StatCard
             title="Upcoming"
             value={stats.upcomingSchedules}
-            icon={<ClockIcon className="w-6 h-6 text-green-600" />}
+            icon={<Clock className="w-6 h-6 text-green-600" />}
             color="green"
             trend={{ value: 12, direction: 'up' }}
           />
           <StatCard
             title="Processed Emails"
             value={stats.processedEmails}
-            icon={<EnvelopeIcon className="w-6 h-6 text-purple-600" />}
+            icon={<Mail className="w-6 h-6 text-purple-600" />}
             color="purple"
           />
           <StatCard
             title="Notifications"
             value={stats.activeNotifications}
-            icon={<BellIcon className="w-6 h-6 text-red-600" />}
+            icon={<Bell className="w-6 h-6 text-red-600" />}
             color="red"
           />
         </div>
@@ -256,7 +255,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => setActiveWidget('email-processor')}
               >
-                <EnvelopeIcon className="w-4 h-4" />
+                <Mail className="w-4 h-4" />
                 <span>Check Emails</span>
               </Button>
               <Button
@@ -272,7 +271,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => window.location.href = '/routes'}
               >
-                <MapPinIcon className="w-4 h-4" />
+                <MapPin className="w-4 h-4" />
                 <span>View Routes</span>
               </Button>
               <Button
@@ -280,7 +279,7 @@ export const Dashboard: React.FC = () => {
                 className="flex items-center justify-center space-x-2"
                 onClick={() => window.location.href = '/analytics'}
               >
-                <ChartBarIcon className="w-4 h-4" />
+                <BarChart3 className="w-4 h-4" />
                 <span>Analytics</span>
               </Button>
             </div>
