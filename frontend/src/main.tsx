@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import App from './App.tsx'
 import './styles/index.css'
 import './utils/sessionManager' // Initialize session management
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ServiceWorkerRegistration />
       <App />
+      <SpeedInsights />
       <Toaster
         position="top-right"
         toastOptions={{
