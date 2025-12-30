@@ -203,11 +203,24 @@ StillOnTime/
 
 ## 📚 Documentation
 
+### Core Documentation
 - 📖 [Performance Optimization Guide](./PERFORMANCE_OPTIMIZATION_SUMMARY.md)
+- 👥 [Development Guide (AGENTS.md)](./AGENTS.md) - Key project patterns and workflows
+- ⚙️ [Claude Code Configuration (CLAUDE.md)](./CLAUDE.md) - AI development environment setup
+- 🔒 [Privacy Policy](./PRIVACY_POLICY.md)
+
+### Technical Documentation
 - 🔧 [API Documentation](./docs/API_REFERENCE.md)
 - 🚀 [Deployment Guide](./docs/DEPLOYMENT_GUIDE.md)
 - 🔒 [Security Guide](./docs/SECURITY_QUICK_REFERENCE.md)
 - 📊 [Monitoring Guide](./docs/performance/monitoring-guide.md)
+- 📋 [Admin Manual](./docs/ADMIN_MANUAL.md)
+- 🔍 [Architecture Analysis Report](./docs/ARCHITECTURE_ANALYSIS_REPORT.md) - Comprehensive codebase analysis
+
+### Additional Resources
+- 📐 [Architecture Documentation](./docs/architecture/) - System architecture and design
+- 📝 [SPARC Specifications](./docs/sparc-specification/) - Complete system specifications
+- 🗂️ [Historical Documentation](./docs/archive/) - Archived session summaries and reports
 
 ## 🔧 Configuration
 
