@@ -117,6 +117,12 @@ docker-compose logs -f
 docker-compose down
 ```
 
+### Vercel + Supabase (Minimal)
+
+For a minimal deployment path using Vercel for the frontend and Supabase Postgres for the
+database, see the [Vercel + Supabase Deployment (Minimal)](./docs/DEPLOYMENT_GUIDE.md#vercel--supabase-deployment-minimal)
+section in the deployment guide.
+
 ### Performance Setup
 
 ```bash
