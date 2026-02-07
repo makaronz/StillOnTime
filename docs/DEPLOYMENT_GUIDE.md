@@ -14,6 +14,7 @@ Complete guide for deploying StillOnTime to production environments with enterpr
 8. [Backup Configuration](#backup-configuration)
 9. [SSL/TLS Setup](#ssltls-setup)
 10. [Troubleshooting](#troubleshooting)
+11. [Vercel + Supabase Deployment (Minimal)](#vercel--supabase-deployment-minimal)
 
 ## Prerequisites
 
@@ -55,6 +56,49 @@ docker build -t stillontime/frontend:1.0.0 ./frontend
 docker push stillontime/backend:1.0.0
 docker push stillontime/frontend:1.0.0
 ```
+
+## Vercel + Supabase Deployment (Minimal)
+
+This path is intended for small teams who want a simple deployment using Vercel for the frontend
+and Supabase Postgres as the production database. It keeps the existing backend unchanged, but
+targets the database connection at Supabase via `DATABASE_URL`.
+
+### 1. Supabase Setup
+
+1. Create a Supabase project and copy the **connection string** for the Postgres database.
+2. Enable IPv4 allowlisting or configure a Supabase connection pool if required by your plan.
+
+### 2. Environment Variables
+
+Set the following variables in Vercel (Project → Settings → Environment Variables):
+
+```bash
+DATABASE_URL="postgresql://<user>:<password>@<host>:5432/<db>?sslmode=require"
+JWT_SECRET="your-jwt-secret"
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+GOOGLE_REDIRECT_URI="https://<your-vercel-domain>/auth/callback"
+OPENWEATHER_API_KEY="your-openweather-api-key"
+GOOGLE_MAPS_API_KEY="your-google-maps-api-key"
+REDIS_URL="redis://<host>:6379"
+```
+
+### 3. Vercel Build Configuration
+
+Use the frontend as the deployment root and keep the build minimal:
+
+```bash
+# Vercel settings (Project → Settings → General)
+Root Directory: frontend
+Build Command: npm run build
+Output Directory: dist
+```
+
+### 4. Backend Runtime
+
+For now, run the Node.js backend outside Vercel (e.g., on a small VM or container platform)
+and point it at the same Supabase `DATABASE_URL`. This preserves the existing API behavior
+without adding new services or rewriting code.
 
 ### 2. SSL Certificates
 
