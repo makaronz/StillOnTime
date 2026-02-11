@@ -114,17 +114,19 @@ export const Monitoring: React.FC = memo(() => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner />
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <div className="rounded-2xl border border-white/15 bg-white/10 px-8 py-6 text-white backdrop-blur-md">
+          <LoadingSpinner />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="min-h-screen bg-slate-50 p-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
             <div className="flex items-center">
               <XCircle className="w-6 h-6 text-red-600 mr-3" />
               <div>
@@ -134,7 +136,7 @@ export const Monitoring: React.FC = memo(() => {
             </div>
             <button
               onClick={fetchDashboard}
-              className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              className="mt-4 rounded-lg bg-rose-600 px-4 py-2 text-white transition hover:bg-rose-700"
             >
               Retry
             </button>
@@ -147,115 +149,130 @@ export const Monitoring: React.FC = memo(() => {
   if (!dashboard) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">System Monitoring</h1>
-            <p className="text-gray-600 mt-1">Real-time application performance and health monitoring</p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <label className="text-sm text-gray-600">Auto-refresh:</label>
-              <button
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  autoRefresh 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {autoRefresh ? 'ON' : 'OFF'}
-              </button>
+        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-cyan-900 to-slate-800 p-6 text-white shadow-xl sm:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_45%)]" />
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100 ring-1 ring-white/15">
+                Real-time Observability
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">System Monitoring</h1>
+              <p className="mt-2 max-w-2xl text-sm text-slate-200 sm:text-base">
+                Live health state, alerting, and application performance metrics across core services.
+              </p>
             </div>
-            
-            <button
-              onClick={fetchDashboard}
-              disabled={isRefreshing}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
+
+            <div className="flex flex-col items-start gap-3 sm:items-end">
+              <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold ring-1 ring-white/15">
+                {getStatusIcon(dashboard.systemOverview.status)}
+                <span className="capitalize">{dashboard.systemOverview.status}</span>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <label className="text-xs text-slate-200">Auto-refresh</label>
+                  <button
+                    onClick={() => setAutoRefresh(!autoRefresh)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      autoRefresh
+                        ? 'bg-emerald-400/20 text-emerald-100 ring-1 ring-emerald-200/30'
+                        : 'bg-white/10 text-slate-200 ring-1 ring-white/20'
+                    }`}
+                  >
+                    {autoRefresh ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+
+                <button
+                  onClick={fetchDashboard}
+                  disabled={isRefreshing}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/20 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* System Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">System Status</p>
-                <div className={`flex items-center mt-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(dashboard.systemOverview.status)}`}>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">System Status</p>
+                <div className={`mt-3 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(dashboard.systemOverview.status)}`}>
                   {getStatusIcon(dashboard.systemOverview.status)}
                   <span className="ml-2 capitalize">{dashboard.systemOverview.status}</span>
                 </div>
               </div>
-              <Activity className="w-8 h-8 text-gray-400" />
+              <Activity className="h-7 w-7 text-slate-400" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Uptime</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Uptime</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-900">
                   {formatUptime(dashboard.systemOverview.uptime)}
                 </p>
               </div>
-              <Clock className="w-8 h-8 text-gray-400" />
+              <Clock className="h-7 w-7 text-slate-400" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Requests</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Requests</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-900">
                   {dashboard.systemOverview.totalRequests.toLocaleString()}
                 </p>
               </div>
-              <BarChart3 className="w-8 h-8 text-gray-400" />
+              <BarChart3 className="h-7 w-7 text-slate-400" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Error Rate</p>
-                <p className={`text-2xl font-bold mt-2 ${
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Error Rate</p>
+                <p className={`mt-3 text-3xl font-semibold ${
                   dashboard.systemOverview.errorRate > 5 ? 'text-red-600' : 
                   dashboard.systemOverview.errorRate > 1 ? 'text-yellow-600' : 'text-green-600'
                 }`}>
                   {dashboard.systemOverview.errorRate.toFixed(2)}%
                 </p>
               </div>
-              <TrendingUp className="w-8 h-8 text-gray-400" />
+              <TrendingUp className="h-7 w-7 text-slate-400" />
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg Response</p>
-                <p className={`text-2xl font-bold mt-2 ${
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Avg Response</p>
+                <p className={`mt-3 text-3xl font-semibold ${
                   dashboard.systemOverview.averageResponseTime > 2000 ? 'text-red-600' : 
                   dashboard.systemOverview.averageResponseTime > 1000 ? 'text-yellow-600' : 'text-green-600'
                 }`}>
                   {dashboard.systemOverview.averageResponseTime.toFixed(0)}ms
                 </p>
               </div>
-              <Clock className="w-8 h-8 text-gray-400" />
+              <Clock className="h-7 w-7 text-slate-400" />
             </div>
           </div>
         </div>
 
         {/* Active Alerts */}
         {dashboard.alerts.length > 0 && (
-          <div className="bg-white rounded-lg shadow mb-8">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="overflow-hidden rounded-2xl border border-rose-200 bg-white shadow-sm">
+            <div className="border-b border-rose-100 bg-rose-50/80 px-6 py-4">
               <div className="flex items-center">
                 <Bell className="w-5 h-5 text-red-600 mr-2" />
                 <h2 className="text-lg font-semibold text-gray-900">Active Alerts</h2>
@@ -269,7 +286,7 @@ export const Monitoring: React.FC = memo(() => {
                 {dashboard.alerts.map((alert) => (
                   <div
                     key={alert.id}
-                    className={`border rounded-lg p-4 ${getSeverityColor(alert.severity)}`}
+                    className={`rounded-xl border p-4 shadow-sm ${getSeverityColor(alert.severity)}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -309,7 +326,7 @@ export const Monitoring: React.FC = memo(() => {
                       </div>
                       <button
                         onClick={() => resolveAlert(alert.id)}
-                        className="ml-4 bg-white text-gray-700 border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50 transition-colors"
+                        className="ml-4 rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-50"
                       >
                         Resolve
                       </button>
@@ -322,10 +339,10 @@ export const Monitoring: React.FC = memo(() => {
         )}
 
         {/* APM Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Application Performance */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
               <h2 className="text-lg font-semibold text-gray-900">Application Performance</h2>
             </div>
             <div className="p-6">
@@ -368,8 +385,8 @@ export const Monitoring: React.FC = memo(() => {
           </div>
 
           {/* Resource Utilization */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
               <h2 className="text-lg font-semibold text-gray-900">Resource Utilization</h2>
             </div>
             <div className="p-6">
@@ -425,8 +442,8 @@ export const Monitoring: React.FC = memo(() => {
         </div>
 
         {/* Business Metrics */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
             <h2 className="text-lg font-semibold text-gray-900">Business Metrics</h2>
           </div>
           <div className="p-6">
@@ -482,8 +499,8 @@ export const Monitoring: React.FC = memo(() => {
         </div>
 
         {/* Services Health */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
             <h2 className="text-lg font-semibold text-gray-900">Services Health</h2>
           </div>
           <div className="p-6">
@@ -491,7 +508,7 @@ export const Monitoring: React.FC = memo(() => {
               {dashboard.services.map((service) => (
                 <div
                   key={service.serviceName}
-                  className="border border-gray-200 rounded-lg p-4"
+                  className="rounded-xl border border-slate-200 p-4 transition hover:border-slate-300 hover:shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-medium text-gray-900 capitalize">
