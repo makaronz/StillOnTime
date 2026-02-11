@@ -165,6 +165,29 @@ class ApiService {
     return response.data;
   }
 
+  async patch<T>(url: string, data?: unknown, retry = true): Promise<T> {
+    const makeRequest = () => this.client.patch<T>(url, data);
+
+    if (retry) {
+      const response = await retryWithBackoff(async () => {
+        const result = await makeRequest();
+        return result;
+      }, {
+        maxAttempts: 3,
+        initialDelay: 1000,
+        maxDelay: 10000,
+        retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'ECONNABORTED', 'ECONNREFUSED'],
+        onRetry: (attempt, error) => {
+          console.log(`Retrying PATCH request to ${url} (attempt ${attempt})`, error);
+        }
+      });
+      return response.data;
+    }
+
+    const response = await makeRequest();
+    return response.data;
+  }
+
   async delete<T>(url: string, retry = true): Promise<T> {
     const makeRequest = () => this.client.delete<T>(url);
 

@@ -31,8 +31,8 @@ export const useSchedules = (options: UseSchedulesOptions = {}) => {
       if (startDate) params.append('startDate', startDate.toISOString());
       if (endDate) params.append('endDate', endDate.toISOString());
 
-      const response = await api.get(`/api/schedules?${params}`);
-      setSchedules(response.data);
+      const data = await api.get<Schedule[]>(`/api/schedules?${params}`);
+      setSchedules(data);
       setLastUpdated(new Date());
     } catch (err: any) {
       setError(err.message || 'Failed to fetch schedules');
@@ -44,8 +44,7 @@ export const useSchedules = (options: UseSchedulesOptions = {}) => {
 
   const createSchedule = async (data: CreateScheduleRequest): Promise<Schedule> => {
     try {
-      const response = await api.post('/api/schedules', data);
-      const newSchedule = response.data;
+      const newSchedule = await api.post<Schedule>('/api/schedules', data);
       setSchedules(prev => [...prev, newSchedule]);
       return newSchedule;
     } catch (err: any) {
@@ -55,8 +54,7 @@ export const useSchedules = (options: UseSchedulesOptions = {}) => {
 
   const updateSchedule = async (id: string, data: UpdateScheduleRequest): Promise<Schedule> => {
     try {
-      const response = await api.put(`/api/schedules/${id}`, data);
-      const updatedSchedule = response.data;
+      const updatedSchedule = await api.put<Schedule>(`/api/schedules/${id}`, data);
       setSchedules(prev =>
         prev.map(s => s.id === id ? updatedSchedule : s)
       );
@@ -77,8 +75,7 @@ export const useSchedules = (options: UseSchedulesOptions = {}) => {
 
   const getSchedule = async (id: string): Promise<Schedule> => {
     try {
-      const response = await api.get(`/api/schedules/${id}`);
-      return response.data;
+      return await api.get<Schedule>(`/api/schedules/${id}`);
     } catch (err: any) {
       throw new Error(err.response?.data?.message || 'Failed to fetch schedule');
     }

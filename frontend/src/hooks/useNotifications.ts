@@ -12,6 +12,10 @@ interface Notification {
   data?: any;
 }
 
+interface NotificationsResponse {
+  data: Array<Omit<Notification, "createdAt"> & { createdAt: string }>;
+}
+
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -25,8 +29,8 @@ export const useNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await api.get('/api/notifications');
-      const fetchedNotifications = response.data.map((n: any) => ({
+      const response = await api.get<NotificationsResponse>('/api/notifications');
+      const fetchedNotifications = response.data.map((n) => ({
         ...n,
         createdAt: new Date(n.createdAt)
       }));
