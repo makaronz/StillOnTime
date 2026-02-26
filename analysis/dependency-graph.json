@@ -1,0 +1,62 @@
+{
+  "generated_at": "<GENERATED_AT_ISO8601>",
+  "modules": [
+    {
+      "name": "root",
+      "type": "node",
+      "entry": "package.json",
+      "dependencies": ["backend", "frontend", "claude-flow"],
+      "notes": "Workspace orchestrator + developer tooling"
+    },
+    {
+      "name": "backend",
+      "type": "node",
+      "entry": "backend/package.json",
+      "dependencies": [
+        "express", "prisma", "@googlemaps/google-maps-services-js", "twilio", "redis", "bull"
+      ],
+      "layer": "api",
+      "notes": "REST API, background workers"
+    },
+    {
+      "name": "frontend",
+      "type": "node",
+      "entry": "frontend/package.json",
+      "dependencies": [
+        "react", "vite", "zustand", "tailwindcss", "axios"
+      ],
+      "layer": "web-ui"
+    },
+    {
+      "name": "mobile",
+      "type": "node",
+      "entry": "mobile/package.json",
+      "dependencies": [
+        "react-native", "expo"
+      ],
+      "layer": "mobile"
+    }
+  ],
+  "edges": [
+    {"from": "frontend", "to": "backend", "relationship": "REST API"},
+    {"from": "mobile", "to": "backend", "relationship": "REST API"},
+    {"from": "backend", "to": "PostgreSQL", "relationship": "DATABASE"},
+    {"from": "backend", "to": "Redis", "relationship": "CACHE/JOBS"},
+    {"from": "backend", "to": "Google APIs", "relationship": "THIRD_PARTY"},
+    {"from": "backend", "to": "Twilio", "relationship": "THIRD_PARTY"}
+  ],
+  "cleanup_candidates": [
+    {
+      "name": "claude-flow",
+      "reason": "brak importów w kodzie źródłowym, użycie jedynie w dokumentacji",
+      "risk": "narzędzia automatyzujące testy mogą nadal wykorzystywać CLI",
+      "mitigation": "potwierdzić z zespołem QA, ewentualnie przenieść do instrukcji opcjonalnych"
+    },
+    {
+      "name": "mobile",
+      "reason": "subprojekt niepołączony z głównym pipeline CI",
+      "risk": "produkt mobilny wciąż w rozwoju",
+      "mitigation": "dodaj testy smoke do pipeline lub oznacz jako eksperymentalny"
+    }
+  ]
+}

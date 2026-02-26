@@ -1,0 +1,2 @@
+# Zostanie nadpisane przez scripts/smoke-test.sh
+# Placeholder: lista modułów załadowanych podczas smoke testu (profil dev)

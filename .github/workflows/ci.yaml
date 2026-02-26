@@ -1,0 +1,85 @@
+name: StillOnTime Clean CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20.x'
+  PNPM_VERSION: '9'
+  CI: 'true'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: stillontime_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - name: Install root dependencies
+        run: npm ci
+      - name: Bootstrap workspace
+        run: ./scripts/bootstrap.sh --profile dev
+      - name: Build
+        run: ./scripts/build.sh --profile dev
+      - name: Lint backend
+        run: cd backend && npm run lint
+      - name: Lint frontend
+        run: cd frontend && npm run lint
+      - name: Backend tests
+        run: cd backend && npm test -- --runInBand
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stillontime_test
+          REDIS_URL: redis://localhost:6379
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+      - name: Frontend tests
+        run: cd frontend && npm test -- --run
+      - name: Smoke test
+        run: ./scripts/smoke-test.sh --profile dev
+      - name: Upload smoke logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-logs
+          path: |
+            logs/
+            analysis/dynamic-smoke-summary.json
+  lint-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify documentation locations
+        run: |
+          test -d dokumentacja
+          test -f dokumentacja/boot-matrix.md
+      - name: Validate plan presence
+        run: test -f PLAN_WYKONANIA.md
