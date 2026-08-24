@@ -1,5 +1,4 @@
 import express, { Response, NextFunction } from "express";
-import { AppRequest } from "@/types/requests";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
@@ -8,10 +7,10 @@ import csrf from "csurf";
 import { helmetConfig, corsConfig, securityConfig } from "@/config/security";
 
 import { errorHandler, notFoundHandler } from "@/middleware/errorHandler";
-import { logger, structuredLogger } from "@/utils/logger";
+import { structuredLogger } from "@/utils/logger";
 import { config } from "@/config/config";
-import { initializeDatabase, checkDatabaseConnection } from "@/config/database";
-import { initializeRedis, checkRedisConnection } from "@/config/redis";
+import { initializeDatabase } from "@/config/database";
+import { initializeRedis } from "@/config/redis";
 import { apiRoutes } from "@/routes";
 import healthRoutes from "@/routes/health.routes";
 

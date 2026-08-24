@@ -2,6 +2,7 @@ import { Response } from "express"
 import { AppRequest } from "@/types/requests";
 import { BaseScheduleController } from "./base-schedule.controller";
 import { services } from "@/services";
+import { processedEmailRepository } from "@/repositories/processed-email.repository";
 import { logger } from "@/utils/logger";
 
 /**
@@ -13,6 +14,86 @@ export class ScheduleCrudController extends BaseScheduleController {
    * Update schedule data
    * PUT /api/schedule/:scheduleId
    */
+  /**
+   * POST /api/schedules — tworzy nowy harmonogram.
+   *
+   * UWAGA dot. kontraktu: schedule_data.emailId jest NOT NULL z kluczem obcym do
+   * processed_emails, wiec harmonogram musi wskazywac na maila zrodlowego.
+   * Typ CreateScheduleRequest we frontendzie (frontend/src/types/schedule.ts)
+   * nie zawiera emailId — dopoki to sie nie zmieni albo dopoki emailId nie stanie
+   * sie nullowalny, tworzenie harmonogramu "od zera" z UI nie jest mozliwe.
+   * Swiadomie nie tworzymy tu fikcyjnego rekordu maila: zasmiecalby historie
+   * uzytkownika widoczna na stronie History.
+   */
+  async createSchedule(req: AppRequest, res: Response): Promise<void> {
+    if (!req.user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    try {
+      const { emailId, shootingDate, callTime, location } = req.body;
+
+      if (!emailId) {
+        res.status(400).json({
+          error: "Bad Request",
+          message:
+            "emailId is required: a schedule must reference the processed email it came from",
+          code: "EMAIL_ID_REQUIRED",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+        });
+        return;
+      }
+
+      const email = await processedEmailRepository.findById(emailId);
+      if (!email || email.userId !== req.user.userId) {
+        res.status(404).json({
+          error: "Not Found",
+          message: "Referenced email not found",
+          code: "EMAIL_NOT_FOUND",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+        });
+        return;
+      }
+
+      const created = await this.scheduleDataRepository.create({
+        userId: req.user.userId,
+        emailId,
+        shootingDate: new Date(shootingDate),
+        callTime,
+        location,
+        baseLocation: req.body.baseLocation ?? null,
+        sceneType: req.body.sceneType ?? "INT",
+        scenes: req.body.scenes ?? null,
+        safetyNotes: req.body.safetyNotes ?? null,
+        equipment: req.body.equipment ?? null,
+        contacts: req.body.contacts ?? null,
+        notes: req.body.notes ?? null,
+      } as never);
+
+      logger.info("Schedule created", {
+        userId: req.user.userId,
+        scheduleId: (created as { id?: string }).id,
+      });
+
+      res.status(201).json({ success: true, data: created });
+    } catch (error) {
+      logger.error("Failed to create schedule", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: req.user.userId,
+      });
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to create schedule",
+        code: "SCHEDULE_CREATE_FAILED",
+        timestamp: new Date().toISOString(),
+        path: req.path,
+      });
+    }
+  }
+
   async updateSchedule(
     req: AppRequest,
     res: Response
@@ -27,7 +108,7 @@ export class ScheduleCrudController extends BaseScheduleController {
       const updateData = req.body;
 
       // Verify schedule exists and belongs to user
-      const { schedule, error } = await this.verifyScheduleOwnership(
+      const { schedule: _schedule, error } = await this.verifyScheduleOwnership(
         scheduleId,
         req.user.userId
       );
@@ -108,7 +189,7 @@ export class ScheduleCrudController extends BaseScheduleController {
       const { scheduleId } = req.params;
 
       // Verify schedule exists and belongs to user
-      const { schedule, error } = await this.verifyScheduleOwnership(
+      const { schedule: _schedule, error } = await this.verifyScheduleOwnership(
         scheduleId,
         req.user.userId
       );

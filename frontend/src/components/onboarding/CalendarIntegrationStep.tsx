@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Calendar as CalendarIcon, CheckCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
@@ -10,7 +10,7 @@ const syncIntervals = [
   { value: 3600, label: 'Every hour' },
 ]
 
-export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep, isLoading }: StepProps): JSX.Element {
+export function CalendarIntegrationStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep: _isLastStep, isLoading }: StepProps): JSX.Element {
   const [isConnecting, setIsConnecting] = useState(false)
   const [calendars, setCalendars] = useState<Array<{ id: string; name: string; primary: boolean }>>([])
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'error'>('idle')

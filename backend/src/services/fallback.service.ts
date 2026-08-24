@@ -3,15 +3,13 @@
  * Provides intelligent fallback mechanisms and graceful degradation
  */
 
-import { logger, structuredLogger } from "../utils/logger";
+import { structuredLogger } from "../utils/logger";
 import { CacheService } from "./cache.service";
 import { NotificationService } from "./notification.service";
 import {
   BaseError,
   ErrorCode,
-  APIError,
   SystemError,
-  DatabaseError,
 } from "../utils/errors";
 import { FallbackData } from "../types";
 
@@ -355,7 +353,7 @@ export class FallbackService {
     strategy: FallbackStrategy,
     error: BaseError,
     operation: string,
-    originalData?: FallbackData
+    _originalData?: FallbackData
   ): Promise<FallbackResult<T>> {
     const cacheKey = `fallback:${strategy.serviceName}:${operation}`;
     const backupKeys = [
@@ -406,8 +404,8 @@ export class FallbackService {
    */
   private executeDefaultStrategy<T>(
     strategy: FallbackStrategy,
-    error: BaseError,
-    operation: string
+    _error: BaseError,
+    _operation: string
   ): Promise<FallbackResult<T>> {
     if (!strategy.fallbackData) {
       return Promise.resolve({
@@ -603,7 +601,7 @@ export class FallbackService {
   private async applyMinimalDegradation<T>(
     config: ServiceDegradationConfig,
     operation: string,
-    originalData?: FallbackData
+    _originalData?: FallbackData
   ): Promise<T | null> {
     // Try to maintain most functionality with reduced features
     const cacheKey = `degraded:${config.serviceName}:${operation}:minimal`;
@@ -644,7 +642,7 @@ export class FallbackService {
   private async applyFullDegradation<T>(
     config: ServiceDegradationConfig,
     operation: string,
-    originalData?: FallbackData
+    _originalData?: FallbackData
   ): Promise<T | null> {
     // Basic functionality only
     return this.getBasicData<T>(config.serviceName, operation);
@@ -656,7 +654,7 @@ export class FallbackService {
   private async getAlternativeServiceData<T>(
     alternativeService: string,
     operation: string,
-    originalData?: FallbackData
+    _originalData?: FallbackData
   ): Promise<T | null> {
     // This would typically integrate with actual alternative services
     // For now, return cached or default data
@@ -723,7 +721,7 @@ export class FallbackService {
   private async executeFallbackOperation<T>(
     fallbackOperation: string,
     originalOperation: string,
-    originalData?: FallbackData
+    _originalData?: FallbackData
   ): Promise<T | null> {
     // This would typically execute alternative operations
     // For now, return cached data or null

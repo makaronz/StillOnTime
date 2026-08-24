@@ -642,7 +642,7 @@ export class AnalyticsPlatformService {
 
   private async testMetricCalculation(metric: MetricDefinition): Promise<void> {
     // Test calculation with sample data
-    const testFilters = {
+    const _testFilters = {
       dateRange: {
         start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         end: new Date()
@@ -676,22 +676,22 @@ export class AnalyticsPlatformService {
     return `insight_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private async calculateSchedulingEfficiency(projectId: string, dateRange: any): Promise<{ score: number; issues: string[] }> {
+  private async calculateSchedulingEfficiency(_projectId: string, _dateRange: any): Promise<{ score: number; issues: string[] }> {
     // Implementation would analyze scheduling patterns
     return { score: 85, issues: [] };
   }
 
-  private async calculateCommunicationEfficiency(projectId: string, dateRange: any): Promise<{ score: number; issues: string[] }> {
+  private async calculateCommunicationEfficiency(_projectId: string, _dateRange: any): Promise<{ score: number; issues: string[] }> {
     // Implementation would analyze communication patterns
     return { score: 78, issues: ["Delayed email responses"] };
   }
 
-  private async calculateResourceUtilization(projectId: string, dateRange: any): Promise<{ score: number; issues: string[] }> {
+  private async calculateResourceUtilization(_projectId: string, _dateRange: any): Promise<{ score: number; issues: string[] }> {
     // Implementation would analyze resource usage
     return { score: 92, issues: [] };
   }
 
-  private async calculateTimeManagement(projectId: string, dateRange: any): Promise<{ score: number; issues: string[] }> {
+  private async calculateTimeManagement(_projectId: string, _dateRange: any): Promise<{ score: number; issues: string[] }> {
     // Implementation would analyze time management
     return { score: 81, issues: ["Frequent overtime"] };
   }
@@ -700,42 +700,42 @@ export class AnalyticsPlatformService {
     return scores.reduce((sum, score) => sum + score, 0) / scores.length;
   }
 
-  private async generateEfficiencyRecommendations(categories: any): Promise<any[]> {
+  private async generateEfficiencyRecommendations(_categories: any): Promise<any[]> {
     // Implementation would generate AI-powered recommendations
     return [];
   }
 
-  private async calculateTrend(projectId: string, type: string, dateRange: any): Promise<'improving' | 'declining' | 'stable'> {
+  private async calculateTrend(_projectId: string, _type: string, _dateRange: any): Promise<'improving' | 'declining' | 'stable'> {
     // Implementation would calculate trend analysis
     return 'stable';
   }
 
-  private async getBenchmarkComparison(projectId: string, score: number): Promise<number> {
+  private async getBenchmarkComparison(_projectId: string, _score: number): Promise<number> {
     // Implementation would compare against industry benchmarks
     return 0.15; // 15% above benchmark
   }
 
-  private async getMetricValue(metricName: string, projectId: string, dateRange: any): Promise<number> {
+  private async getMetricValue(_metricName: string, _projectId: string, _dateRange: any): Promise<number> {
     // Implementation would fetch specific metric values
     return 0;
   }
 
-  private async getBudgetData(projectId: string): Promise<any> {
+  private async getBudgetData(_projectId: string): Promise<any> {
     // Implementation would fetch budget data
     return { total: 1000000, labor: 600000, equipment: 200000, locations: 150000, postProduction: 50000 };
   }
 
-  private async getSpendData(projectId: string, dateRange: any): Promise<any> {
+  private async getSpendData(_projectId: string, _dateRange: any): Promise<any> {
     // Implementation would fetch actual spend data
     return { total: 750000, labor: 450000, equipment: 150000, locations: 100000, postProduction: 50000 };
   }
 
-  private async calculateProjectedSpend(projectId: string, spendData: any): Promise<number> {
+  private async calculateProjectedSpend(_projectId: string, _spendData: any): Promise<number> {
     // Implementation would project future spend
     return 950000;
   }
 
-  private calculateBurnRate(spendData: any, dateRange: any): number {
+  private calculateBurnRate(_spendData: any, _dateRange: any): number {
     // Implementation would calculate daily burn rate
     return 25000; // $25k per day
   }
@@ -748,42 +748,42 @@ export class AnalyticsPlatformService {
     };
   }
 
-  private async getDailySpendTrend(projectId: string, dateRange: any): Promise<Array<{ date: Date; amount: number }>> {
+  private async getDailySpendTrend(_projectId: string, _dateRange: any): Promise<Array<{ date: Date; amount: number }>> {
     // Implementation would return daily spend trend
     return [];
   }
 
-  private async getCategorySpendTrends(projectId: string, dateRange: any): Promise<Record<string, Array<{ date: Date; amount: number }>>> {
+  private async getCategorySpendTrends(_projectId: string, _dateRange: any): Promise<Record<string, Array<{ date: Date; amount: number }>>> {
     // Implementation would return category spend trends
     return {};
   }
 
-  private async generateCostAlerts(budgetData: any, spendData: any, projectedSpend: number): Promise<any[]> {
+  private async generateCostAlerts(_budgetData: any, _spendData: any, _projectedSpend: number): Promise<any[]> {
     // Implementation would generate cost-related alerts
     return [];
   }
 
-  private async predictTimelineRisks(projectId: string): Promise<Insight | null> {
+  private async predictTimelineRisks(_projectId: string): Promise<Insight | null> {
     // Implementation would use ML to predict timeline risks
     return null;
   }
 
-  private async predictBudgetRisks(projectId: string): Promise<Insight | null> {
+  private async predictBudgetRisks(_projectId: string): Promise<Insight | null> {
     // Implementation would predict budget overruns
     return null;
   }
 
-  private async identifyResourceOptimizations(projectId: string): Promise<Insight | null> {
+  private async identifyResourceOptimizations(_projectId: string): Promise<Insight | null> {
     // Implementation would identify resource optimization opportunities
     return null;
   }
 
-  private async identifyCommunicationBottlenecks(projectId: string): Promise<Insight | null> {
+  private async identifyCommunicationBottlenecks(_projectId: string): Promise<Insight | null> {
     // Implementation would identify communication issues
     return null;
   }
 
-  private async identifyScheduleOptimizations(projectId: string): Promise<Insight | null> {
+  private async identifyScheduleOptimizations(_projectId: string): Promise<Insight | null> {
     // Implementation would identify schedule optimization opportunities
     return null;
   }
@@ -796,7 +796,7 @@ export class AnalyticsPlatformService {
     });
   }
 
-  private async calculateDashboardSummary(userId: string, filters: any): Promise<any> {
+  private async calculateDashboardSummary(_userId: string, _filters: any): Promise<any> {
     // Implementation would calculate dashboard summary metrics
     return {
       totalProjects: 15,
@@ -806,27 +806,27 @@ export class AnalyticsPlatformService {
     };
   }
 
-  private async getEfficiencyTrend(projects: string[] | undefined, dateRange: any): Promise<Array<{ date: Date; score: number }>> {
+  private async getEfficiencyTrend(_projects: string[] | undefined, _dateRange: any): Promise<Array<{ date: Date; score: number }>> {
     // Implementation would return efficiency trend data
     return [];
   }
 
-  private async getBudgetUtilizationChart(projects: string[] | undefined): Promise<Array<{ project: string; utilized: number; budget: number }>> {
+  private async getBudgetUtilizationChart(_projects: string[] | undefined): Promise<Array<{ project: string; utilized: number; budget: number }>> {
     // Implementation would return budget utilization chart data
     return [];
   }
 
-  private async getTimelinePerformanceChart(projects: string[] | undefined, dateRange: any): Promise<Array<{ month: string; onTime: number; delayed: number }>> {
+  private async getTimelinePerformanceChart(_projects: string[] | undefined, _dateRange: any): Promise<Array<{ month: string; onTime: number; delayed: number }>> {
     // Implementation would return timeline performance data
     return [];
   }
 
-  private async getCommunicationVolumeChart(projects: string[] | undefined, dateRange: any): Promise<Array<{ date: Date; emails: number; responses: number }>> {
+  private async getCommunicationVolumeChart(_projects: string[] | undefined, _dateRange: any): Promise<Array<{ date: Date; emails: number; responses: number }>> {
     // Implementation would return communication volume data
     return [];
   }
 
-  private async generateDashboardAlerts(filters: any): Promise<any[]> {
+  private async generateDashboardAlerts(_filters: any): Promise<any[]> {
     // Implementation would generate dashboard alerts
     return [];
   }
@@ -850,7 +850,7 @@ export class AnalyticsPlatformService {
 
 // Data aggregation engine
 class DataAggregationEngine {
-  async calculateMetric(metric: MetricDefinition, filters: any): Promise<any> {
+  async calculateMetric(_metric: MetricDefinition, _filters: any): Promise<any> {
     // Implementation would perform metric calculations
     return {
       value: 42,
@@ -863,7 +863,7 @@ class DataAggregationEngine {
 
 // Insight generation engine
 class InsightGenerationEngine {
-  async generateInsights(data: any): Promise<Insight[]> {
+  async generateInsights(_data: any): Promise<Insight[]> {
     // Implementation would use ML/AI to generate insights
     return [];
   }
@@ -871,7 +871,7 @@ class InsightGenerationEngine {
 
 // Report generation engine
 class ReportGenerationEngine {
-  async generateReport(report: AnalyticsReport): Promise<any> {
+  async generateReport(_report: AnalyticsReport): Promise<any> {
     // Implementation would generate formatted reports
     return {};
   }

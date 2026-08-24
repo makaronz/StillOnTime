@@ -8,8 +8,6 @@ import {
   Car,
   Navigation,
   X,
-  ChevronRight,
-  Play,
   RefreshCw
 } from 'lucide-react';
 import { Schedule } from '@/types/schedule';

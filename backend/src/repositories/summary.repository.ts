@@ -3,7 +3,6 @@ import {
   Summary,
   CreateSummaryInput,
   UpdateSummaryInput,
-  WhereCondition,
   ScheduleDataWithRelations,
 } from "../types";
 import type { NewSummary, SummaryUpdate } from "@/config/database-types";

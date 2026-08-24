@@ -168,7 +168,7 @@ export class QdrantService {
 
       const points = validDocuments.map(doc => ({
         id: uuidv5(doc.id, namespace), // Generate UUID from string ID
-        vector: doc.embeddings!,
+        vector: doc.embeddings,
         payload: {
           originalId: doc.id, // Store original ID in payload
           problemId: doc.problemId,

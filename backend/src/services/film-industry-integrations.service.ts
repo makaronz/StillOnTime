@@ -796,11 +796,11 @@ export class FilmIndustryIntegrationsService {
 
 // Integration adapter interfaces and implementations
 class MovieMagicAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // Movie Magic API authentication
   }
 
-  async testConnection(credentials: Record<string, string>): Promise<{ success: boolean; error?: string }> {
+  async testConnection(_credentials: Record<string, string>): Promise<{ success: boolean; error?: string }> {
     return { success: true };
   }
 
@@ -811,11 +811,11 @@ class MovieMagicAdapter {
 }
 
 class StudioBinderAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // StudioBinder API authentication
   }
 
-  async testConnection(credentials: Record<string, string>): Promise<{ success: boolean; error?: string }> {
+  async testConnection(_credentials: Record<string, string>): Promise<{ success: boolean; error?: string }> {
     return { success: true };
   }
 
@@ -833,11 +833,11 @@ class StudioBinderAdapter {
 }
 
 class ShotgunAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // Shotgun API authentication
   }
 
-  async testConnection(credentials: Record<string, string>): Promise<{ success: boolean; error?: string }> {
+  async testConnection(_credentials: Record<string, string>): Promise<{ success: boolean; error?: string }> {
     return { success: true };
   }
 
@@ -859,7 +859,7 @@ class ShotgunAdapter {
 }
 
 class AvidAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // Avid Media Central authentication
   }
 
@@ -877,7 +877,7 @@ class AvidAdapter {
 }
 
 class FinalCutAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // Final Cut Pro X Server authentication
   }
 
@@ -895,7 +895,7 @@ class FinalCutAdapter {
 }
 
 class DaVinciResolveAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // DaVinci Resolve API authentication
   }
 
@@ -913,7 +913,7 @@ class DaVinciResolveAdapter {
 }
 
 class EntertainmentPartnersAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // Entertainment Partners API authentication
   }
 
@@ -927,7 +927,7 @@ class EntertainmentPartnersAdapter {
 }
 
 class CastTreeAdapter {
-  async authenticate(credentials: Record<string, string>): Promise<void> {
+  async authenticate(_credentials: Record<string, string>): Promise<void> {
     // CastTree API authentication
   }
 

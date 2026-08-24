@@ -58,7 +58,7 @@ export class CacheService {
       return this.createMockClient();
     }
 
-    return this.client!;
+    return this.client;
   }
 
   /**

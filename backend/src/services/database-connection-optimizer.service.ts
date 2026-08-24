@@ -4,7 +4,7 @@
  */
 
 import { logger } from '@/utils/logger';
-import { Pool, PoolClient } from 'pg';
+import { PoolClient } from 'pg';
 import { db, pool } from '@/config/database';
 
 interface ConnectionMetrics {
@@ -126,7 +126,7 @@ export class DatabaseConnectionOptimizerService {
    * Get connection pool metrics
    */
   private getConnectionMetrics(): ConnectionMetrics {
-    const poolMetrics = pool as any;
+    const _poolMetrics = pool as any;
 
     return {
       totalConnections: pool.totalCount || 0,
@@ -302,7 +302,7 @@ export class DatabaseConnectionOptimizerService {
           attempt
         });
 
-        return result;
+        return result as T;
 
       } catch (error) {
         logger.warn(`Query attempt ${attempt} failed`, {

@@ -8,7 +8,6 @@ import {
   NotificationPreferences,
   User,
   UserConfig,
-  NestedValue,
   SMSAccountInfo,
 } from "../types";
 import { NotificationRepository } from "../repositories/notification.repository";

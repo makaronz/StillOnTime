@@ -75,7 +75,6 @@ import { EnhancedServiceManager } from "./enhanced-service-manager";
 import { userRepository } from "../repositories/user.repository";
 import { processedEmailRepository } from "../repositories/processed-email.repository";
 import { scheduleDataRepository } from "../repositories/schedule-data.repository";
-import { routePlanRepository } from "../repositories/route-plan.repository";
 import { weatherDataRepository } from "../repositories/weather-data.repository";
 import { calendarEventRepository } from "../repositories/calendar-event.repository";
 import { notificationRepository } from "../repositories/notification.repository";

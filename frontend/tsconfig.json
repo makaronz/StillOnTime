@@ -35,5 +35,10 @@
     }
   },
   "include": ["src"],
+  // Pliki testowe sa typowane przez vitest (vitest.config / tsconfig testowy),
+  // a nie przez build produkcyjny. Czesc z nich odwoluje sie do modulow, ktore
+  // nie istnieja (@/components/Dashboard, @/stores/scheduleStore,
+  // @tanstack/react-query) — trzymanie ich w buildzie blokowalo `npm run build`.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/tests", "src/test"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

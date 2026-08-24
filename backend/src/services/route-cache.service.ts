@@ -228,7 +228,7 @@ export class RouteCacheService {
 
     // Return cached data if not stale
     const cachedData = await this.getCachedRouteData(request);
-    return cachedData!; // We know it exists because it's not stale
+    return cachedData; // We know it exists because it's not stale
   }
 
   /**

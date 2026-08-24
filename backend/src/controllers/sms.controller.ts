@@ -123,7 +123,7 @@ export class SMSController {
    */
   sendVerificationCode = async (
     userId: string,
-    phoneNumber: string
+    _phoneNumber: string
   ): Promise<void> => {
     // Generate 6-digit verification code
     const verificationCode = Math.floor(
@@ -431,7 +431,7 @@ export class SMSController {
    */
   handleWebhook = async (req: AppRequest, res: Response): Promise<void> => {
     try {
-      const { MessageSid, MessageStatus, ErrorCode, ErrorMessage } = req.body;
+      const { MessageSid, MessageStatus, _ErrorCode, ErrorMessage } = req.body;
 
       if (!MessageSid || !MessageStatus) {
         res.status(400).json({

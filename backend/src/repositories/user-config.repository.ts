@@ -42,7 +42,7 @@ export class UserConfigRepository implements IUserConfigRepository {
       .insertInto("user_configs")
       .values({
         id,
-        userId: data.userId!,
+        userId: data.userId,
         homeAddress: data.homeAddress || "",
         panavisionAddress:
           data.panavisionAddress ||

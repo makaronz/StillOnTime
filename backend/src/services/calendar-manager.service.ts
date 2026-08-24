@@ -7,7 +7,6 @@ import {
   ScheduleData,
   RoutePlan,
   WeatherData,
-  CreateCalendarEventInput,
   UpdateCalendarEventInput,
   CalendarOverride,
   CalendarUpdateData,
@@ -191,7 +190,7 @@ export class CalendarManagerService {
       if (eventIds) {
         eventsToSync = await Promise.all(
           eventIds.map((id) => this.calendarEventRepository.findById(id))
-        ).then((events) => events.filter((e: CalendarEvent | null) => e !== null) as CalendarEvent[]);
+        ).then((events) => events.filter((e: CalendarEvent | null) => e !== null));
       } else {
         eventsToSync =
           await this.calendarEventRepository.findEventsNeedingSync();
@@ -266,7 +265,7 @@ export class CalendarManagerService {
       if (eventIds) {
         events = await Promise.all(
           eventIds.map((id) => this.calendarEventRepository.findById(id))
-        ).then((events) => events.filter((e: CalendarEvent | null) => e !== null) as CalendarEvent[]);
+        ).then((events) => events.filter((e: CalendarEvent | null) => e !== null));
       } else {
         events = await this.calendarEventRepository.findByUserId(userId);
       }
@@ -313,14 +312,14 @@ export class CalendarManagerService {
       }
 
       // Store override information (in a real implementation, this would be in a separate table)
-      const fullOverride: CalendarOverride = {
+      const _fullOverride: CalendarOverride = {
         ...override,
         eventId,
         appliedAt: new Date(),
       };
 
       // Apply the override based on type
-      let updateData: Partial<UpdateCalendarEventInput> = {};
+      const updateData: Partial<UpdateCalendarEventInput> = {};
 
       switch (override.overrideType) {
         case "time":
@@ -530,9 +529,9 @@ export class CalendarManagerService {
   ): Promise<CalendarEvent> {
     return this.calendarService.createCalendarEvent(
       scheduleData,
-      routePlan!,
-      weather!,
-      userId!
+      routePlan,
+      weather,
+      userId
     );
   }
 
@@ -542,7 +541,7 @@ export class CalendarManagerService {
   async updateCalendarEvent(
     eventId: string,
     updateData: CalendarUpdateData,
-    userId: string
+    _userId: string
   ): Promise<CalendarEvent> {
     // This would update the event in Google Calendar
     // For now, return a mock response
@@ -639,7 +638,7 @@ export class CalendarManagerService {
   private async resolveConflict(
     conflict: CalendarConflict,
     newScheduleData: ScheduleData,
-    userId: string
+    _userId: string
   ): Promise<ConflictResolution> {
     // Simple conflict resolution logic
     // In a real implementation, this would be more sophisticated
@@ -712,7 +711,7 @@ export class CalendarManagerService {
    */
   private async syncSingleEvent(
     event: CalendarEvent,
-    userId: string
+    _userId: string
   ): Promise<SyncStatus> {
     try {
       // This is a simplified sync check

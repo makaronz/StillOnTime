@@ -30,6 +30,7 @@ export class ScheduleController {
   getSchedules!: typeof BaseScheduleController.prototype.getSchedules;
   getScheduleById!: typeof BaseScheduleController.prototype.getScheduleById;
   getUpcoming!: typeof BaseScheduleController.prototype.getUpcoming;
+  createSchedule!: typeof ScheduleCrudController.prototype.createSchedule;
   updateSchedule!: typeof ScheduleCrudController.prototype.updateSchedule;
   deleteSchedule!: typeof ScheduleCrudController.prototype.deleteSchedule;
   getRoutePlan!: typeof ScheduleRouteController.prototype.getRoutePlan;
@@ -52,6 +53,7 @@ export class ScheduleController {
     this.getSchedules = this.baseController.getSchedules.bind(this.baseController);
     this.getScheduleById = this.baseController.getScheduleById.bind(this.baseController);
     this.getUpcoming = this.baseController.getUpcoming.bind(this.baseController);
+    this.createSchedule = this.crudController.createSchedule.bind(this.crudController);
     this.updateSchedule = this.crudController.updateSchedule.bind(this.crudController);
     this.deleteSchedule = this.crudController.deleteSchedule.bind(this.crudController);
     this.getRoutePlan = this.routeController.getRoutePlan.bind(this.routeController);

@@ -1,6 +1,5 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { ChatOpenAI } from '@langchain/openai';
-import { PromptTemplate } from '@langchain/core/prompts';
 import { qdrantService } from './qdrant.service';
 import logger from '../utils/logger';
 import { config } from '../config/config';
@@ -284,7 +283,7 @@ export class CodeNetRAGService {
 
       // Filter by minimum score if specified
       if (params.minScore) {
-        return results.filter(r => r.score >= params.minScore!);
+        return results.filter(r => r.score >= params.minScore);
       }
 
       return results;

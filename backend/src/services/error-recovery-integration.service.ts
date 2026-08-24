@@ -3,7 +3,7 @@
  * Integrates error recovery mechanisms with existing services
  */
 
-import { logger, structuredLogger } from "../utils/logger";
+import { structuredLogger } from "../utils/logger";
 import {
   ErrorRecoveryService,
   RecoveryContext,
@@ -156,7 +156,7 @@ export class ErrorRecoveryIntegrationService {
       });
     }
 
-    return result.data!;
+    return result.data;
   }
 
   /**

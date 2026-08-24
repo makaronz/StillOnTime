@@ -4,9 +4,6 @@
  */
 
 import { MonitoringService } from "../services/monitoring.service";
-import { ErrorHandlerService } from "../services/error-handler.service";
-import { CacheService } from "../services/cache.service";
-import { NotificationService } from "../services/notification.service";
 
 // Mock dependencies for demonstration
 class MockErrorHandlerService {

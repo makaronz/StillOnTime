@@ -10,11 +10,9 @@ import {
 import {
   validateCsrfToken,
   csrfErrorHandler,
-  getCsrfToken,
-} from "@/middleware/csrf.middleware";
-import { body, query, validationResult } from "express-validator";
+} from "@/middleware/csrf";
+import { body, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
-import { securityConfig } from "@/config/security";
 
 const router = Router();
 

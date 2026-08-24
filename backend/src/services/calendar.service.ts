@@ -8,8 +8,6 @@ import {
   ScheduleData,
   RoutePlan,
   WeatherData,
-  CreateCalendarEventInput,
-  UpdateCalendarEventInput,
   CalendarConflict,
 } from "@/types";
 
@@ -240,7 +238,7 @@ export class CalendarService {
       );
 
       // Update Google Calendar event
-      const updatedGoogleEvent = await calendar.events.update({
+      const _updatedGoogleEvent = await calendar.events.update({
         calendarId: "primary",
         eventId: existingEvent.calendarEventId,
         requestBody: this.buildGoogleEventRequest(eventData),
@@ -760,7 +758,7 @@ export class CalendarService {
    * Get schedule data from existing calendar event
    */
   private async getScheduleFromEvent(
-    event: CalendarEvent
+    _event: CalendarEvent
   ): Promise<ScheduleData> {
     // This would typically fetch the related schedule data
     // For now, we'll throw an error if we can't get the full schedule

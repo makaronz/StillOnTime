@@ -181,7 +181,7 @@ export class CircuitBreakerRegistry {
     if (!this.breakers.has(serviceName)) {
       this.breakers.set(serviceName, new CircuitBreaker(serviceName, config));
     }
-    return this.breakers.get(serviceName)!;
+    return this.breakers.get(serviceName);
   }
 
   get(serviceName: string): CircuitBreaker | undefined {

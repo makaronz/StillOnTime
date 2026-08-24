@@ -139,7 +139,7 @@ export class GmailService {
         try {
           const fullMessage = await gmail.users.messages.get({
             userId: "me",
-            id: message.id!,
+            id: message.id,
             format: "full",
           });
 

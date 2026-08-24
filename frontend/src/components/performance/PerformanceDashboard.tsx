@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useWebVitals } from "./PerformanceOptimizer";
 import { performanceMonitoringService } from "@/services/performance-monitoring.service";
 
@@ -33,7 +33,7 @@ interface AlertData {
 
 export const PerformanceDashboard: React.FC = () => {
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
-  const [webVitalsData, setWebVitalsData] = useState<WebVitalsData[]>([]);
+  const [_webVitalsData, setWebVitalsData] = useState<WebVitalsData[]>([]);
   const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState<"1h" | "6h" | "24h" | "7d">("1h");

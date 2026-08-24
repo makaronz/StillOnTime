@@ -3,7 +3,6 @@ import { services } from "@/services";
 import { scheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { userConfigRepository } from "@/repositories";
 import { logger } from "@/utils/logger";
-import { requireValidOAuth } from "@/middleware/auth.middleware";
 import { AppRequest } from "@/types/requests";
 
 /**
@@ -66,7 +65,7 @@ export class CalendarController {
         return;
       }
       
-      const { scheduleId, ...eventData } = req.body;
+      const { scheduleId, ..._eventData } = req.body;
 
       // Get the schedule data first
       const schedule = await this.scheduleDataRepository.findWithRelations(scheduleId);
@@ -427,7 +426,7 @@ export class CalendarController {
       
       // Since getCalendarSettings method doesn't exist on CalendarManagerService,
       // we'll implement basic settings retrieval here
-      const userConfig = await this.userConfigRepository.findByUserId(req.user.userId);
+      const _userConfig = await this.userConfigRepository.findByUserId(req.user.userId);
       
       const settings = {
         autoSync: true,

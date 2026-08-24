@@ -1,5 +1,4 @@
-import React from 'react'
-import { Cpu, FileText, Mail, MapPin, Calendar as CalendarIcon, Brain } from 'lucide-react'
+import { Cpu, FileText, Mail, Calendar, Brain } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
 const serviceFeatures = [
@@ -68,7 +67,7 @@ const mailParsingFeatures = [
   },
 ]
 
-export function SystemConfigStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep, isLoading }: StepProps): JSX.Element {
+export function SystemConfigStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep: _isLastStep, isLoading }: StepProps): JSX.Element {
   const handleEnhancedServiceToggle = (key: string, value: boolean) => {
     const [category, service] = key.split('.') as [keyof typeof data.systemConfig, string]
     updateData({

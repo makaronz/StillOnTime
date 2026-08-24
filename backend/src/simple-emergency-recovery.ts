@@ -3,7 +3,6 @@
  * Immediate memory recovery for critical situations
  */
 
-import { logger } from '@/utils/logger';
 import * as os from 'os';
 
 async function emergencyRecovery() {

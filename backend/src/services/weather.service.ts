@@ -5,7 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 import { config } from "@/config/config";
-import { WeatherData, CreateWeatherDataInput, WeatherForecast } from "@/types";
+import { WeatherData, CreateWeatherDataInput } from "@/types";
 import { weatherCacheService, WeatherCacheData } from "./weather-cache.service";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
 import { logger } from "@/utils/logger";
@@ -240,7 +240,7 @@ export class WeatherService {
     location: string,
     date: string
   ): Promise<WeatherCacheData> {
-    const cacheKey = `${location}:${date}`;
+    const _cacheKey = `${location}:${date}`;
 
     try {
       // Try to get from cache first
@@ -517,7 +517,7 @@ export class WeatherService {
   private handleWeatherAPIError(
     error: AxiosError,
     location: string,
-    date?: string
+    _date?: string
   ): Error {
     if (error && error.response) {
       const status = error.response?.status;

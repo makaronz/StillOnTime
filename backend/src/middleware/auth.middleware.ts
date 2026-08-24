@@ -1,5 +1,4 @@
 import { Response, NextFunction } from "express";
-import { AppRequest } from "@/types/requests";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
 

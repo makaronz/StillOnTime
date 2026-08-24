@@ -3,7 +3,6 @@ import {
   CalendarEvent,
   CreateCalendarEventInput,
   UpdateCalendarEventInput,
-  WhereCondition,
 } from "@/types";
 import type {
   NewCalendarEvent,
@@ -207,7 +206,7 @@ export class CalendarEventRepository implements ICalendarEventRepository {
 
   async findEventsByLocation(
     userId: string,
-    location: string
+    _location: string
   ): Promise<CalendarEvent[]> {
     // Simplified - case-insensitive search approximation
     return await db

@@ -126,6 +126,29 @@ router.get(
   scheduleController.getWeatherForecast.bind(scheduleController)
 );
 
+// POST /api/schedule - Create a new schedule
+// Musi byc PRZED trasami z parametrem /:scheduleId.
+router.post(
+  "/",
+  [
+    body("emailId").isString().trim().isLength({ min: 1 })
+      .withMessage("emailId is required"),
+    body("shootingDate").isISO8601()
+      .withMessage("Shooting date must be a valid ISO 8601 date"),
+    body("callTime").matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+      .withMessage("Call time must be in HH:MM format"),
+    body("location").isString().trim().isLength({ min: 1, max: 255 })
+      .withMessage("Location must be between 1 and 255 characters"),
+    body("sceneType").optional().isIn(["INT", "EXT"])
+      .withMessage("Scene type must be either INT or EXT"),
+    body("scenes").optional().isArray(),
+    body("equipment").optional().isArray(),
+    body("contacts").optional().isObject(),
+  ],
+  handleValidationErrors,
+  scheduleController.createSchedule.bind(scheduleController)
+);
+
 // GET /api/schedule/:scheduleId - Get schedule by ID
 router.get(
   "/:scheduleId",

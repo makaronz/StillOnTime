@@ -141,7 +141,7 @@ export class GlobalizationService {
         this.translations.set(translation.locale, new Map());
       }
 
-      this.translations.get(translation.locale)!.set(translation.key, fullTranslation);
+      this.translations.get(translation.locale).set(translation.key, fullTranslation);
 
       // Update locale completeness
       await this.updateLocaleCompleteness(translation.locale);
@@ -579,13 +579,13 @@ export class GlobalizationService {
     };
   }
 
-  private formatAddress(address: string, locale: string): string {
+  private formatAddress(address: string, _locale: string): string {
     // Format address according to local conventions
     // This would implement region-specific address formatting
     return address;
   }
 
-  private getLocalizedTimezone(timezone: string, locale: string): string {
+  private getLocalizedTimezone(timezone: string, _locale: string): string {
     // Return localized timezone name
     return timezone;
   }
@@ -595,7 +595,7 @@ export class GlobalizationService {
     return euLocales.includes(locale);
   }
 
-  private hasExcessiveDataCollection(userdata: any): boolean {
+  private hasExcessiveDataCollection(_userdata: any): boolean {
     // Check if data collection is excessive
     // This would implement business logic to determine excessive collection
     return false;
@@ -629,7 +629,7 @@ export class GlobalizationService {
   private processLegalTemplate(
     template: string,
     compliance: RegionalCompliance,
-    customizations?: Record<string, any>
+    _customizations?: Record<string, any>
   ): string {
     // Process template with compliance requirements and customizations
     return template

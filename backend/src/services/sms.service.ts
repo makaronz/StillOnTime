@@ -3,7 +3,6 @@ import { logger } from "../utils/logger";
 import {
   NotificationDeliveryResult,
   SMSDeliveryStatus,
-  SMSAccountInfo,
 } from "../types";
 
 export interface SMSConfig {
@@ -118,7 +117,7 @@ export class SMSService {
       const twilioMessage = await this.twilioClient.messages.create({
         body: message,
         from: this.fromNumber,
-        to: validatedNumber.formatted!,
+        to: validatedNumber.formatted,
         statusCallback: options?.statusCallback,
         maxPrice: options?.maxPrice ? parseFloat(options.maxPrice) : undefined,
         validityPeriod: options?.validityPeriod,
@@ -139,7 +138,7 @@ export class SMSService {
     } catch (error) {
       logger.error("Failed to send SMS", {
         error: error instanceof Error ? error.message : String(error),
-        errorCode: (error as any)?.code,
+        errorCode: (error)?.code,
         toNumber: this.maskPhoneNumber(toNumber),
         functionName: "SMSService.sendSMS",
       });
@@ -295,7 +294,7 @@ export class SMSService {
 
     try {
       const account = await this.twilioClient.api
-        .accounts(process.env.TWILIO_ACCOUNT_SID!)
+        .accounts(process.env.TWILIO_ACCOUNT_SID)
         .fetch();
 
       return {
@@ -343,10 +342,10 @@ export class SMSService {
     try {
       const [balance, usage] = await Promise.all([
         this.twilioClient.api
-          .accounts(process.env.TWILIO_ACCOUNT_SID!)
+          .accounts(process.env.TWILIO_ACCOUNT_SID)
           .balance.fetch(),
         this.twilioClient.api
-          .accounts(process.env.TWILIO_ACCOUNT_SID!)
+          .accounts(process.env.TWILIO_ACCOUNT_SID)
           .usage.records.list({
             category: "sms",
             startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days

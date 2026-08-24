@@ -74,15 +74,15 @@ export class CacheInvalidationService {
    */
   async invalidateExpiredEntries(): Promise<CacheCleanupStats> {
     const startTime = Date.now();
-    let keysScanned = 0;
-    let keysDeleted = 0;
+    const keysScanned = 0;
+    const keysDeleted = 0;
 
     try {
       // Redis handles TTL expiration automatically, but we can implement
       // custom logic for specific patterns if needed
 
       // For now, we'll just return stats showing Redis is handling expiration
-      const stats = await cacheService.getStats();
+      const _stats = await cacheService.getStats();
 
       return {
         keysScanned: 0,

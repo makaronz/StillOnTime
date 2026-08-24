@@ -169,8 +169,8 @@ export class RoutePlanRepository implements IRoutePlanRepository {
    */
   async getAverageRouteTime(
     userId: string,
-    origin: string,
-    destination: string
+    _origin: string,
+    _destination: string
   ): Promise<number | null> {
     const routes = await db
       .selectFrom("route_plans")
@@ -263,8 +263,8 @@ export class RoutePlanRepository implements IRoutePlanRepository {
    */
   async findRoutesByDateRange(
     userId: string,
-    startDate: Date,
-    endDate: Date
+    _startDate: Date,
+    _endDate: Date
   ): Promise<RoutePlan[]> {
     return await db
       .selectFrom("route_plans")

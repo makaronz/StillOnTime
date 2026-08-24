@@ -1,9 +1,7 @@
 import { Response } from "express";
 import { AppRequest } from "@/types/requests";
-import multer from "multer";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
-import { ScheduleData, RoutePlan, WeatherData } from "@/types";
 
 // Extend Request type to include file property
 interface RequestWithFile extends AppRequest {
@@ -20,7 +18,7 @@ export class EnhancedController {
    */
   static async processPDFEnhanced(req: RequestWithFile, res: Response): Promise<void> {
     try {
-      const { filename, userId } = req.body;
+      const { filename, _userId } = req.body;
       
       if (!req.file) {
         res.status(400).json({

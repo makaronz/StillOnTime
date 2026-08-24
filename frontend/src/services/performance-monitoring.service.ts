@@ -1,4 +1,4 @@
-import { getWebVitals, reportWebVitals } from "web-vitals";
+import { reportWebVitals } from "web-vitals";
 
 /**
  * Frontend Performance Monitoring Service

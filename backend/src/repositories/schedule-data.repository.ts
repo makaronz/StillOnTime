@@ -203,7 +203,7 @@ export class ScheduleDataRepository implements IScheduleDataRepository {
    */
   async findSchedulesByLocation(
     userId: string,
-    location: string
+    _location: string
   ): Promise<ScheduleDataWithRelations[]> {
     // Simplified - proper implementation would use ILIKE or similar
     const schedules = await db
@@ -267,7 +267,7 @@ export class ScheduleDataRepository implements IScheduleDataRepository {
   async findConflictingSchedules(
     userId: string,
     shootingDate: Date,
-    callTime: string
+    _callTime: string
   ): Promise<ScheduleData[]> {
     const startOfDay = new Date(shootingDate.toDateString());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
@@ -326,12 +326,12 @@ export class ScheduleDataRepository implements IScheduleDataRepository {
 
     // Validate call time format (HH:MM)
     const callTimeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!callTimeRegex.test(data.callTime as string)) {
+    if (!callTimeRegex.test(data.callTime)) {
       throw new Error("Call time must be in HH:MM format");
     }
 
     // Validate scene type
-    if (data.sceneType && !["INT", "EXT"].includes(data.sceneType as string)) {
+    if (data.sceneType && !["INT", "EXT"].includes(data.sceneType)) {
       throw new Error("Scene type must be either INT or EXT");
     }
 

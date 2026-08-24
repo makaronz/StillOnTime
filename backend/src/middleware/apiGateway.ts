@@ -53,7 +53,7 @@ const createRateLimiter = (windowMs: number, max: number, message?: string) => {
     legacyHeaders: false,
     keyGenerator: (req: any) => {
       // Use user ID if authenticated, otherwise IP
-      return (req as any).user?.userId || req.ip;
+      return (req).user?.userId || req.ip;
     },
     skip: (req: any) => {
       // Skip rate limiting for health checks

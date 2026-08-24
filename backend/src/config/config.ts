@@ -56,7 +56,7 @@ function getRequiredEnvVar(name: string, fallbackForDev?: string): string {
 }
 
 // Helper function to get secure encryption salt
-function getEncryptionSalt(): string {
+function _getEncryptionSalt(): string {
   const encryptionSalt = process.env.ENCRYPTION_SALT;
 
   if (!encryptionSalt) {

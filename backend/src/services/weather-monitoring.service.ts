@@ -1,8 +1,8 @@
 import { WeatherService } from "./weather.service";
 import { WeatherDataRepository } from "@/repositories/weather-data.repository";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
-import { weatherCacheService, WeatherCacheData } from "./weather-cache.service";
-import { WeatherData, ScheduleDataWithRelations, WeatherChange } from "@/types";
+import { WeatherCacheData } from "./weather-cache.service";
+import { ScheduleDataWithRelations, WeatherChange } from "@/types";
 import { logger } from "@/utils/logger";
 
 /**
@@ -86,7 +86,7 @@ export class WeatherMonitoringService {
       if (failed > 0) {
         const errors = results
           .filter((r) => r.status === "rejected")
-          .map((r) => (r as PromiseRejectedResult).reason);
+          .map((r) => (r).reason);
 
         logger.warn("Some weather updates failed", { errors });
       }
@@ -581,11 +581,11 @@ export class WeatherMonitoringService {
       };
 
       // Import notification service dynamically to avoid circular dependency
-      const { NotificationService } = await import("./notification.service");
-      const { NotificationRepository } = await import(
+      const { NotificationService: _NotificationService } = await import("./notification.service");
+      const { NotificationRepository: _NotificationRepository } = await import(
         "../repositories/notification.repository"
       );
-      const { UserRepository } = await import(
+      const { UserRepository: _UserRepository } = await import(
         "../repositories/user.repository"
       );
 

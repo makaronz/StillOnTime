@@ -173,6 +173,28 @@ router.post(
  * Individual Email Routes
  */
 
+// GET /api/email/export - Export processing history as CSV or JSON
+// UWAGA: musi byc zadeklarowane PRZED GET /:emailId, inaczej "export"
+// zostanie dopasowane jako wartosc parametru :emailId.
+router.get(
+  "/export",
+  [
+    query("format")
+      .optional()
+      .isIn(["csv", "json"])
+      .withMessage("Format must be csv or json"),
+    query("status")
+      .optional()
+      .isIn(["all", "pending", "failed", "processed"])
+      .withMessage("Status must be one of: all, pending, failed, processed"),
+    query("dateFrom").optional().isISO8601(),
+    query("dateTo").optional().isISO8601(),
+    query("search").optional().isString().trim().isLength({ min: 1, max: 100 }),
+  ],
+  handleValidationErrors,
+  emailController.exportHistory.bind(emailController)
+);
+
 // GET /api/email/:emailId - Get email details
 router.get(
   "/:emailId",
@@ -199,6 +221,20 @@ router.post(
   ],
   handleValidationErrors,
   emailController.retryProcessing.bind(emailController)
+);
+
+// DELETE /api/email/:emailId - Delete email from history
+router.delete(
+  "/:emailId",
+  [
+    param("emailId")
+      .isString()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage("Email ID must be a non-empty string"),
+  ],
+  handleValidationErrors,
+  emailController.deleteEmail.bind(emailController)
 );
 
 /**

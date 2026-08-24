@@ -673,6 +673,134 @@ export class EmailController {
    * Get email details by ID
    * GET /api/email/:emailId
    */
+  /**
+   * DELETE /api/emails/:emailId — usuwa rekord maila z historii.
+   * Sprawdza wlasnosc przed usunieciem, zeby uzytkownik nie mogl skasowac cudzego rekordu.
+   */
+  async deleteEmail(req: AppRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const { emailId } = req.params;
+      const email = await this.processedEmailRepository.findById(emailId);
+
+      if (!email || email.userId !== req.user.userId) {
+        res.status(404).json({
+          error: "Not Found",
+          message: "Email not found",
+          code: "EMAIL_NOT_FOUND",
+          timestamp: new Date().toISOString(),
+          path: req.path,
+        });
+        return;
+      }
+
+      await this.processedEmailRepository.delete(emailId);
+
+      logger.info("Email deleted from history", {
+        userId: req.user.userId,
+        emailId,
+      });
+
+      res.json({ success: true, message: "Email deleted successfully" });
+    } catch (error) {
+      logger.error("Failed to delete email", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        emailId: req.params.emailId,
+      });
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to delete email",
+        code: "EMAIL_DELETE_FAILED",
+        timestamp: new Date().toISOString(),
+        path: req.path,
+      });
+    }
+  }
+
+  /**
+   * GET /api/emails/export — eksportuje historie przetwarzania jako plik CSV lub JSON.
+   */
+  async exportHistory(req: AppRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const format = req.query.format === "json" ? "json" : "csv";
+      const { status, dateFrom, dateTo, search } = req.query;
+
+      const emails = await this.processedEmailRepository.findForExport(
+        req.user.userId,
+        {
+          status: status as string | undefined,
+          dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+          dateTo: dateTo ? new Date(dateTo as string) : undefined,
+          search: search as string | undefined,
+        }
+      );
+
+      const stamp = new Date().toISOString().slice(0, 10);
+
+      if (format === "json") {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="email-history-${stamp}.json"`
+        );
+        res.send(JSON.stringify(emails, null, 2));
+        return;
+      }
+
+      const columns = [
+        "id",
+        "messageId",
+        "subject",
+        "sender",
+        "receivedAt",
+        "processed",
+        "processingStatus",
+        "error",
+      ] as const;
+
+      // Cytowanie wg RFC 4180: podwojny cudzyslow jako escape, cale pole w cudzyslowach.
+      const cell = (v: unknown): string => {
+        if (v === null || v === undefined) return '""';
+        const s = v instanceof Date ? v.toISOString() : String(v);
+        return `"${s.replace(/"/g, '""')}"`;
+      };
+
+      const rows = [
+        columns.join(","),
+        ...emails.map((e) =>
+          columns.map((c) => cell((e as Record<string, unknown>)[c])).join(",")
+        ),
+      ];
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="email-history-${stamp}.csv"`
+      );
+      res.send(rows.join("\n"));
+    } catch (error) {
+      logger.error("Failed to export email history", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: "Failed to export history",
+        code: "EMAIL_EXPORT_FAILED",
+        timestamp: new Date().toISOString(),
+        path: req.path,
+      });
+    }
+  }
+
   async getEmailDetails(req: AppRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {

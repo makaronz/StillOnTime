@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import { AppRequest } from "@/types/requests";
-import { logger, structuredLogger } from "@/utils/logger";
+import { structuredLogger } from "@/utils/logger";
 import {
   BaseError,
   OAuthError,
@@ -47,7 +47,7 @@ export const errorHandler = (
   error: Error | BaseError | AppError,
   req: AppRequest,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   const requestId = (req.headers["x-request-id"] as string) || "unknown";
   const userId = (req as any).user?.id;

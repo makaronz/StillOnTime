@@ -1,8 +1,7 @@
-import React from 'react'
 import { Play, BookOpen, Settings, Zap } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
-export function WelcomeStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep, isLoading }: StepProps): JSX.Element {
+export function WelcomeStep({ onNext, onSkip, isLoading }: StepProps): JSX.Element {
   const features = [
     {
       icon: BookOpen,

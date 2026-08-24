@@ -1,4 +1,4 @@
-import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
+import { Worker } from "worker_threads";
 import { logger } from "@/utils/logger";
 import { db } from "@/config/database";
 import { cacheService } from "@/services/cache.service";
@@ -328,7 +328,7 @@ export class ParallelEmailProcessorService {
   /**
    * Handle worker exit
    */
-  private handleWorkerExit(workerId: number, code: number): void {
+  private handleWorkerExit(workerId: number, _code: number): void {
     // Remove worker from pool
     this.workers = this.workers.filter(w => w.threadId !== workerId);
     this.workerStats.delete(workerId);

@@ -1,4 +1,5 @@
 import { apiService } from "./api";
+import { useAuthStore } from "@/stores/authStore";
 import {
   ProcessedEmail,
   ScheduleData,
@@ -151,11 +152,17 @@ class HistoryService {
       ),
     });
 
-    const response = await fetch(`/api/emails/export?${params}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
-      },
-    });
+    // Token bierzemy z authStore, a nie z localStorage["auth-token"] — tego klucza
+    // nie ma: zustand/persist zapisuje caly stan pod kluczem "auth-storage",
+    // wiec poprzedni odczyt zawsze dawal null i wysylal "Bearer null".
+    const token = useAuthStore.getState().token;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL ?? ""}/api/emails/export?${params}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to export history");

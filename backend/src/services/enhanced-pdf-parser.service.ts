@@ -3,7 +3,7 @@ import Tesseract from "tesseract.js";
 import pdf2pic from "pdf2pic";
 import { logger } from "@/utils/logger";
 import { PDFParserService, ParsedScheduleData, OCRResult } from "./pdf-parser.service";
-import { ScheduleData, ValidationResult, ContactInfo } from "@/types";
+import { ValidationResult } from "@/types";
 import { AIEmailClassifierService } from "./ai-email-classifier.service";
 import fs from "fs/promises";
 import path from "path";

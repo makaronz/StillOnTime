@@ -2,7 +2,7 @@ import { Request } from "express";
 import { AuthenticatedUser } from "./express";
 
 // Extended Request interface with all Express properties
-export interface AppRequest extends Omit<Request, 'ip'> {
+export interface AppRequest extends Omit<Request, 'ip' | 'csrfToken'> {
   user?: AuthenticatedUser;
   csrfToken?(): string;
   ip: string; // Override ip to be required string instead of string | undefined

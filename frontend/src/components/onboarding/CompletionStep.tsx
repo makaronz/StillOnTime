@@ -1,4 +1,3 @@
-import React from 'react'
 import { CheckCircle, Sparkles, ArrowRight, Settings } from 'lucide-react'
 
 interface CompletionStepProps {
