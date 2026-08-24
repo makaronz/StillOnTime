@@ -636,7 +636,7 @@ export class ParallelEmailProcessorService {
    * Setup graceful shutdown
    */
   private setupGracefulShutdown(): void {
-    const shutdown = async () => {
+    const shutdown = async (): Promise<never> => {
       this.isShuttingDown = true;
       logger.info("Shutting down email processor worker pool");
 

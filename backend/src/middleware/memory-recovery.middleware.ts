@@ -28,7 +28,7 @@ export class MemoryRecoveryMiddleware {
    * Middleware function for memory monitoring
    */
   public middleware() {
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (req: Request, res: Response, next: NextFunction): void => {
       this.requestCount++;
 
       // Check memory every 100 requests

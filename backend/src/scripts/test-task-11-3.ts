@@ -15,7 +15,7 @@ import { WeatherDataRepository } from "../repositories/weather-data.repository";
 import { ScheduleDataRepository } from "../repositories/schedule-data.repository";
 import { WeatherService } from "../services/weather.service";
 
-async function testTask11_3() {
+async function testTask11_3(): Promise<void> {
   console.log("🧪 Testing Task 11.3 implementations...\n");
 
   try {

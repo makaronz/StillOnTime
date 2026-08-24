@@ -16,7 +16,16 @@ module.exports = {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js', 'dist/', 'node_modules/'],
+  ignorePatterns: [
+    '.eslintrc.js',
+    'dist/',
+    'node_modules/',
+    // Te same trzy osierocone pliki, ktore sa wylaczone z tsconfig.json.
+    // Bez tego eslint probuje je typowac i zglasza blad parsowania.
+    'src/services/emailService.ts',
+    'src/services/sparc-orchestrator.service.ts',
+    'src/scripts/test-database.ts',
+  ],
   rules: {
     // Rodzina no-unsafe-* pochodzi z presetu recommended-requiring-type-checking
     // i zaklada scisle typowanie. Ten projekt ma w tsconfig.json strict: false

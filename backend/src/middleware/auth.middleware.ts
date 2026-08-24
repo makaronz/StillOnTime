@@ -174,7 +174,7 @@ export const requireValidOAuth = async (
 export const authRateLimit = (
   maxAttempts: number = 5,
   windowMs: number = 15 * 60 * 1000
-) => {
+): (req: any, res: Response, next: NextFunction) => void => {
   const ipAttempts = new Map<string, { count: number; resetTime: number }>();
   const userAttempts = new Map<string, { count: number; resetTime: number }>();
 

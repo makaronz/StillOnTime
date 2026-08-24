@@ -9,7 +9,7 @@ export interface ValidationSchema {
 }
 
 export function validateRequest(schema: ValidationSchema) {
-  return (req: AppRequest, res: Response, next: NextFunction) => {
+  return (req: AppRequest, res: Response, next: NextFunction): void => {
     try {
       if (schema.body) {
         req.body = schema.body.parse(req.body);

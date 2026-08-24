@@ -5,7 +5,7 @@
 
 import * as os from 'os';
 
-async function emergencyRecovery() {
+async function emergencyRecovery(): Promise<void> {
   console.log('🚨 EMERGENCY MEMORY RECOVERY - NO SUDO');
   console.log('=====================================');
   console.log('Started at:', new Date().toISOString());

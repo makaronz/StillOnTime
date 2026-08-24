@@ -148,7 +148,7 @@ app.use((error: any, req: any, res: Response, next: NextFunction) => {
 });
 
 // Initialize database and start server
-async function startServer() {
+async function startServer(): Promise<void> {
   try {
     // Initialize database connection
     await initializeDatabase();

@@ -9,7 +9,7 @@ import { getRedisClient } from '@/config/redis';
 let redisClient: any = null;
 
 // Async function to initialize Redis client
-const getRateLimitRedisClient = async () => {
+const getRateLimitRedisClient = async (): Promise<any> => {
   if (!redisClient) {
     try {
       redisClient = await getRedisClient();
@@ -173,7 +173,7 @@ export const createRateLimitMiddleware = (config: typeof rateLimitConfigs.genera
 };
 
 // Dynamic rate limiting based on user tier
-export const dynamicRateLimit = async (req: any, res: Response, next: NextFunction) => {
+export const dynamicRateLimit = async (req: any, res: Response, next: NextFunction): Promise<void> => {
   const user = (req).user;
 
   // Default limits for anonymous users
@@ -219,7 +219,7 @@ export const dynamicRateLimit = async (req: any, res: Response, next: NextFuncti
 };
 
 // Reset rate limit for a user (admin function)
-export const resetUserRateLimit = async (userId: string) => {
+export const resetUserRateLimit = async (userId: string): Promise<void> => {
   try {
     const client = await getRateLimitRedisClient();
     if (client) {
@@ -235,7 +235,7 @@ export const resetUserRateLimit = async (userId: string) => {
 };
 
 // Get rate limit status for a user
-export const getUserRateLimitStatus = async (userId: string) => {
+export const getUserRateLimitStatus = async (userId: string): Promise<any> => {
   const patterns = ['general', 'auth', 'email', 'upload', 'search'];
   const status: any = {};
 

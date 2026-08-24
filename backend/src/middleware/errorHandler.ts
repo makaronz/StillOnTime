@@ -276,7 +276,7 @@ function isRateLimitError(error: Error): boolean {
 
 // Async error handler wrapper
 export const asyncHandler = (fn: Function) => {
-  return (req: AppRequest, res: Response, next: NextFunction) => {
+  return (req: AppRequest, res: Response, next: NextFunction): void => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };

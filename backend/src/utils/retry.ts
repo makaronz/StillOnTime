@@ -232,10 +232,10 @@ export function withRetry(config: Partial<RetryConfig> = {}) {
     target: any,
     propertyName: string,
     descriptor: PropertyDescriptor
-  ) {
+  ): PropertyDescriptor {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: any[]): Promise<RetryResult<unknown>> {
       const operationName = `${target.constructor.name}.${propertyName}`;
 
       return RetryManager.executeWithRetry(
