@@ -186,14 +186,14 @@ export const closeRedisConnection = async (): Promise<void> => {
 };
 
 // Graceful shutdown handlers
-process.on("SIGINT", async () => {
-  await closeRedisConnection();
+process.on("SIGINT", () => {
+  void closeRedisConnection();
 });
 
-process.on("SIGTERM", async () => {
-  await closeRedisConnection();
+process.on("SIGTERM", () => {
+  void closeRedisConnection();
 });
 
-process.on("beforeExit", async () => {
-  await closeRedisConnection();
+process.on("beforeExit", () => {
+  void closeRedisConnection();
 });
