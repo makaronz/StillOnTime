@@ -47,7 +47,7 @@ async function initializeDatabase(): Promise<void> {
 
 // Run the initialization if this script is executed directly
 if (require.main === module) {
-  initializeDatabase();
+  void initializeDatabase();
 }
 
 export { initializeDatabase };

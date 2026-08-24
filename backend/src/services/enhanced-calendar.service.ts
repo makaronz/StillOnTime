@@ -87,7 +87,7 @@ export class EnhancedCalendarService extends CalendarService {
   ) {
     super(oauth2Service, calendarEventRepository);
     this.icsDirectory = path.join(process.cwd(), "storage", "calendar");
-    this.ensureICSDirectory();
+    void this.ensureICSDirectory();
   }
 
   /**

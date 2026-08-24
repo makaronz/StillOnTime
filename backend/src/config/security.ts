@@ -131,7 +131,7 @@ export function validateSecurityConfig(): void {
     const hasUpperCase = /[A-Z]/.test(jwtSecret);
     const hasLowerCase = /[a-z]/.test(jwtSecret);
     const hasNumbers = /\d/.test(jwtSecret);
-    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(jwtSecret);
+    const hasSpecialChars = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(jwtSecret);
 
     const complexityScore = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChars].filter(Boolean).length;
 

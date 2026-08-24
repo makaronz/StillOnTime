@@ -156,11 +156,11 @@ export class ParallelEmailProcessorService {
 
     switch (type) {
       case "job_complete":
-        this.handleJobComplete(workerId, data);
+        void this.handleJobComplete(workerId, data);
         break;
 
       case "job_error":
-        this.handleJobError(workerId, data);
+        void this.handleJobError(workerId, data);
         break;
 
       case "job_progress":
@@ -615,7 +615,7 @@ export class ParallelEmailProcessorService {
 
       if (idleWorkerIndex !== -1) {
         logger.info("Scaling down worker pool", { queueSize, totalWorkers });
-        this.workers[idleWorkerIndex].terminate();
+        void this.workers[idleWorkerIndex].terminate();
         this.workers.splice(idleWorkerIndex, 1);
         this.workerStats.delete(idleWorkerIndex);
       }
@@ -650,7 +650,7 @@ export class ParallelEmailProcessorService {
 
       // Terminate all workers
       for (const worker of this.workers) {
-        worker.terminate();
+        void worker.terminate();
       }
 
       logger.info("Email processor worker pool shutdown complete");

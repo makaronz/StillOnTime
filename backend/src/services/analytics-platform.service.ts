@@ -116,7 +116,7 @@ export class AnalyticsPlatformService {
   private reportGenerator = new ReportGenerationEngine();
 
   constructor() {
-    this.initializeDefaultMetrics();
+    void this.initializeDefaultMetrics();
     this.startInsightGeneration();
     this.startScheduledReports();
   }

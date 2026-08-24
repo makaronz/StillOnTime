@@ -769,7 +769,7 @@ export class ErrorHandlerService {
       };
 
       this.criticalFailures.push(failure);
-      this.handleCriticalFailure(failure);
+      void this.handleCriticalFailure(failure);
     }
   }
 

@@ -77,7 +77,7 @@ export class PerformanceMonitoringService {
   };
 
   private constructor() {
-    this.initializeRedis();
+    void this.initializeRedis();
     this.startPeriodicCollection();
   }
 
@@ -113,7 +113,7 @@ export class PerformanceMonitoringService {
     };
 
     // Store in Redis for real-time monitoring
-    this.storeMetric(key, metrics);
+    void this.storeMetric(key, metrics);
 
     // Check for performance alerts
     this.checkPerformanceAlerts(metrics);
@@ -131,7 +131,7 @@ export class PerformanceMonitoringService {
       timestamp: Date.now(),
     };
 
-    this.storeMetric(key, metrics);
+    void this.storeMetric(key, metrics);
 
     // Alert on slow queries
     if (duration > 1000) { // 1 second threshold
@@ -153,7 +153,7 @@ export class PerformanceMonitoringService {
       timestamp: Date.now(),
     };
 
-    this.storeMetric(cacheKey, metrics);
+    void this.storeMetric(cacheKey, metrics);
   }
 
   /**
@@ -167,7 +167,7 @@ export class PerformanceMonitoringService {
       userId,
     };
 
-    this.storeMetric(key, metrics);
+    void this.storeMetric(key, metrics);
 
     // Check Web Vitals thresholds
     this.checkWebVitalsAlerts(vitals, userId);
@@ -583,7 +583,7 @@ export class PerformanceMonitoringService {
     setInterval(async () => {
       try {
         const metrics = await this.getCurrentMetrics();
-        this.storeMetric("system:metrics", {
+        void this.storeMetric("system:metrics", {
           ...metrics,
           timestamp: Date.now(),
         });

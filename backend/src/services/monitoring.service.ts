@@ -399,18 +399,18 @@ export class MonitoringService {
   private startMonitoring(): void {
     // Start metrics collection
     this.metricsCollectionInterval = setInterval(() => {
-      this.collectMetrics();
+      void this.collectMetrics();
     }, this.METRICS_COLLECTION_INTERVAL);
 
     // Start APM metrics collection
     this.apmCollectionInterval = setInterval(() => {
-      this.collectAPMMetrics();
+      void this.collectAPMMetrics();
     }, this.APM_COLLECTION_INTERVAL);
 
     // Start alert evaluation
     this.alertEvaluationInterval = setInterval(() => {
-      this.evaluateAlerts();
-      this.evaluateAdvancedAlerts();
+      void this.evaluateAlerts();
+      void this.evaluateAdvancedAlerts();
     }, this.ALERT_EVALUATION_INTERVAL);
 
     structuredLogger.info("Monitoring service started", {

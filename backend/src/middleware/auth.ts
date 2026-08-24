@@ -250,20 +250,23 @@ export const requireOwnership = (resourceIdParam: string = 'id') => {
       let isOwner = false;
 
       switch (resourceType) {
-        case 'schedules':
+        case 'schedules': {
           const schedule = await scheduleDataRepository.findById(resourceId);
           isOwner = !!schedule && schedule.userId === req.user.userId;
           break;
+        }
 
-        case 'emails':
+        case 'emails': {
           const email = await processedEmailRepository.findById(resourceId);
           isOwner = !!email && email.userId === req.user.userId;
           break;
+        }
 
-        case 'routes':
+        case 'routes': {
           const route = await routePlanRepository.findById(resourceId);
           isOwner = !!route && route.userId === req.user.userId;
           break;
+        }
 
         default:
           res.status(400).json({
