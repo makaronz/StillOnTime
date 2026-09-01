@@ -34,7 +34,7 @@ export class ScheduleWeatherController extends BaseScheduleController {
       const { scheduleId } = req.params;
 
       // Verify schedule belongs to user
-      const { schedule, error } = await this.verifyScheduleOwnership(
+      const { schedule: _schedule, error } = await this.verifyScheduleOwnership(
         scheduleId,
         req.user.userId
       );
@@ -97,7 +97,7 @@ export class ScheduleWeatherController extends BaseScheduleController {
       const { scheduleId } = req.params;
 
       // Verify schedule belongs to user
-      const { schedule, error } = await this.verifyScheduleOwnership(
+      const { schedule: _schedule, error } = await this.verifyScheduleOwnership(
         scheduleId,
         req.user.userId
       );

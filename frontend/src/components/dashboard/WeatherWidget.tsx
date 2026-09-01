@@ -8,7 +8,6 @@ import {
   Wind,
   Droplets,
   Eye,
-  Thermometer,
   AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';

@@ -28,7 +28,7 @@ app.get("/api/auth/login", (req, res) => {
 });
 
 app.post("/api/auth/callback", (req, res) => {
-  const { code, state } = req.body;
+  const { _code, _state } = req.body;
 
   // Mock successful authentication
   res.json({
@@ -202,7 +202,7 @@ app.use(
     err: any,
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction
+    _next: express.NextFunction
   ) => {
     console.error("Error:", err);
     res.status(500).json({

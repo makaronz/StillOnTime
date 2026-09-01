@@ -46,7 +46,7 @@ export const csrfErrorHandler = (
     logger.warn("CSRF token validation failed - potential attack", securityContext);
 
     // Rate limit CSRF violations by IP
-    const violationKey = `csrf_violation_${req.ip}`;
+    const _violationKey = `csrf_violation_${req.ip}`;
     const violationCount = (req as any).csrfViolations || 0;
     (req as any).csrfViolations = violationCount + 1;
 

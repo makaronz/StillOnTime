@@ -4,7 +4,6 @@ import {
   CreateProcessedEmailInput,
   UpdateProcessedEmailInput,
   ProcessedEmailWithSchedule,
-  WhereCondition,
   FindManyOptions,
 } from "@/types";
 import type {
@@ -227,7 +226,7 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
 
   async markAsProcessed(
     id: string,
-    scheduleId?: string
+    _scheduleId?: string
   ): Promise<ProcessedEmail> {
     return await db
       .updateTable("processed_emails")
@@ -288,7 +287,7 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
     }
 
     const isDupe = await this.isDuplicate(
-      emailData.messageId as string,
+      emailData.messageId,
       pdfHash
     );
 
@@ -321,6 +320,48 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
     // Simplified version - proper implementation would use joins
     const emails = await this.findMany(options);
     return emails as any[];
+  }
+
+  /**
+   * Pobiera maile uzytkownika do eksportu, z opcjonalnymi filtrami.
+   * Bez paginacji — eksport obejmuje caly przefiltrowany zbior.
+   */
+  async findForExport(
+    userId: string,
+    filters: {
+      status?: string;
+      dateFrom?: Date;
+      dateTo?: Date;
+      search?: string;
+    } = {}
+  ): Promise<ProcessedEmail[]> {
+    let q = db
+      .selectFrom("processed_emails")
+      .selectAll()
+      .where("userId", "=", userId);
+
+    if (filters.status === "processed") {
+      q = q.where("processed", "=", true);
+    } else if (filters.status === "pending") {
+      q = q.where("processingStatus", "=", "pending");
+    } else if (filters.status === "failed") {
+      q = q.where("processingStatus", "=", "failed");
+    }
+
+    if (filters.dateFrom) {
+      q = q.where("receivedAt", ">=", filters.dateFrom);
+    }
+    if (filters.dateTo) {
+      q = q.where("receivedAt", "<=", filters.dateTo);
+    }
+    if (filters.search) {
+      const term = `%${filters.search}%`;
+      q = q.where((eb) =>
+        eb.or([eb("subject", "ilike", term), eb("sender", "ilike", term)])
+      );
+    }
+
+    return await q.orderBy("receivedAt", "desc").execute();
   }
 
   async cleanupOldEmails(daysToKeep: number = 90): Promise<{ count: number }> {

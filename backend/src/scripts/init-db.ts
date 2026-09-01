@@ -8,7 +8,7 @@
 import { db } from "../config/database";
 import { sql } from "kysely";
 
-async function initializeDatabase() {
+async function initializeDatabase(): Promise<void> {
   try {
     console.log("🚀 Starting database initialization...");
 
@@ -47,7 +47,7 @@ async function initializeDatabase() {
 
 // Run the initialization if this script is executed directly
 if (require.main === module) {
-  initializeDatabase();
+  void initializeDatabase();
 }
 
 export { initializeDatabase };

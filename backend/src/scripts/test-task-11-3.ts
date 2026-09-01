@@ -14,9 +14,8 @@ import { UserRepository } from "../repositories/user.repository";
 import { WeatherDataRepository } from "../repositories/weather-data.repository";
 import { ScheduleDataRepository } from "../repositories/schedule-data.repository";
 import { WeatherService } from "../services/weather.service";
-import { logger } from "../utils/logger";
 
-async function testTask11_3() {
+async function testTask11_3(): Promise<void> {
   console.log("🧪 Testing Task 11.3 implementations...\n");
 
   try {
@@ -91,7 +90,7 @@ async function testTask11_3() {
     const weatherDataRepository = new WeatherDataRepository();
     const scheduleDataRepository = new ScheduleDataRepository();
     const weatherService = new WeatherService(weatherDataRepository);
-    const weatherMonitoringService = new WeatherMonitoringService(
+    const _weatherMonitoringService = new WeatherMonitoringService(
       weatherService,
       weatherDataRepository,
       scheduleDataRepository
@@ -104,7 +103,7 @@ async function testTask11_3() {
     console.log("5️⃣ Testing Language Standardization");
 
     // Test notification templates are in English
-    const testTemplateData = {
+    const _testTemplateData = {
       scheduleData: {
         location: "Test Location",
         shootingDate: new Date(),

@@ -10,9 +10,9 @@ interface ServiceWorkerMetrics {
 }
 
 export const ServiceWorkerRegistration: React.FC = () => {
-  const [isSupported, setIsSupported] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
-  const [metrics, setMetrics] = useState<ServiceWorkerMetrics | null>(null);
+  const [_isSupported, setIsSupported] = useState(false);
+  const [_isRegistered, setIsRegistered] = useState(false);
+  const [_metrics, setMetrics] = useState<ServiceWorkerMetrics | null>(null);
 
   useEffect(() => {
     // Check if service workers are supported

@@ -3,7 +3,7 @@
  * Provides comprehensive application performance monitoring and alerting
  */
 
-import { logger, structuredLogger, LogContext } from "../utils/logger";
+import { structuredLogger } from "../utils/logger";
 import {
   CircuitBreakerRegistry,
   CircuitBreakerStats,
@@ -13,7 +13,7 @@ import {
   ErrorMetrics,
   CriticalServiceFailure,
 } from "./error-handler.service";
-import { MetricsData, CircuitBreakerState } from "../types";
+import { MetricsData } from "../types";
 import {
   AlertRule as DomainAlertRule,
   Alert as DomainAlert,
@@ -399,18 +399,18 @@ export class MonitoringService {
   private startMonitoring(): void {
     // Start metrics collection
     this.metricsCollectionInterval = setInterval(() => {
-      this.collectMetrics();
+      void this.collectMetrics();
     }, this.METRICS_COLLECTION_INTERVAL);
 
     // Start APM metrics collection
     this.apmCollectionInterval = setInterval(() => {
-      this.collectAPMMetrics();
+      void this.collectAPMMetrics();
     }, this.APM_COLLECTION_INTERVAL);
 
     // Start alert evaluation
     this.alertEvaluationInterval = setInterval(() => {
-      this.evaluateAlerts();
-      this.evaluateAdvancedAlerts();
+      void this.evaluateAlerts();
+      void this.evaluateAdvancedAlerts();
     }, this.ALERT_EVALUATION_INTERVAL);
 
     structuredLogger.info("Monitoring service started", {
@@ -542,7 +542,7 @@ export class MonitoringService {
           this.serviceHealthHistory.set(serviceName, []);
         }
 
-        const history = this.serviceHealthHistory.get(serviceName)!;
+        const history = this.serviceHealthHistory.get(serviceName);
         history.push(healthMetric);
 
         // Trim history
@@ -798,7 +798,7 @@ export class MonitoringService {
       this.performanceHistory[this.performanceHistory.length - 1];
     const services: ServiceHealthMetrics[] = [];
 
-    for (const [serviceName, history] of this.serviceHealthHistory.entries()) {
+    for (const [_serviceName, history] of this.serviceHealthHistory.entries()) {
       if (history.length > 0) {
         services.push(history[history.length - 1]);
       }
@@ -911,7 +911,7 @@ export class MonitoringService {
    */
   private async collectAPMMetrics(): Promise<void> {
     try {
-      const timestamp = new Date();
+      const _timestamp = new Date();
 
       // Calculate application performance metrics
       const allResponseTimes = Array.from(this.requestMetrics.values()).flatMap(
@@ -1058,7 +1058,7 @@ export class MonitoringService {
       this.apmMetricsHistory[this.apmMetricsHistory.length - 1];
     const services: ServiceHealthMetrics[] = [];
 
-    for (const [serviceName, history] of this.serviceHealthHistory.entries()) {
+    for (const [_serviceName, history] of this.serviceHealthHistory.entries()) {
       if (history.length > 0) {
         services.push(history[history.length - 1]);
       }
@@ -1205,7 +1205,7 @@ export class MonitoringService {
    * Resolve an alert
    */
   public resolveAlert(alertId: string): boolean {
-    const alert = this.activeAlerts.get(alertId) as DomainAlert | undefined;
+    const alert = this.activeAlerts.get(alertId);
     if (!alert) return false;
 
     alert.resolved = true;
@@ -1506,7 +1506,7 @@ export class MonitoringService {
   public getAPMMetricsHistory(hours: number = 24): APMMetrics[] {
     const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
     return this.apmMetricsHistory.filter(
-      (metric) => new Date() >= cutoffTime // Simplified time filtering
+      (_metric) => new Date() >= cutoffTime // Simplified time filtering
     );
   }
 

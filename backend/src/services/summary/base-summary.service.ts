@@ -93,7 +93,7 @@ export class BaseSummaryService {
    */
   async generateAndSaveSummary(
     scheduleData: ScheduleDataWithRelations,
-    options: SummaryGenerationOptions = {}
+    _options: SummaryGenerationOptions = {}
   ): Promise<Summary> {
     // This will be implemented by the composed service
     throw new Error(

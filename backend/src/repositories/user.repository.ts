@@ -1,13 +1,9 @@
 import { db } from "@/config/database";
 import {
   User,
-  NewUser,
   UserUpdate,
   UserConfig,
-  NewUserConfig,
-  UserConfigUpdate,
 } from "@/config/database-types";
-import { sql } from "kysely";
 
 /**
  * User Repository with Kysely
@@ -97,23 +93,23 @@ export class UserRepository {
     const userConfig = user.userConfigId
       ? ({
           id: user.userConfigId,
-          homeAddress: user.homeAddress!,
-          panavisionAddress: user.panavisionAddress!,
-          bufferCarChange: user.bufferCarChange!,
-          bufferParking: user.bufferParking!,
-          bufferEntry: user.bufferEntry!,
-          bufferTraffic: user.bufferTraffic!,
-          bufferMorningRoutine: user.bufferMorningRoutine!,
-          notificationEmail: user.notificationEmail!,
-          notificationSMS: user.notificationSMS!,
-          notificationPush: user.notificationPush!,
-          smsNumber: user.smsNumber!,
-          smsVerified: user.smsVerified!,
-          smsVerificationCode: user.smsVerificationCode!,
-          smsVerificationExpiry: user.smsVerificationExpiry!,
-          pushToken: user.pushToken!,
-          pushTokenVerified: user.pushTokenVerified!,
-          userId: user.userConfigUserId!,
+          homeAddress: user.homeAddress,
+          panavisionAddress: user.panavisionAddress,
+          bufferCarChange: user.bufferCarChange,
+          bufferParking: user.bufferParking,
+          bufferEntry: user.bufferEntry,
+          bufferTraffic: user.bufferTraffic,
+          bufferMorningRoutine: user.bufferMorningRoutine,
+          notificationEmail: user.notificationEmail,
+          notificationSMS: user.notificationSMS,
+          notificationPush: user.notificationPush,
+          smsNumber: user.smsNumber,
+          smsVerified: user.smsVerified,
+          smsVerificationCode: user.smsVerificationCode,
+          smsVerificationExpiry: user.smsVerificationExpiry,
+          pushToken: user.pushToken,
+          pushTokenVerified: user.pushTokenVerified,
+          userId: user.userConfigUserId,
         } as UserConfig)
       : null;
 

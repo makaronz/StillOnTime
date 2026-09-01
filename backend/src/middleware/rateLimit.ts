@@ -1,6 +1,5 @@
 import rateLimit from 'express-rate-limit';
 import { Response, NextFunction } from 'express';
-import { AppRequest } from '@/types/requests';
 import { logger } from '@/utils/logger';
 
 // Use existing Redis client from config to avoid conflicts
@@ -10,7 +9,7 @@ import { getRedisClient } from '@/config/redis';
 let redisClient: any = null;
 
 // Async function to initialize Redis client
-const getRateLimitRedisClient = async () => {
+const getRateLimitRedisClient = async (): Promise<any> => {
   if (!redisClient) {
     try {
       redisClient = await getRedisClient();
@@ -25,7 +24,7 @@ const getRateLimitRedisClient = async () => {
 };
 
 // Create Redis store for rate limiting (fallback to memory store if Redis unavailable)
-const createRedisStore = async (prefix: string) => {
+const _createRedisStore = async (prefix: string) => {
   try {
     const client = await getRateLimitRedisClient();
     if (client) {
@@ -64,7 +63,7 @@ export const rateLimitConfigs = {
     // store: Will be added dynamically if Redis is available
     keyGenerator: (req: any) => {
       // Use user ID if authenticated, otherwise IP
-      return (req as any).user?.userId || req.ip;
+      return (req).user?.userId || req.ip;
     }
   },
 
@@ -96,7 +95,7 @@ export const rateLimitConfigs = {
     },
     // store: Will be added dynamically if Redis is available
     keyGenerator: (req: any) => {
-      return (req as any).user?.userId || req.ip;
+      return (req).user?.userId || req.ip;
     }
   },
 
@@ -111,7 +110,7 @@ export const rateLimitConfigs = {
     },
     // store: Will be added dynamically if Redis is available
     keyGenerator: (req: any) => {
-      return (req as any).user?.userId || req.ip;
+      return (req).user?.userId || req.ip;
     }
   },
 
@@ -126,7 +125,7 @@ export const rateLimitConfigs = {
     },
     // store: Will be added dynamically if Redis is available
     keyGenerator: (req: any) => {
-      return (req as any).user?.userId || req.ip;
+      return (req).user?.userId || req.ip;
     }
   }
 };
@@ -150,7 +149,7 @@ export const createRateLimitMiddleware = (config: typeof rateLimitConfigs.genera
       // Log rate limit violation
       logger.warn('Rate limit exceeded', {
         ip: req.ip,
-        userId: (req as any).user?.userId,
+        userId: (req).user?.userId,
         path: req.path,
         method: req.method,
         userAgent: req.get('User-Agent'),
@@ -174,8 +173,8 @@ export const createRateLimitMiddleware = (config: typeof rateLimitConfigs.genera
 };
 
 // Dynamic rate limiting based on user tier
-export const dynamicRateLimit = async (req: any, res: Response, next: NextFunction) => {
-  const user = (req as any).user;
+export const dynamicRateLimit = async (req: any, res: Response, next: NextFunction): Promise<void> => {
+  const user = (req).user;
 
   // Default limits for anonymous users
   let windowMs = 15 * 60 * 1000; // 15 minutes
@@ -212,7 +211,7 @@ export const dynamicRateLimit = async (req: any, res: Response, next: NextFuncti
     },
     // store: Will be added dynamically if Redis is available
     keyGenerator: (req: any) => {
-      return (req as any).user?.userId || req.ip;
+      return (req).user?.userId || req.ip;
     }
   });
 
@@ -220,7 +219,7 @@ export const dynamicRateLimit = async (req: any, res: Response, next: NextFuncti
 };
 
 // Reset rate limit for a user (admin function)
-export const resetUserRateLimit = async (userId: string) => {
+export const resetUserRateLimit = async (userId: string): Promise<void> => {
   try {
     const client = await getRateLimitRedisClient();
     if (client) {
@@ -236,7 +235,7 @@ export const resetUserRateLimit = async (userId: string) => {
 };
 
 // Get rate limit status for a user
-export const getUserRateLimitStatus = async (userId: string) => {
+export const getUserRateLimitStatus = async (userId: string): Promise<any> => {
   const patterns = ['general', 'auth', 'email', 'upload', 'search'];
   const status: any = {};
 

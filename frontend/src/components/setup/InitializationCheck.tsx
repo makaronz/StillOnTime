@@ -17,7 +17,7 @@ export function InitializationCheck({
 }: InitializationCheckProps): JSX.Element {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthStore()
-  const { isSetupRequired, isCompleted } = useSetupManager()
+  const { isSetupRequired, isCompleted: _isCompleted } = useSetupManager()
   const { currentStep } = useSetupStore()
 
   useEffect(() => {

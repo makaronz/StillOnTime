@@ -57,7 +57,7 @@ const DEFAULT_CACHE_CONFIG: Partial<CacheConfig> = {
 /**
  * Cache middleware factory
  */
-export function createCacheMiddleware(config: CacheConfig = {}) {
+export function createCacheMiddleware(config: CacheConfig = {}): (req: AppRequest, res: Response, next: NextFunction) => void {
   const finalConfig = { ...DEFAULT_CACHE_CONFIG, ...config };
 
   return (req: AppRequest, res: Response, next: NextFunction): void => {
@@ -129,15 +129,15 @@ function interceptResponse(
   next: NextFunction,
   cacheKey: string,
   config: CacheConfig
-) {
+): void {
   const originalSend = res.send;
   const originalJson = res.json;
-  let responseData: any;
+  let _responseData: any;
   let contentType: string | undefined;
 
   // Override send method
   res.send = function(data: any) {
-    responseData = data;
+    _responseData = data;
     contentType = res.get("Content-Type") || "application/json";
 
     // Cache response if it meets criteria
@@ -167,7 +167,7 @@ function interceptResponse(
 
   // Override json method
   res.json = function(data: any) {
-    responseData = data;
+    _responseData = data;
     contentType = "application/json";
 
     // Cache response if it meets criteria

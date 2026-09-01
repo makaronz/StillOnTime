@@ -1,5 +1,4 @@
-import React from 'react'
-import { Clock, Globe, Bell, Calendar } from 'lucide-react'
+import { Clock, Globe, Bell } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 
 const timezones = [
@@ -19,7 +18,7 @@ const dateFormats = [
   { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD (e.g., 2023-12-25)' },
 ]
 
-export function UserPreferencesStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep, isLoading }: StepProps): JSX.Element {
+export function UserPreferencesStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep: _isLastStep, isLoading }: StepProps): JSX.Element {
   const handlePreferenceChange = (section: string, field: string, value: any) => {
     updateData({
       userPreferences: {

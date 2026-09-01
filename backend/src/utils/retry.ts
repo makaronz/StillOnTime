@@ -80,7 +80,7 @@ export class RetryManager {
           attempt,
           maxAttempts: finalConfig.maxAttempts,
           error: error instanceof Error ? error.message : String(error),
-          errorCode: (error as any)?.code,
+          errorCode: (error)?.code,
         });
 
         // Check if error is retryable
@@ -91,7 +91,7 @@ export class RetryManager {
             operationName,
             attempt,
             error: error instanceof Error ? error.message : String(error),
-            errorCode: (error as any)?.code,
+            errorCode: (error)?.code,
           });
           throw error;
         }
@@ -232,10 +232,10 @@ export function withRetry(config: Partial<RetryConfig> = {}) {
     target: any,
     propertyName: string,
     descriptor: PropertyDescriptor
-  ) {
+  ): PropertyDescriptor {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: any[]): Promise<RetryResult<unknown>> {
       const operationName = `${target.constructor.name}.${propertyName}`;
 
       return RetryManager.executeWithRetry(

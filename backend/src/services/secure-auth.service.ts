@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AppRequest } from "@/types/requests";
-import { OAuth2Service, JWTPayload } from "./oauth2.service";
+import { OAuth2Service } from "./oauth2.service";
 import { UserRepository } from "@/repositories/user.repository";
 import { SecureCookieManager } from "@/utils/cookies";
 import { logger } from "@/utils/logger";
@@ -95,7 +95,7 @@ export class SecureAuthService {
     req: AppRequest,
     res: Response,
     code: string,
-    state: string
+    _state: string
   ): Promise<SecureAuthResponse> {
     try {
       // Exchange authorization code for tokens

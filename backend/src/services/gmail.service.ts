@@ -139,7 +139,7 @@ export class GmailService {
         try {
           const fullMessage = await gmail.users.messages.get({
             userId: "me",
-            id: message.id!,
+            id: message.id,
             format: "full",
           });
 
@@ -357,7 +357,7 @@ export class GmailService {
     try {
       const attachments: EmailAttachment[] = [];
 
-      const extractAttachments = (part: gmail_v1.Schema$MessagePart) => {
+      const extractAttachments = (part: gmail_v1.Schema$MessagePart): void => {
         if (part.body?.attachmentId && part.filename) {
           // Check if it's a PDF
           if (

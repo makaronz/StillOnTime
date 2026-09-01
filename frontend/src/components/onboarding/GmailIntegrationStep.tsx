@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
-import { Mail, CheckCircle, AlertCircle, Settings } from 'lucide-react'
+import { useState } from 'react'
+import { Mail, CheckCircle, AlertCircle } from 'lucide-react'
 import { StepProps } from '@/types/setup'
 import { useAuthStore } from '@/stores/authStore'
 
-export function GmailIntegrationStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLastStep, isLoading }: StepProps): JSX.Element {
+export function GmailIntegrationStep({ data, updateData, onNext, onPrevious, onSkip, isFirstStep, isLoading }: StepProps): JSX.Element {
   const { isAuthenticated, user } = useAuthStore()
   const [isConnecting, setIsConnecting] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connected' | 'error'>('idle')

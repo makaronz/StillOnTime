@@ -4,7 +4,7 @@ import {
   authenticateToken,
   requireValidOAuth,
 } from "@/middleware/auth.middleware";
-import { body, query, param, validationResult } from "express-validator";
+import { body, param, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
 
 const router = Router();

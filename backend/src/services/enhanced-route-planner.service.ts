@@ -1,21 +1,13 @@
 import { Client } from "@googlemaps/google-maps-services-js";
 import NodeCache from "node-cache";
-import { GoogleMapsService } from "./google-maps.service";
-import { UserConfigRepository } from "../repositories/user-config.repository";
-import { RoutePlanRepository } from "../repositories/route-plan.repository";
 import { logger } from "../utils/logger";
 import {
   ScheduleData,
-  RoutePlan,
   UserConfig,
-  TimeBuffers,
-  RouteResult,
-  CreateRoutePlanInput,
 } from "../types";
 import {
   RoutePlannerService,
   RouteCalculationResult,
-  RouteSegment,
 } from "./route-planner.service";
 
 export interface EnhancedRouteOptions {
@@ -278,7 +270,7 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
       const optimization: MultiDestinationOptimization = {
         optimizedOrder: optimizedOrder
           .filter((wp) => wp.scheduleId)
-          .map((wp) => schedules.find((s) => s.id === wp.scheduleId)!)
+          .map((wp) => schedules.find((s) => s.id === wp.scheduleId))
           .filter(Boolean),
         totalTravelTime: optimizedStats.totalTime,
         totalDistance: optimizedStats.totalDistance,
@@ -413,7 +405,7 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
     baseRoute: RouteCalculationResult,
     trafficPrediction: any,
     alternatives: RouteCalculationResult[],
-    userConfig: UserConfig
+    _userConfig: UserConfig
   ): Promise<{
     departureTimeAdjustment: number;
     bufferRecommendation: number;
@@ -538,7 +530,7 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
           destination,
           departure_time: departureTime,
           traffic_model: "best_guess" as any, // Google Maps API traffic model
-          key: process.env.GOOGLE_MAPS_API_KEY!,
+          key: process.env.GOOGLE_MAPS_API_KEY,
         },
       });
 
@@ -593,7 +585,7 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
   /**
    * Optimize waypoint order using multiple algorithms
    */
-  private async optimizeWaypointOrder(waypoints: any[], userConfig: UserConfig): Promise<any[]> {
+  private async optimizeWaypointOrder(waypoints: any[], _userConfig: UserConfig): Promise<any[]> {
     // Simplified optimization - in production would use Google Route Optimization API
     // For now, use time-window based sorting
     const scheduledWaypoints = waypoints.filter(wp => wp.timeWindow);
@@ -641,9 +633,9 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
   /**
    * Calculate original multi-route (placeholder implementation)
    */
-  private async calculateOriginalMultiRoute(waypoints: any[], userConfig: UserConfig): Promise<any[]> {
+  private async calculateOriginalMultiRoute(waypoints: any[], _userConfig: UserConfig): Promise<any[]> {
     // Simplified implementation - would calculate routes between all waypoints in order
-    return waypoints.map((wp, index) => ({
+    return waypoints.map((_wp, _index) => ({
       totalTravelMinutes: 60, // Default 1 hour per segment
       distance: 50, // Default 50km per segment
     }));
@@ -652,9 +644,9 @@ export class EnhancedRoutePlannerService extends RoutePlannerService {
   /**
    * Calculate optimized multi-route (placeholder implementation)
    */
-  private async calculateOptimizedMultiRoute(waypoints: any[], userConfig: UserConfig): Promise<any[]> {
+  private async calculateOptimizedMultiRoute(waypoints: any[], _userConfig: UserConfig): Promise<any[]> {
     // Simplified implementation - assume 15% improvement
-    return waypoints.map((wp, index) => ({
+    return waypoints.map((_wp, _index) => ({
       totalTravelMinutes: 51, // 15% improvement
       distance: 42.5, // 15% improvement
     }));

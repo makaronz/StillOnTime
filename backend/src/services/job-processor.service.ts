@@ -21,11 +21,11 @@
 
 // Temporary simplified export for compilation
 export class JobProcessorService {
-  constructor(...args: any[]) {
+  constructor(..._args: any[]) {
     // Simplified constructor
   }
 
-  async addEmailProcessingJob(...args: any[]): Promise<any> {
+  async addEmailProcessingJob(..._args: any[]): Promise<any> {
     return {}; // Simplified method
   }
 
@@ -33,19 +33,19 @@ export class JobProcessorService {
     return {}; // Simplified method
   }
 
-  async addRouteRecalculationJob(...args: any[]): Promise<any> {
+  async addRouteRecalculationJob(..._args: any[]): Promise<any> {
     return {}; // Simplified method
   }
 
-  async addWeatherUpdateJob(...args: any[]): Promise<any> {
+  async addWeatherUpdateJob(..._args: any[]): Promise<any> {
     return {}; // Simplified method
   }
 
-  async schedulePeriodicEmailCheck(...args: any[]): Promise<any> {
+  async schedulePeriodicEmailCheck(..._args: any[]): Promise<any> {
     return {}; // Simplified method
   }
 
-  async cancelPeriodicEmailCheck(...args: any[]): Promise<any> {
+  async cancelPeriodicEmailCheck(..._args: any[]): Promise<any> {
     return {}; // Simplified method
   }
 }

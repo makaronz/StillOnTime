@@ -1,4 +1,3 @@
-import { google, calendar_v3 } from "googleapis";
 import ical from "ical-generator";
 import moment from "moment-timezone";
 import { OAuth2Service } from "./oauth2.service";
@@ -9,16 +8,9 @@ import {
   ScheduleData,
   RoutePlan,
   WeatherData,
-  CreateCalendarEventInput,
-  CalendarConflict,
 } from "@/types";
 import {
   CalendarService,
-  CalendarEventData,
-  CalendarAlarm,
-  CalendarReminder,
-  BatchCalendarOperation,
-  BatchCalendarResult,
 } from "./calendar.service";
 import fs from "fs/promises";
 import path from "path";
@@ -95,7 +87,7 @@ export class EnhancedCalendarService extends CalendarService {
   ) {
     super(oauth2Service, calendarEventRepository);
     this.icsDirectory = path.join(process.cwd(), "storage", "calendar");
-    this.ensureICSDirectory();
+    void this.ensureICSDirectory();
   }
 
   /**
@@ -197,7 +189,7 @@ export class EnhancedCalendarService extends CalendarService {
    */
   private async analyzeTimezone(
     scheduleData: ScheduleData,
-    userId: string
+    _userId: string
   ): Promise<TimezoneAnalysis> {
     try {
       // For Poland-based production, assume user timezone
@@ -423,7 +415,7 @@ export class EnhancedCalendarService extends CalendarService {
       }
 
       // Create separate prep event
-      const prepEvent = calendar.createEvent({
+      const _prepEvent = calendar.createEvent({
         start: moment.tz(routePlan.wakeUpTime, timezone).toDate(),
         end: startTime.toDate(),
         summary: "🛠️ StillOnTime — Morning Preparation",
@@ -434,7 +426,7 @@ export class EnhancedCalendarService extends CalendarService {
 
       // Add equipment pickup reminder (if using Panavision)
       if (scheduleData.equipment && Array.isArray(scheduleData.equipment) && scheduleData.equipment.length > 0) {
-        const equipmentEvent = calendar.createEvent({
+        const _equipmentEvent = calendar.createEvent({
           start: startTime.add(30, "minutes").toDate(),
           end: startTime.add(45, "minutes").toDate(),
           summary: "📦 Equipment Pickup - Panavision",
@@ -473,7 +465,7 @@ export class EnhancedCalendarService extends CalendarService {
   private async distributeToCrewMembers(
     scheduleData: ScheduleData,
     icsFilePath?: string,
-    calendarEvent?: CalendarEvent
+    _calendarEvent?: CalendarEvent
   ): Promise<CrewDistribution> {
     try {
       const crew = Array.isArray(scheduleData.contacts) ? scheduleData.contacts : [];
@@ -679,7 +671,7 @@ export class EnhancedCalendarService extends CalendarService {
   /**
    * Create preparation event description
    */
-  private createPrepEventDescription(routePlan: RoutePlan, scheduleData: ScheduleData): string {
+  private createPrepEventDescription(routePlan: RoutePlan, _scheduleData: ScheduleData): string {
     const sections: string[] = [];
 
     sections.push("🛠️ MORNING PREPARATION CHECKLIST");
@@ -728,7 +720,7 @@ export class EnhancedCalendarService extends CalendarService {
    */
   private checkDaylightSavingChanges(
     scheduleDate: moment.Moment,
-    timezone: string
+    _timezone: string
   ): { upcoming: boolean; date?: Date; timeChange: number } {
     // Check if there's a DST change within 7 days
     const weekLater = scheduleDate.clone().add(7, "days");
@@ -864,7 +856,7 @@ export class EnhancedCalendarService extends CalendarService {
    */
   private async sendMobileNotification(
     contact: { name?: string; phone?: string; role?: string },
-    scheduleData: ScheduleData
+    _scheduleData: ScheduleData
   ): Promise<void> {
     // Placeholder - in production would integrate with SMS service
     logger.info("Sending mobile notification", {

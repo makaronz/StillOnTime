@@ -218,7 +218,7 @@ export class RoutePlannerService {
    */
   async getRouteRecommendations(
     userId: string,
-    location: string
+    _location: string
   ): Promise<{
     recommendedBuffers: TimeBuffers;
     averageTravelTime: number;

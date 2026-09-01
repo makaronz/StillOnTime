@@ -204,7 +204,7 @@ export const Dashboard: React.FC = () => {
             {/* Schedule List */}
             <ScheduleList
               selectedDate={selectedDate}
-              onScheduleSelect={(schedule) => {
+              onScheduleSelect={(_schedule) => {
                 setActiveWidget('route-optimization');
               }}
             />

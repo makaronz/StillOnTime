@@ -1,16 +1,14 @@
 import jwt from 'jsonwebtoken';
 import { Response, NextFunction } from 'express';
 import { AppRequest } from '@/types/requests';
-import { db } from '@/config/database';
 import { userRepository } from '@/repositories/user.repository';
 import { scheduleDataRepository } from '@/repositories/schedule-data.repository';
 import { processedEmailRepository } from '@/repositories/processed-email.repository';
 import { routePlanRepository } from '@/repositories/route-plan.repository';
 import { logger } from '@/utils/logger';
-import { createRateLimitMiddleware, rateLimitConfigs } from './rateLimit';
 
 // Unified user interface for Express Request
-interface AuthenticatedUser {
+interface _AuthenticatedUser {
   userId: string;
   email: string;
   name?: string;
@@ -32,7 +30,7 @@ interface JWTPayload {
 // Verify JWT token
 export const verifyToken = (token: string): Promise<JWTPayload> => {
   return new Promise((resolve, reject) => {
-    jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
         reject(err);
       } else {
@@ -252,20 +250,23 @@ export const requireOwnership = (resourceIdParam: string = 'id') => {
       let isOwner = false;
 
       switch (resourceType) {
-        case 'schedules':
+        case 'schedules': {
           const schedule = await scheduleDataRepository.findById(resourceId);
-          isOwner = !!schedule && schedule.userId === req.user!.userId;
+          isOwner = !!schedule && schedule.userId === req.user.userId;
           break;
+        }
 
-        case 'emails':
+        case 'emails': {
           const email = await processedEmailRepository.findById(resourceId);
-          isOwner = !!email && email.userId === req.user!.userId;
+          isOwner = !!email && email.userId === req.user.userId;
           break;
+        }
 
-        case 'routes':
+        case 'routes': {
           const route = await routePlanRepository.findById(resourceId);
-          isOwner = !!route && route.userId === req.user!.userId;
+          isOwner = !!route && route.userId === req.user.userId;
           break;
+        }
 
         default:
           res.status(400).json({
@@ -338,7 +339,7 @@ export const apiKeyAuth = async (req: AppRequest, res: Response, next: NextFunct
 };
 
 // Refresh token middleware
-export const refreshTokenMiddleware = async (req: AppRequest, res: Response, next: NextFunction): Promise<void> => {
+export const refreshTokenMiddleware = async (req: AppRequest, res: Response, _next: NextFunction): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 
@@ -350,7 +351,7 @@ export const refreshTokenMiddleware = async (req: AppRequest, res: Response, nex
       return;
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as any;
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET) as any;
 
     if (decoded.type !== 'refresh') {
       res.status(401).json({

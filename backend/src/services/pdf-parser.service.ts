@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { logger } from "@/utils/logger";
-import { ScheduleData, ValidationResult, ContactInfo } from "@/types";
+import { ValidationResult, ContactInfo } from "@/types";
 
 export interface ParsedScheduleData {
   shootingDate?: Date;
@@ -130,9 +130,9 @@ export class PDFParserService {
   async extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
     try {
       const pdfDoc = await PDFDocument.load(pdfBuffer);
-      const pages = pdfDoc.getPages();
+      const _pages = pdfDoc.getPages();
 
-      let extractedText = "";
+      const extractedText = "";
 
       // Note: pdf-lib doesn't have built-in text extraction
       // This is a placeholder - in production, you'd use pdf2pic + tesseract or pdf-parse
@@ -308,7 +308,7 @@ export class PDFParserService {
   /**
    * OCR fallback for scanned PDFs (placeholder implementation)
    */
-  private async performOCRFallback(pdfBuffer: Buffer): Promise<OCRResult> {
+  private async performOCRFallback(_pdfBuffer: Buffer): Promise<OCRResult> {
     try {
       logger.info("Performing OCR fallback for scanned PDF");
 

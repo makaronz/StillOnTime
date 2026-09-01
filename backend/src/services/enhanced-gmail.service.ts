@@ -1,13 +1,11 @@
-import { google, gmail_v1 } from "googleapis";
-import { ParseGmailApi } from "gmail-api-parse-message-ts";
-import { simpleParser, ParsedMail, Attachment } from "mailparser";
+import { ParsedMail, Attachment } from "mailparser";
 import { OAuth2Service } from "./oauth2.service";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
 import { AIEmailClassifierService } from "./ai-email-classifier.service";
 import { EnhancedPDFParserService } from "./enhanced-pdf-parser.service";
 import { logger } from "@/utils/logger";
-import { GmailService, GmailMessage, EmailAttachment } from "./gmail.service";
-import { ProcessedEmail, CreateProcessedEmailInput } from "@/types";
+import { GmailService, GmailMessage } from "./gmail.service";
+import { CreateProcessedEmailInput } from "@/types";
 
 export interface EnhancedEmailAnalysis {
   isScheduleEmail: boolean;
@@ -337,7 +335,7 @@ export class EnhancedGmailService extends GmailService {
    */
   private async analyzeEmailComprehensive(
     parsedEmail: ParsedMail,
-    originalEmail: GmailMessage
+    _originalEmail: GmailMessage
   ): Promise<EnhancedEmailAnalysis> {
     const analysis: EnhancedEmailAnalysis = {
       isScheduleEmail: false,
@@ -484,7 +482,7 @@ export class EnhancedGmailService extends GmailService {
     hasContactInfo: boolean;
     textQuality: number;
   } {
-    const contentLower = content.toLowerCase();
+    const _contentLower = content.toLowerCase();
 
     // Time reference patterns
     const timePatterns = [
@@ -751,7 +749,7 @@ export class EnhancedGmailService extends GmailService {
   /**
    * Create analysis for skipped emails
    */
-  private async createSkippedAnalysis(email: GmailMessage): Promise<EnhancedEmailAnalysis> {
+  private async createSkippedAnalysis(_email: GmailMessage): Promise<EnhancedEmailAnalysis> {
     return {
       isScheduleEmail: false,
       confidence: 0,

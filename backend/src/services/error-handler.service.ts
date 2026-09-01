@@ -10,7 +10,6 @@ import {
   APIError,
   PDFProcessingError,
   DatabaseError,
-  SystemError,
   ErrorCode,
 } from "../utils/errors";
 import { FallbackData } from "../types";
@@ -479,7 +478,7 @@ export class ErrorHandlerService {
     };
   }
 
-  private async getCachedFallbackData(error: BaseError): Promise<any> {
+  private async getCachedFallbackData(_error: BaseError): Promise<any> {
     // Implementation depends on error type and context
     // This is a placeholder for cached data retrieval
     return null;
@@ -770,7 +769,7 @@ export class ErrorHandlerService {
       };
 
       this.criticalFailures.push(failure);
-      this.handleCriticalFailure(failure);
+      void this.handleCriticalFailure(failure);
     }
   }
 
@@ -858,7 +857,7 @@ export class ErrorHandlerService {
    */
   private getAffectedOperations(
     serviceName: string,
-    errorCode: ErrorCode
+    _errorCode: ErrorCode
   ): string[] {
     const operationMap: Record<string, string[]> = {
       database: [

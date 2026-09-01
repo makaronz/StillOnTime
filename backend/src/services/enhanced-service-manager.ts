@@ -42,7 +42,7 @@ export class EnhancedServiceManager {
       enableAIClassification: config.enableAIClassification ?? false, // Optional AI service
     };
 
-    this.initializeServices();
+    void this.initializeServices();
   }
 
   /**
@@ -252,7 +252,7 @@ export class EnhancedServiceManager {
     logger.info("Enhanced service configuration updated", { newConfig: this.config });
     
     // Re-initialize services with new configuration
-    this.initializeServices();
+    void this.initializeServices();
   }
 
   /**

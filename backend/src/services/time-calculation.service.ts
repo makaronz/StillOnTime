@@ -392,7 +392,7 @@ export class TimeCalculationService {
   private generateTimeWarnings(
     wakeUpTime: Date,
     bufferBreakdown: BufferBreakdown,
-    options: TimeCalculationOptions
+    _options: TimeCalculationOptions
   ): string[] {
     const warnings: string[] = [];
 

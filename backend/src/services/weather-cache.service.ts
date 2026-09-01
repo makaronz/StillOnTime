@@ -1,5 +1,4 @@
 import { cacheService, CacheService } from "./cache.service";
-import { WeatherData } from "@/types";
 
 /**
  * Weather Cache Service
@@ -221,7 +220,7 @@ export class WeatherCacheService {
 
     // Return cached data if not stale
     const cachedData = await this.getCachedWeatherData(location, date);
-    return cachedData!; // We know it exists because it's not stale
+    return cachedData; // We know it exists because it's not stale
   }
 
   /**

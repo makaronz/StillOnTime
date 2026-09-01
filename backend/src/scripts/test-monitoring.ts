@@ -4,9 +4,6 @@
  */
 
 import { MonitoringService } from "../services/monitoring.service";
-import { ErrorHandlerService } from "../services/error-handler.service";
-import { CacheService } from "../services/cache.service";
-import { NotificationService } from "../services/notification.service";
 
 // Mock dependencies for demonstration
 class MockErrorHandlerService {
@@ -42,29 +39,29 @@ class MockErrorHandlerService {
 }
 
 class MockCacheService {
-  async set(key: string, value: any, ttl?: number) {
+  async set(key: string, value: any, ttl?: number): Promise<void> {
     console.log(`Cache SET: ${key} = ${value} (TTL: ${ttl}s)`);
   }
 
-  async get(key: string) {
+  async get(key: string): Promise<string> {
     console.log(`Cache GET: ${key}`);
     return "cached_value";
   }
 
-  async delete(key: string) {
+  async delete(key: string): Promise<void> {
     console.log(`Cache DELETE: ${key}`);
   }
 }
 
 class MockNotificationService {
-  async sendAlert(alertData: any) {
+  async sendAlert(alertData: any): Promise<void> {
     console.log(`🚨 ALERT SENT: ${alertData.title} (${alertData.severity})`);
     console.log(`   Message: ${alertData.message}`);
     console.log(`   Metadata:`, alertData.metadata);
   }
 }
 
-async function demonstrateMonitoring() {
+async function demonstrateMonitoring(): Promise<void> {
   console.log("🔍 StillOnTime Advanced Monitoring & Alerting Demo");
   console.log("=".repeat(60));
 

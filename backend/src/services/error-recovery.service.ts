@@ -3,20 +3,18 @@
  * Orchestrates circuit breakers, retries, fallbacks, and monitoring
  */
 
-import { logger, structuredLogger } from "../utils/logger";
+import { structuredLogger } from "../utils/logger";
 import { CircuitBreakerRegistry } from "../utils/circuit-breaker";
-import { RetryManager, RETRY_CONFIGS } from "../utils/retry";
-import { FallbackService, FallbackResult } from "./fallback.service";
+import { RETRY_CONFIGS } from "../utils/retry";
+import { FallbackService } from "./fallback.service";
 import { MonitoringService } from "./monitoring.service";
 import { NotificationService } from "./notification.service";
 import { CacheService } from "./cache.service";
 import {
   BaseError,
   ErrorCode,
-  ErrorContext,
   FallbackData,
   APIError,
-  OAuthError,
   DatabaseError,
   SystemError,
 } from "../utils/errors";
@@ -138,7 +136,7 @@ export class ErrorRecoveryService {
     const errors: string[] = [];
     let attempts = 0;
     let circuitBreakerTripped = false;
-    let fallbackUsed = false;
+    const _fallbackUsed = false;
 
     structuredLogger.info("Starting operation with error recovery", {
       serviceName: context.serviceName,
@@ -189,7 +187,7 @@ export class ErrorRecoveryService {
     // Execute operation with retry and circuit breaker
     for (
       attempts = 1;
-      attempts <= finalOptions.maxRecoveryAttempts!;
+      attempts <= finalOptions.maxRecoveryAttempts;
       attempts++
     ) {
       try {
@@ -260,7 +258,7 @@ export class ErrorRecoveryService {
 
         // Check if we should retry
         if (
-          attempts < finalOptions.maxRecoveryAttempts! &&
+          attempts < finalOptions.maxRecoveryAttempts &&
           this.shouldRetry(baseError, finalOptions)
         ) {
           if (finalOptions.enableRetry) {
@@ -554,7 +552,7 @@ export class ErrorRecoveryService {
   private async notifyOperationFailure(
     context: RecoveryContext,
     error: BaseError,
-    attempts: number
+    _attempts: number
   ): Promise<void> {
     try {
       await this.notificationService.sendSystemAlert({
@@ -583,7 +581,7 @@ export class ErrorRecoveryService {
    */
   private async notifyDegradedService(
     context: RecoveryContext,
-    strategy: string
+    _strategy: string
   ): Promise<void> {
     try {
       await this.notificationService.sendSystemAlert({
@@ -641,7 +639,7 @@ export class ErrorRecoveryService {
   private recordRecoveryFailure(
     serviceName: string,
     attempts: number,
-    totalTime: number
+    _totalTime: number
   ): void {
     const key = serviceName;
     const existing = this.recoveryStats.get(key) || {

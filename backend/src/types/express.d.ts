@@ -1,4 +1,3 @@
-import { Request as ExpressRequest } from 'express';
 
 // Define the authenticated user interface
 export interface AuthenticatedUser {
@@ -12,7 +11,7 @@ export interface AuthenticatedUser {
 
 declare global {
   namespace Express {
-    interface Request extends ExpressRequest {
+    interface Request {
       user?: AuthenticatedUser;
     }
   }

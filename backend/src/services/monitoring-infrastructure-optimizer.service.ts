@@ -122,7 +122,7 @@ export class MonitoringInfrastructureOptimizerService {
   private shouldThrottleAlert(type: string, message: string, now: Date): boolean {
     const alertCount = this.alertCounts.get(type) || 0;
     const maxPerMinute = this.throttleConfig.maxAlertsPerMinute;
-    const maxPerHour = this.throttleConfig.maxAlertsPerHour;
+    const _maxPerHour = this.throttleConfig.maxAlertsPerHour;
 
     // Check per-minute limit
     if (alertCount >= maxPerMinute) {

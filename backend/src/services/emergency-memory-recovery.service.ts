@@ -88,14 +88,14 @@ export class EmergencyMemoryRecoveryService {
           freeMemory: `${(metrics.systemFree / 1024 / 1024).toFixed(0)}MB`
         });
 
-        this.executeEmergencyRecovery();
+        void this.executeEmergencyRecovery();
       } else if (metrics.systemUsagePercent >= this.criticalThreshold && !this.isRecoveryInProgress) {
         logger.warn('⚠️ CRITICAL MEMORY USAGE DETECTED', {
           usagePercent: metrics.systemUsagePercent.toFixed(2),
           freeMemory: `${(metrics.systemFree / 1024 / 1024).toFixed(0)}MB`
         });
 
-        this.executeCriticalRecovery();
+        void this.executeCriticalRecovery();
       }
     }, 5000); // Check every 5 seconds
   }

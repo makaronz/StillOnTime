@@ -450,7 +450,7 @@ export class AIEmailClassifierService {
   private combineClassifications(
     patternResult: EmailClassification["classification"],
     mlResult: EmailClassification["classification"],
-    features: any
+    _features: any
   ): EmailClassification["classification"] {
     // Weighted combination (pattern: 40%, ML: 60%)
     const combinedConfidence = (patternResult.confidence * 0.4) + (mlResult.confidence * 0.6);
@@ -478,7 +478,7 @@ export class AIEmailClassifierService {
    */
   private generateProcessingRecommendations(
     classification: EmailClassification["classification"],
-    features: any
+    _features: any
   ): EmailClassification["processingRecommendations"] {
     const recommendations: EmailClassification["processingRecommendations"] = {
       autoProcess: classification.confidence > 0.8 && !classification.requiresAttention,

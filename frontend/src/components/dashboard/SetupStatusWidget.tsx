@@ -1,7 +1,6 @@
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSetupManager } from '@/hooks/setup/useSetupManager'
-import { Settings, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock } from 'lucide-react'
 
 export function SetupStatusWidget(): JSX.Element {
   const navigate = useNavigate()

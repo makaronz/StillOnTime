@@ -28,7 +28,7 @@ export function useMemorySync() {
     loadProgress
   } = useSetupStore()
 
-  const { user, isAuthenticated } = useAuthStore()
+  const { user: _user, isAuthenticated } = useAuthStore()
   const syncIntervalRef = useRef<NodeJS.Timeout>()
   const lastSyncRef = useRef<MemoryData | null>(null)
 

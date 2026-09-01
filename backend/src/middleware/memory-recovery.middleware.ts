@@ -28,7 +28,7 @@ export class MemoryRecoveryMiddleware {
    * Middleware function for memory monitoring
    */
   public middleware() {
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (req: Request, res: Response, next: NextFunction): void => {
       this.requestCount++;
 
       // Check memory every 100 requests
@@ -76,7 +76,7 @@ export class MemoryRecoveryMiddleware {
         freeMemory: `${Math.round(systemMemory.free / 1024 / 1024)}MB`
       });
 
-      emergencyMemoryRecoveryService.triggerRecovery('emergency');
+      void emergencyMemoryRecoveryService.triggerRecovery('emergency');
 
     } else if (systemMemory.usagePercent >= this.thresholds.critical) {
       logger.warn('⚠️ CRITICAL: Memory usage high', {
@@ -84,7 +84,7 @@ export class MemoryRecoveryMiddleware {
         freeMemory: `${Math.round(systemMemory.free / 1024 / 1024)}MB`
       });
 
-      emergencyMemoryRecoveryService.triggerRecovery('critical');
+      void emergencyMemoryRecoveryService.triggerRecovery('critical');
 
     } else if (systemMemory.usagePercent >= this.thresholds.warning) {
       logger.info('⚠️ WARNING: Memory usage elevated', {

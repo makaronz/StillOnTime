@@ -5,7 +5,7 @@
 
 import { Response } from "express";
 import { AppRequest } from "@/types/requests";
-import { logger, structuredLogger } from "../utils/logger";
+import { structuredLogger } from "../utils/logger";
 import { CircuitBreakerRegistry } from "../utils/circuit-breaker";
 import { CacheService } from "../services/cache.service";
 import { db } from "@/config/database";

@@ -47,6 +47,15 @@
   "exclude": [
     "node_modules",
     "dist",
-    "tests"
+    "tests",
+    // Osierocone relikty: nieimportowane przez zaden modul w src/ i niekompilujace sie.
+    // emailService.ts importuje 4 nieistniejace moduly; sparc-orchestrator.service.ts
+    // wola nieistniejace API MonitoringService; test-database.ts czyta relacje w stylu
+    // Prismy, ktorych Kysely nie zwraca (skrypt jest juz zepsuty w runtime).
+    // Wylaczone, zeby nie blokowaly builda. Do usuniecia lub naprawy —
+    // patrz docs/audit/BUILD_LOOP_BRIEF.md
+    "src/services/emailService.ts",
+    "src/services/sparc-orchestrator.service.ts",
+    "src/scripts/test-database.ts"
   ]
 }

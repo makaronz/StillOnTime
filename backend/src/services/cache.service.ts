@@ -58,7 +58,7 @@ export class CacheService {
       return this.createMockClient();
     }
 
-    return this.client!;
+    return this.client;
   }
 
   /**
@@ -304,7 +304,7 @@ export class CacheService {
       const memory = await client.info("memory");
 
       // Parse stats from info string
-      const parseInfo = (infoStr: string) => {
+      const parseInfo = (infoStr: string): { [key: string]: string; } => {
         const lines = infoStr.split("\r\n");
         const stats: { [key: string]: string } = {};
         for (const line of lines) {

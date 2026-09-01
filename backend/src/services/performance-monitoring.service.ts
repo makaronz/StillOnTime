@@ -77,7 +77,7 @@ export class PerformanceMonitoringService {
   };
 
   private constructor() {
-    this.initializeRedis();
+    void this.initializeRedis();
     this.startPeriodicCollection();
   }
 
@@ -113,7 +113,7 @@ export class PerformanceMonitoringService {
     };
 
     // Store in Redis for real-time monitoring
-    this.storeMetric(key, metrics);
+    void this.storeMetric(key, metrics);
 
     // Check for performance alerts
     this.checkPerformanceAlerts(metrics);
@@ -131,7 +131,7 @@ export class PerformanceMonitoringService {
       timestamp: Date.now(),
     };
 
-    this.storeMetric(key, metrics);
+    void this.storeMetric(key, metrics);
 
     // Alert on slow queries
     if (duration > 1000) { // 1 second threshold
@@ -153,7 +153,7 @@ export class PerformanceMonitoringService {
       timestamp: Date.now(),
     };
 
-    this.storeMetric(cacheKey, metrics);
+    void this.storeMetric(cacheKey, metrics);
   }
 
   /**
@@ -167,7 +167,7 @@ export class PerformanceMonitoringService {
       userId,
     };
 
-    this.storeMetric(key, metrics);
+    void this.storeMetric(key, metrics);
 
     // Check Web Vitals thresholds
     this.checkWebVitalsAlerts(vitals, userId);
@@ -438,7 +438,7 @@ export class PerformanceMonitoringService {
    */
   private async getHourlyStats(since: number): Promise<any[]> {
     const stats = [];
-    const now = Date.now();
+    const _now = Date.now();
     const hours = 24;
 
     for (let i = 0; i < hours; i++) {
@@ -480,7 +480,7 @@ export class PerformanceMonitoringService {
       const apiMetrics = await this.getAggregatedMetrics("api:", since);
       const errors = apiMetrics.filter(m => m.statusCode >= 400);
 
-      const breakdown = errors.reduce((acc, error) => {
+      const breakdown: Record<string, number> = errors.reduce((acc, error) => {
         const key = `${error.statusCode} ${error.method} ${error.route || error.path}`;
         acc[key] = (acc[key] || 0) + 1;
         return acc;
@@ -519,7 +519,7 @@ export class PerformanceMonitoringService {
   /**
    * Get recent alerts
    */
-  private async getRecentAlerts(since: number): Promise<any[]> {
+  private async getRecentAlerts(_since: number): Promise<any[]> {
     // This would integrate with an alerting system
     // For now, return empty array
     return [];
@@ -583,7 +583,7 @@ export class PerformanceMonitoringService {
     setInterval(async () => {
       try {
         const metrics = await this.getCurrentMetrics();
-        this.storeMetric("system:metrics", {
+        void this.storeMetric("system:metrics", {
           ...metrics,
           timestamp: Date.now(),
         });

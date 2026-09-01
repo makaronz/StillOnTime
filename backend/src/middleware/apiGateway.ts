@@ -53,7 +53,7 @@ const createRateLimiter = (windowMs: number, max: number, message?: string) => {
     legacyHeaders: false,
     keyGenerator: (req: any) => {
       // Use user ID if authenticated, otherwise IP
-      return (req as any).user?.userId || req.ip;
+      return (req).user?.userId || req.ip;
     },
     skip: (req: any) => {
       // Skip rate limiting for health checks
@@ -139,7 +139,7 @@ const sanitizeRequestBody = (body: any): any => {
 };
 
 // Request logging middleware
-export const requestLogger = (req: AppRequest, res: Response, next: NextFunction) => {
+export const requestLogger = (req: AppRequest, res: Response, next: NextFunction): void => {
   const start = Date.now();
   const { method, url, ip } = req;
   const userAgent = req.get('User-Agent') || '';
@@ -184,7 +184,7 @@ export const requestLogger = (req: AppRequest, res: Response, next: NextFunction
 };
 
 // API versioning middleware
-export const apiVersioning = (req: AppRequest, res: Response, next: NextFunction) => {
+export const apiVersioning = (req: AppRequest, res: Response, next: NextFunction): void => {
   // Handle different types of version input
   let version: string;
   const headerVersion = req.get('API-Version');

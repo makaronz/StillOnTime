@@ -4,7 +4,6 @@ import {
   CreateNotificationInput,
   UpdateNotificationInput,
   NotificationChannel,
-  NotificationTemplate,
 } from "../types";
 import type {
   NewNotification,
@@ -86,7 +85,7 @@ export class NotificationRepository implements INotificationRepository {
     return result || null;
   }
 
-  async findByMessageId(messageId: string): Promise<Notification | null> {
+  async findByMessageId(_messageId: string): Promise<Notification | null> {
     // Simplified - Prisma used JSON path query, Kysely needs different approach
     const result = await db
       .selectFrom("notifications")
