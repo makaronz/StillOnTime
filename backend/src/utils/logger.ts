@@ -25,6 +25,8 @@ const customLevels = {
 // Add colors to winston
 winston.addColors(customLevels.colors);
 
+const logDirectory = process.env.VERCEL ? "/tmp/logs" : "logs";
+
 // Enhanced log format with structured data
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss.SSS" }),
@@ -67,7 +69,7 @@ export const logger = winston.createLogger({
   transports: [
     // Error log file - only errors
     new winston.transports.File({
-      filename: "logs/error.log",
+      filename: `${logDirectory}/error.log`,
       level: "error",
       maxsize: 10485760, // 10MB
       maxFiles: 5,
@@ -76,7 +78,7 @@ export const logger = winston.createLogger({
 
     // Combined log file - all levels
     new winston.transports.File({
-      filename: "logs/combined.log",
+      filename: `${logDirectory}/combined.log`,
       maxsize: 10485760, // 10MB
       maxFiles: 10,
       tailable: true,
@@ -84,7 +86,7 @@ export const logger = winston.createLogger({
 
     // HTTP access log
     new winston.transports.File({
-      filename: "logs/access.log",
+      filename: `${logDirectory}/access.log`,
       level: "http",
       maxsize: 10485760, // 10MB
       maxFiles: 5,
@@ -94,11 +96,11 @@ export const logger = winston.createLogger({
 
   // Handle uncaught exceptions and rejections
   exceptionHandlers: [
-    new winston.transports.File({ filename: "logs/exceptions.log" }),
+    new winston.transports.File({ filename: `${logDirectory}/exceptions.log` }),
   ],
 
   rejectionHandlers: [
-    new winston.transports.File({ filename: "logs/rejections.log" }),
+    new winston.transports.File({ filename: `${logDirectory}/rejections.log` }),
   ],
 });
 

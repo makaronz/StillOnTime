@@ -1,3 +1,5 @@
+import "./register-paths";
+
 import express, { Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
