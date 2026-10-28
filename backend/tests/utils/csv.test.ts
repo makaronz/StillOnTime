@@ -23,7 +23,7 @@ describe("toCsvCell", () => {
   // Mail subject and sender are controlled by whoever sent the mail. A field
   // that starts with one of these characters is evaluated as a formula when the
   // exported file is opened in Excel, LibreOffice or Google Sheets.
-  it.each(["=HYPERLINK(\"http://evil\",\"x\")", "+1+1", "-2+3", "@SUM(1)", "\t=1", "\r=1"])(
+  it.each(["=HYPERLINK(\"http://evil\",\"x\")", "+1+1", "-2+3", "@SUM(1)", "\t=1", "\r=1", "\n=1"])(
     "neutralises formula injection for %j",
     (payload) => {
       const cell = toCsvCell(payload);

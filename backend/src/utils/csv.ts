@@ -1,9 +1,10 @@
 /**
  * Characters that make a spreadsheet treat a cell as a formula when the file is
- * opened in Excel, LibreOffice or Google Sheets. Tab and carriage return are
- * included because some applications skip leading whitespace before checking.
+ * opened in Excel, LibreOffice or Google Sheets. Tab, carriage return and line
+ * feed are included because some applications skip leading whitespace before
+ * checking (OWASP lists all three).
  */
-const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+const FORMULA_TRIGGER = /^[=+\-@\t\r\n]/;
 
 /**
  * Formats a value as a quoted CSV field (RFC 4180): the whole field is wrapped
