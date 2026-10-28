@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AppRequest } from "@/types/requests";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
 import { logger } from "@/utils/logger";
+import { toCsvCell } from "@/utils/csv";
 import { services } from "@/services";
 
 /**
@@ -767,17 +768,10 @@ export class EmailController {
         "error",
       ] as const;
 
-      // Cytowanie wg RFC 4180: podwojny cudzyslow jako escape, cale pole w cudzyslowach.
-      const cell = (v: unknown): string => {
-        if (v === null || v === undefined) return '""';
-        const s = v instanceof Date ? v.toISOString() : String(v);
-        return `"${s.replace(/"/g, '""')}"`;
-      };
-
       const rows = [
         columns.join(","),
         ...emails.map((e) =>
-          columns.map((c) => cell((e as Record<string, unknown>)[c])).join(",")
+          columns.map((c) => toCsvCell((e as Record<string, unknown>)[c])).join(",")
         ),
       ];
 
