@@ -40,6 +40,10 @@ coverage/
 # Prisma
 *.db
 *.db-journal
+# SQLite WAL sidecars: belong to one specific database file and corrupt it if
+# restored next to a different one (e.g. .hive-mind/hive.db)
+*.db-wal
+*.db-shm
 
 # Playwright
 test-results/
