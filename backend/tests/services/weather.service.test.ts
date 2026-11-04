@@ -1,60 +1,67 @@
-import {
-  WeatherService,
+import type {
+  WeatherService as WeatherServiceType,
   OpenWeatherMapResponse,
   OpenWeatherMapForecastResponse,
 } from "@/services/weather.service";
-import { WeatherDataRepository } from "@/repositories/weather-data.repository";
-import { weatherCacheService } from "@/services/weather-cache.service";
-import { config } from "@/config/config";
-import axios from "axios";
-import { logger } from "@/utils/logger";
+import type { WeatherDataRepository as WeatherDataRepositoryType } from "@/repositories/weather-data.repository";
 
-// Mock dependencies
+// Mock dependencies at the boundary: the HTTP client (axios), the Redis-backed
+// weather cache, the repository, config and the logger. No network, no Redis.
 jest.mock("axios");
 jest.mock("@/services/weather-cache.service");
 jest.mock("@/repositories/weather-data.repository");
-jest.mock("@/config/config");
-jest.mock("@/utils/logger");
-
-const mockedAxios = axios as jest.Mocked<typeof axios>;
-const mockedWeatherCache = weatherCacheService as jest.Mocked<
-  typeof weatherCacheService
->;
-const MockedWeatherDataRepository = WeatherDataRepository as jest.MockedClass<
-  typeof WeatherDataRepository
->;
-
-describe("WeatherService", () => {
-  let weatherService: WeatherService;
-  let mockWeatherRepository: jest.Mocked<WeatherDataRepository>;
-  let mockAxiosInstance: jest.Mocked<any>;
-
-  const mockConfig = {
+jest.mock("@/config/config", () => ({
+  config: {
+    nodeEnv: "test",
     apis: {
       openWeatherApiKey: "test-api-key",
     },
-  };
+  },
+}));
+jest.mock("@/utils/logger");
+
+describe("WeatherService", () => {
+  let weatherService: WeatherServiceType;
+  let WeatherService: typeof import("@/services/weather.service").WeatherService;
+  let mockWeatherRepository: jest.Mocked<WeatherDataRepositoryType>;
+  let mockAxiosInstance: jest.Mocked<any>;
+  let mockedWeatherCache: any;
+  let config: any;
+  let logger: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Mock config
-    (config as any) = mockConfig;
+    // tests/setup.ts imports the whole route graph, which has already loaded
+    // weather.service bound to the REAL axios (real network calls). Load a fresh
+    // copy of the service and its dependencies so the mocks above are used.
+    jest.isolateModules(() => {
+      const axios = require("axios");
+      ({ weatherCacheService: mockedWeatherCache } = require(
+        "@/services/weather-cache.service"
+      ));
+      const { WeatherDataRepository } = require(
+        "@/repositories/weather-data.repository"
+      );
+      ({ config } = require("@/config/config"));
+      ({ logger } = require("@/utils/logger"));
+      ({ WeatherService } = require("@/services/weather.service"));
 
-    // Mock axios instance
-    mockAxiosInstance = {
-      get: jest.fn(),
-      interceptors: {
-        request: { use: jest.fn() },
-        response: { use: jest.fn() },
-      },
-    };
+      // Mock axios instance
+      mockAxiosInstance = {
+        get: jest.fn(),
+        interceptors: {
+          request: { use: jest.fn() },
+          response: { use: jest.fn() },
+        },
+      };
 
-    mockedAxios.create.mockReturnValue(mockAxiosInstance);
+      axios.create.mockReturnValue(mockAxiosInstance);
 
-    // Mock repository
-    mockWeatherRepository =
-      new MockedWeatherDataRepository() as jest.Mocked<WeatherDataRepository>;
+      // Mock repository
+      mockWeatherRepository =
+        new WeatherDataRepository() as jest.Mocked<WeatherDataRepositoryType>;
+    });
 
     weatherService = new WeatherService(mockWeatherRepository);
   });
@@ -135,7 +142,7 @@ describe("WeatherService", () => {
 
       expect(result.warnings).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("Temperatura poniżej zera: -5°C"),
+          expect.stringContaining("Temperature below zero: -5°C"),
         ])
       );
     });
@@ -152,7 +159,7 @@ describe("WeatherService", () => {
 
       expect(result.warnings).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("Wysoka temperatura: 35°C"),
+          expect.stringContaining("High temperature: 35°C"),
         ])
       );
     });
@@ -168,7 +175,7 @@ describe("WeatherService", () => {
       const result = await weatherService.getCurrentWeather("Warsaw");
 
       expect(result.warnings).toEqual(
-        expect.arrayContaining([expect.stringContaining("Silny wiatr: 15m/s")])
+        expect.arrayContaining([expect.stringContaining("Strong wind: 15m/s")])
       );
     });
 
@@ -367,7 +374,7 @@ describe("WeatherService", () => {
       expect(result.precipitation).toBe(2.5);
       expect(result.warnings).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("Możliwe opady: 2.5mm"),
+          expect.stringContaining("Possible precipitation: 2.5mm"),
         ])
       );
     });
@@ -549,6 +556,11 @@ describe("WeatherService", () => {
       );
 
       expect(mockWeatherRepository.create).toHaveBeenCalledWith({
+        id: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+        ),
+        userId: "user-123",
+        scheduleId: "schedule-123",
         forecastDate: new Date("2022-01-01"),
         temperature: 20,
         description: "sunny",
@@ -556,8 +568,6 @@ describe("WeatherService", () => {
         precipitation: 0,
         humidity: 60,
         warnings: [],
-        user: { connect: { id: "user-123" } },
-        schedule: { connect: { id: "schedule-123" } },
       });
 
       expect(result).toEqual(mockStoredWeather);

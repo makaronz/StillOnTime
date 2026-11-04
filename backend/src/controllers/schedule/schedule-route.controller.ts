@@ -9,6 +9,27 @@ import { logger } from "@/utils/logger";
  * Schedule Route Controller
  * Handles route planning operations for schedules
  */
+/** Fields PUT /api/schedule/:scheduleId/route validates and may update. */
+const UPDATABLE_ROUTE_PLAN_FIELDS = [
+  "wakeUpTime",
+  "departureTime",
+  "arrivalTime",
+  "totalTravelMinutes",
+  "routeSegments",
+  "buffers",
+] as const;
+
+function pickFields(
+  source: Record<string, unknown> | undefined,
+  fields: readonly string[]
+): Record<string, any> {
+  const picked: Record<string, any> = {};
+  for (const field of fields) {
+    if (source && source[field] !== undefined) picked[field] = source[field];
+  }
+  return picked;
+}
+
 export class ScheduleRouteController extends BaseScheduleController {
   private routePlanRepository: RoutePlanRepository;
 
@@ -92,7 +113,9 @@ export class ScheduleRouteController extends BaseScheduleController {
 
     try {
       const { scheduleId } = req.params;
-      const updateData = req.body;
+      // Only the fields the route validates may be written; never
+      // scheduleId, userId or id from the body (mass assignment).
+      const updateData = pickFields(req.body, UPDATABLE_ROUTE_PLAN_FIELDS);
 
       // Verify schedule belongs to user
       const { schedule: _schedule, error } = await this.verifyScheduleOwnership(

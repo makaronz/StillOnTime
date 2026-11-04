@@ -643,7 +643,9 @@ export class NotificationService {
     template: string,
     data: NotificationTemplateData
   ): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    // Keys may be dotted paths ({{scheduleData.location}}); getNestedValue
+    // resolves them, so the pattern must accept "." as well.
+    return template.replace(/\{\{([\w.]+)\}\}/g, (match, key) => {
       const value = this.getNestedValue(data, key);
       return value !== undefined ? String(value) : match;
     });
@@ -767,8 +769,14 @@ export class NotificationService {
           (cleaned.startsWith("+") || /^[45678]/.test(cleaned));
       }
 
+      // A number is only usable once the user has confirmed the
+      // verification code; until then GET /api/sms/status reports
+      // configured: false and POST /api/sms/test refuses to send.
+      const isVerified = !!userWithConfig?.userConfig?.smsVerified;
+
       return {
-        isValid: hasPhoneNumber && isServiceConfigured && phoneNumberValid,
+        isValid:
+          hasPhoneNumber && isServiceConfigured && phoneNumberValid && isVerified,
         hasPhoneNumber,
         isServiceConfigured,
         phoneNumberValid: hasPhoneNumber ? phoneNumberValid : undefined,

@@ -470,7 +470,8 @@ describe("MonitoringMiddleware", () => {
     it("should detect SQL injection attempts", () => {
       const middleware = monitoringMiddleware.trackSecurity();
 
-      mockRequest.query = { search: "'; DROP TABLE users; --" };
+      // trackSecurity's only SQL-injection heuristic is /union.*select/i
+      mockRequest.query = { search: "' UNION SELECT password FROM users --" };
 
       middleware(
         mockRequest as MonitoringRequest,
@@ -482,6 +483,7 @@ describe("MonitoringMiddleware", () => {
         "Suspicious request pattern detected",
         expect.objectContaining({
           pattern: "union.*select",
+          query: { search: "' UNION SELECT password FROM users --" },
         })
       );
     });

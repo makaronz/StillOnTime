@@ -2,64 +2,67 @@ import request from "supertest";
 import express from "express";
 import { emailController } from "@/controllers/email.controller";
 import { ProcessedEmailRepository } from "@/repositories/processed-email.repository";
-import {
-  authenticateToken,
-  requireValidOAuth,
-} from "@/middleware/auth.middleware";
 import { emailRoutes } from "@/routes/email.routes";
-
-// Mock dependencies
-jest.mock("@/services", () => ({
-  services: {
-    jobProcessor: {
-      addEmailProcessingJob: jest.fn(),
-      getJobStats: jest.fn(),
-      schedulePeriodicEmailCheck: jest.fn(),
-      cancelPeriodicEmailCheck: jest.fn(),
-    },
-    gmail: {
-      getEmailStats: jest.fn(),
-    },
-  },
-}));
-
-jest.mock("@/repositories/processed-email.repository");
-jest.mock("@/middleware/auth.middleware");
-
-// Import mocked services after mocking
 import { services } from "@/services";
+
+// tests/setup.ts imports the whole route graph (`@/routes`) before this file
+// runs, so emailRoutes, its auth middleware and emailController already hold
+// the real `services` singleton. Module-level jest.mock("@/services") or
+// jest.mock("@/middleware/auth.middleware") would only create disconnected
+// copies. Instead, stub at the service boundary with spies: the real
+// authenticateToken/requireValidOAuth run against stubbed oauth2 methods.
+jest.mock("@/repositories/processed-email.repository");
 
 const mockProcessedEmailRepository =
   ProcessedEmailRepository as jest.MockedClass<typeof ProcessedEmailRepository>;
-const mockAuthenticateToken = authenticateToken as jest.MockedFunction<
-  typeof authenticateToken
->;
-const mockRequireValidOAuth = requireValidOAuth as jest.MockedFunction<
-  typeof requireValidOAuth
->;
 
 describe("EmailController", () => {
   let app: express.Application;
   let mockUser: { userId: string; email: string };
 
+  let originalRepository: unknown;
+
   beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockUser = { userId: "test-user-id", email: "test@example.com" };
+
+    // Real auth middleware, stubbed at the oauth2 boundary.
+    jest.spyOn(services.oauth2, "verifyJWT").mockReturnValue(mockUser as any);
+    jest.spyOn(services.oauth2, "getOAuthStatus").mockResolvedValue({
+      isAuthenticated: true,
+      needsReauth: false,
+      scopes: [],
+    } as any);
+
+    // Stub the job processor / gmail calls the controller makes.
+    jest
+      .spyOn(services.jobProcessor, "addEmailProcessingJob")
+      .mockResolvedValue(undefined as any);
+    jest.spyOn(services.jobProcessor, "getJobStats").mockResolvedValue({} as any);
+    jest
+      .spyOn(services.jobProcessor, "schedulePeriodicEmailCheck")
+      .mockResolvedValue(undefined as any);
+    jest
+      .spyOn(services.jobProcessor, "cancelPeriodicEmailCheck")
+      .mockResolvedValue(undefined as any);
+    jest.spyOn(services.gmail, "getEmailStats").mockResolvedValue({} as any);
+
+    originalRepository = (emailController as any).processedEmailRepository;
+
     app = express();
     app.use(express.json());
-
-    // Mock authentication middleware
-    mockUser = { userId: "test-user-id", email: "test@example.com" };
-    mockAuthenticateToken.mockImplementation(async (req: any, res, next) => {
-      req.user = mockUser;
+    // Every request carries a bearer token (verifyJWT is stubbed above).
+    app.use((req, _res, next) => {
+      req.headers.authorization = "Bearer test-token";
       next();
     });
-    mockRequireValidOAuth.mockImplementation(async (req, res, next) => {
-      next();
-    });
-
     app.use("/api/email", emailRoutes);
+  });
 
-    // Reset all mocks
-    jest.clearAllMocks();
+  afterEach(() => {
+    (emailController as any).processedEmailRepository = originalRepository;
+    jest.restoreAllMocks();
   });
 
   describe("POST /api/email/process", () => {
@@ -216,7 +219,8 @@ describe("EmailController", () => {
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         success: true,
-        statistics: mockStats,
+        // Dates arrive JSON-serialised.
+        statistics: JSON.parse(JSON.stringify(mockStats)),
         jobQueue: mockJobStats.emailProcessing,
         recentEmails: expect.arrayContaining([
           expect.objectContaining({
@@ -393,6 +397,9 @@ describe("EmailController", () => {
   });
 
   describe("GET /api/email/health", () => {
+    // Regression guard: GET /health must be declared before GET /:emailId,
+    // otherwise "health" is captured as an emailId and getEmailDetails
+    // answers 404 EMAIL_NOT_FOUND (fixed in 8ed7947).
     it("should return health status", async () => {
       const response = await request(app).get("/api/email/health");
 

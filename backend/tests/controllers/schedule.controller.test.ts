@@ -7,11 +7,34 @@ import { services } from "@/services";
 import { AuthenticatedRequest } from "@/middleware/auth.middleware";
 
 // Mock dependencies
+// Repository instances are injected into the controller below, so automocked
+// classes are fine here. `@/services` is NOT module-mocked: tests/setup.ts has
+// already loaded the real route/controller graph, so the controllers hold the
+// real `services` singleton. Spy on its members instead.
 jest.mock("@/repositories/schedule-data.repository");
 jest.mock("@/repositories/route-plan.repository");
 jest.mock("@/repositories/weather-data.repository");
-jest.mock("@/services");
 jest.mock("@/utils/logger");
+
+// ScheduleController is a facade over sub-controllers
+// (src/controllers/schedule/index.ts); each one owns its own repository
+// instances, so mocks must be injected into every sub-controller.
+const SUB_CONTROLLERS = [
+  "baseController",
+  "crudController",
+  "routeController",
+  "weatherController",
+  "statisticsController",
+] as const;
+
+function injectScheduleDataRepository(
+  controller: ScheduleController,
+  repo: unknown
+): void {
+  for (const name of SUB_CONTROLLERS) {
+    (controller as any)[name].scheduleDataRepository = repo;
+  }
+}
 
 describe("ScheduleController", () => {
   let scheduleController: ScheduleController;
@@ -50,16 +73,10 @@ describe("ScheduleController", () => {
       status: jest.fn().mockReturnThis(),
     };
 
-    // Mock services
-    (services as any) = {
-      jobProcessor: {
-        addRouteRecalculationJob: jest.fn(),
-        addWeatherUpdateJob: jest.fn(),
-      },
-      weather: {
-        getWeatherForecast: jest.fn(),
-      },
-    };
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe("getSchedules", () => {
@@ -88,8 +105,10 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.findMany = jest
         .fn()
         .mockResolvedValue(mockSchedules);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.getSchedules(
         mockRequest as AuthenticatedRequest,
@@ -135,8 +154,10 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.findUpcomingSchedules = jest
         .fn()
         .mockResolvedValue(mockSchedules);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.getSchedules(
         mockRequest as AuthenticatedRequest,
@@ -165,8 +186,10 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.findMany = jest
         .fn()
         .mockRejectedValue(new Error("Database error"));
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.getSchedules(
         mockRequest as AuthenticatedRequest,
@@ -210,8 +233,10 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.findWithRelations = jest
         .fn()
         .mockResolvedValue(mockSchedule);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.getScheduleById(
         mockRequest as AuthenticatedRequest,
@@ -234,8 +259,10 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.findWithRelations = jest
         .fn()
         .mockResolvedValue(null);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.getScheduleById(
         mockRequest as AuthenticatedRequest,
@@ -264,8 +291,10 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.findWithRelations = jest
         .fn()
         .mockResolvedValue(mockSchedule);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.getScheduleById(
         mockRequest as AuthenticatedRequest,
@@ -315,16 +344,16 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.updateWithRelations = jest
         .fn()
         .mockResolvedValue(updatedSchedule);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       const mockRouteJob = { id: "route-job-1" };
       const mockWeatherJob = { id: "weather-job-1" };
-      services.jobProcessor.addRouteRecalculationJob = jest
-        .fn()
+      jest.spyOn(services.jobProcessor, "addRouteRecalculationJob")
         .mockResolvedValue(mockRouteJob);
-      services.jobProcessor.addWeatherUpdateJob = jest
-        .fn()
+      jest.spyOn(services.jobProcessor, "addWeatherUpdateJob")
         .mockResolvedValue(mockWeatherJob);
 
       await scheduleController.updateSchedule(
@@ -349,8 +378,10 @@ describe("ScheduleController", () => {
     it("should return 404 when schedule not found", async () => {
       mockRequest.params = { scheduleId: "nonexistent" };
       mockScheduleDataRepository.findById = jest.fn().mockResolvedValue(null);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.updateSchedule(
         mockRequest as AuthenticatedRequest,
@@ -381,8 +412,10 @@ describe("ScheduleController", () => {
       mockScheduleDataRepository.delete = jest
         .fn()
         .mockResolvedValue(undefined);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
 
       await scheduleController.deleteSchedule(
         mockRequest as AuthenticatedRequest,
@@ -420,9 +453,12 @@ describe("ScheduleController", () => {
       mockRoutePlanRepository.findByScheduleId = jest
         .fn()
         .mockResolvedValue(mockRoutePlan);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
-      (scheduleController as any).routePlanRepository = mockRoutePlanRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
+      (scheduleController as any).routeController.routePlanRepository =
+        mockRoutePlanRepository;
 
       await scheduleController.getRoutePlan(
         mockRequest as AuthenticatedRequest,
@@ -448,9 +484,12 @@ describe("ScheduleController", () => {
       mockRoutePlanRepository.findByScheduleId = jest
         .fn()
         .mockResolvedValue(null);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
-      (scheduleController as any).routePlanRepository = mockRoutePlanRepository;
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
+      (scheduleController as any).routeController.routePlanRepository =
+        mockRoutePlanRepository;
 
       await scheduleController.getRoutePlan(
         mockRequest as AuthenticatedRequest,
@@ -488,9 +527,11 @@ describe("ScheduleController", () => {
       mockWeatherDataRepository.findByScheduleId = jest
         .fn()
         .mockResolvedValue(mockWeatherData);
-      (scheduleController as any).scheduleDataRepository =
-        mockScheduleDataRepository;
-      (scheduleController as any).weatherDataRepository =
+      injectScheduleDataRepository(
+        scheduleController,
+        mockScheduleDataRepository
+      );
+      (scheduleController as any).weatherController.weatherDataRepository =
         mockWeatherDataRepository;
 
       await scheduleController.getWeatherData(
@@ -520,8 +561,7 @@ describe("ScheduleController", () => {
         warnings: ["TEMPERATURE_WARNING", "PRECIPITATION_WARNING"],
       };
 
-      services.weather.getWeatherForecast = jest
-        .fn()
+      jest.spyOn(services.weather, "getWeatherForecast")
         .mockResolvedValue(mockForecast);
 
       await scheduleController.getWeatherForecast(

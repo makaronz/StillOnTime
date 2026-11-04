@@ -1,27 +1,28 @@
-import { SMSService } from "../../src/services/sms.service";
-import { logger } from "../../src/utils/logger";
+import type { SMSService as SMSServiceType } from "../../src/services/sms.service";
 
-// Mock Twilio
+// Mock Twilio. Every `new Twilio(...)` returns the same client object so the
+// test can configure the client the service actually uses.
 jest.mock("twilio", () => {
-  return {
-    Twilio: jest.fn().mockImplementation(() => ({
-      messages: {
-        create: jest.fn(),
-      },
-      api: {
-        accounts: jest.fn().mockReturnValue({
+  const client = {
+    messages: {
+      create: jest.fn(),
+    },
+    api: {
+      accounts: jest.fn().mockReturnValue({
+        fetch: jest.fn(),
+        balance: {
           fetch: jest.fn(),
-          balance: {
-            fetch: jest.fn(),
+        },
+        usage: {
+          records: {
+            list: jest.fn(),
           },
-          usage: {
-            records: {
-              list: jest.fn(),
-            },
-          },
-        }),
-      },
-    })),
+        },
+      }),
+    },
+  };
+  return {
+    Twilio: jest.fn().mockImplementation(() => client),
   };
 });
 
@@ -35,7 +36,10 @@ jest.mock("../../src/utils/logger", () => ({
 }));
 
 describe("SMSService", () => {
-  let smsService: SMSService;
+  let SMSService: typeof import("../../src/services/sms.service").SMSService;
+  let logger: { info: jest.Mock; warn: jest.Mock; error: jest.Mock };
+  let Twilio: jest.Mock;
+  let smsService: SMSServiceType;
   let mockTwilioClient: any;
 
   beforeEach(() => {
@@ -46,22 +50,25 @@ describe("SMSService", () => {
     process.env.TWILIO_AUTH_TOKEN = "test_auth_token";
     process.env.TWILIO_FROM_NUMBER = "+1234567890";
 
+    // tests/setup.ts imports the whole route graph, which has already loaded
+    // sms.service bound to the real twilio module. Load a fresh copy so the
+    // mocks above are the ones the service uses.
+    jest.isolateModules(() => {
+      ({ Twilio } = require("twilio"));
+      ({ logger } = require("../../src/utils/logger"));
+      ({ SMSService } = require("../../src/services/sms.service"));
+    });
+
     smsService = new SMSService();
 
-    // Get the mocked Twilio client
-    const { Twilio } = require("twilio");
+    // The (shared) mocked Twilio client the service was constructed with
     mockTwilioClient = new Twilio();
-  });
-
-  afterEach(() => {
-    delete process.env.TWILIO_ACCOUNT_SID;
-    delete process.env.TWILIO_AUTH_TOKEN;
-    delete process.env.TWILIO_FROM_NUMBER;
   });
 
   describe("initialization", () => {
     it("should initialize successfully with valid configuration", () => {
       expect(smsService.isServiceConfigured()).toBe(true);
+      expect(Twilio).toHaveBeenCalledWith("test_account_sid", "test_auth_token");
     });
 
     it("should not initialize without required environment variables", () => {
@@ -109,12 +116,13 @@ describe("SMSService", () => {
       };
       mockTwilioClient.messages.create.mockResolvedValue(mockMessage);
 
-      const result = await smsService.sendSMS("123456789", "Test message");
+      // Polish mobile numbers start with 4-8 (validatePhoneNumber)
+      const result = await smsService.sendSMS("512345678", "Test message");
 
       expect(result.success).toBe(true);
       expect(mockTwilioClient.messages.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          to: "+48123456789",
+          to: "+48512345678",
         })
       );
     });
@@ -167,9 +175,9 @@ describe("SMSService", () => {
     });
 
     it("should return error when service is not configured", async () => {
-      const unconfiguredService = new SMSService();
-      // Clear environment variables to make it unconfigured
+      // Credentials are read in the constructor: clear them first
       delete process.env.TWILIO_ACCOUNT_SID;
+      const unconfiguredService = new SMSService();
 
       const result = await unconfiguredService.sendSMS("+48123456789", "Test");
 
@@ -216,7 +224,7 @@ describe("SMSService", () => {
         from: "+1234567890",
         to: "+48123456789",
         statusCallback: "https://example.com/webhook",
-        maxPrice: "0.05",
+        maxPrice: 0.05, // sendSMS parses the maxPrice option to a number
         validityPeriod: 3600,
       });
     });
@@ -240,12 +248,13 @@ describe("SMSService", () => {
 
       expect(status.messageId).toBe("test_message_sid");
       expect(status.status).toBe("delivered");
-      expect(status.deliveredAt).toEqual(mockMessage.dateUpdated);
+      expect(mockTwilioClient.messages).toHaveBeenCalledWith("test_message_sid");
+      expect(status.timestamp).toEqual(mockMessage.dateUpdated);
     });
 
     it("should throw error when service is not configured", async () => {
-      const unconfiguredService = new SMSService();
       delete process.env.TWILIO_ACCOUNT_SID;
+      const unconfiguredService = new SMSService();
 
       await expect(
         unconfiguredService.getDeliveryStatus("test_message_sid")
@@ -303,8 +312,8 @@ describe("SMSService", () => {
     });
 
     it("should return error when service is not configured", async () => {
-      const unconfiguredService = new SMSService();
       delete process.env.TWILIO_ACCOUNT_SID;
+      const unconfiguredService = new SMSService();
 
       const result = await unconfiguredService.testConfiguration();
 
@@ -347,8 +356,8 @@ describe("SMSService", () => {
     });
 
     it("should return error when service is not configured", async () => {
-      const unconfiguredService = new SMSService();
       delete process.env.TWILIO_ACCOUNT_SID;
+      const unconfiguredService = new SMSService();
 
       const result = await unconfiguredService.getAccountUsage();
 
@@ -403,8 +412,8 @@ describe("SMSService", () => {
     const testCases = [
       // Valid cases
       { input: "+48123456789", expected: true, formatted: "+48123456789" },
-      { input: "123456789", expected: true, formatted: "+48123456789" },
-      { input: "48123456789", expected: true, formatted: "+48123456789" },
+      { input: "512345678", expected: true, formatted: "+48512345678" },
+      { input: "48512345678", expected: true, formatted: "+48512345678" },
       { input: "+12125551234", expected: true, formatted: "+12125551234" },
       { input: "2125551234", expected: true, formatted: "+12125551234" },
       { input: "12125551234", expected: true, formatted: "+12125551234" },

@@ -52,7 +52,27 @@ export class UserRepository {
    * Find user with all related data (alias for findByIdWithConfig)
    */
   async findWithRelations(id: string): Promise<any | null> {
-    return await this.findByIdWithConfig(id);
+    const user = await this.findByIdWithConfig(id);
+    if (!user) return null;
+
+    // GET /api/auth/profile and GET /api/user/profile read
+    // processedEmails / schedules (most recent first) for "recent activity".
+    const [processedEmails, schedules] = await Promise.all([
+      db
+        .selectFrom("processed_emails")
+        .selectAll()
+        .where("userId", "=", id)
+        .orderBy("receivedAt", "desc")
+        .execute(),
+      db
+        .selectFrom("schedule_data")
+        .selectAll()
+        .where("userId", "=", id)
+        .orderBy("createdAt", "desc")
+        .execute(),
+    ]);
+
+    return { ...user, processedEmails, schedules };
   }
 
   /**

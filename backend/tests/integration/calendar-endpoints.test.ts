@@ -1,283 +1,324 @@
+/**
+ * Calendar endpoints, exercised through the real route graph.
+ *
+ * - App: express + apiRoutes + errorHandler (not src/index, which starts the server).
+ * - Auth: a real JWT from services.oauth2.generateJWT. requireValidOAuth runs for
+ *   real: it loads the caller from the fake `users` table (valid Google tokens).
+ * - Database: the fake Kysely driver (tests/helpers/kysely-test-db). `serve(tables)`
+ *   answers every query from an in-memory table set, honouring simple
+ *   `"col" <op> $n` where clauses, limit/offset, count(*), update ... set and
+ *   delete, so tests can assert both the response and the SQL actually sent.
+ * - Google Calendar is mocked at its boundary: jest.spyOn on the calendarManager
+ *   methods that talk to Google (create / update-from-schedule / update), or the
+ *   googleapis client itself (delete), plus oauth2.getGoogleClient.
+ */
+import express from "express";
 import request from "supertest";
-import { Express } from "express";
-import { PrismaClient } from "@prisma/client";
-import { createTestApp } from "../setup";
+import { google } from "googleapis";
+import { apiRoutes } from "@/routes";
+import { errorHandler } from "@/middleware/errorHandler";
 import { services } from "@/services";
+import { testDb, RecordedQuery } from "../helpers/kysely-test-db";
 
-// Mock external services
-jest.mock("@/services");
+const USER = "11111111-1111-4111-8111-111111111111";
+const OTHER = "22222222-2222-4222-8222-222222222222";
+const SCHED = "csched000000000001";
+const SCHED2 = "csched000000000002";
+const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 
-describe("Calendar Endpoints Integration Tests", () => {
-  let app: Express;
-  let prisma: PrismaClient;
-  let authToken: string;
-  let testUserId: string;
-  let testScheduleId: string;
+type Row = Record<string, any>;
+type Tables = Record<string, Row[]>;
 
-  beforeAll(async () => {
-    app = await createTestApp();
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url:
-            process.env.DATABASE_URL ||
-            "postgresql://test:test@localhost:5432/test_db",
-        },
-      },
-    });
+// ---------------------------------------------------------------- fake world
 
-    // Create test user
-    const testUser = await prisma.user.create({
-      data: {
-        email: "test@example.com",
-        name: "Test User",
-        googleId: "test-google-id",
-        accessToken: "test-access-token",
-        refreshToken: "test-refresh-token",
-        tokenExpiry: new Date(Date.now() + 3600000), // 1 hour from now
-      },
-    });
+const COMPARE: Record<string, (a: any, b: any) => boolean> = {
+  "=": (a, b) => a === b,
+  ">=": (a, b) => a >= b,
+  "<=": (a, b) => a <= b,
+  "<": (a, b) => a < b,
+  ">": (a, b) => a > b,
+};
 
-    testUserId = testUser.id;
+const norm = (v: unknown): unknown => (v instanceof Date ? v.getTime() : v);
 
-    // Mock JWT token for authentication
-    authToken = "Bearer test-jwt-token";
+function conditions(clause: string): Array<{ col: string; op: string; idx: number }> {
+  return [...clause.matchAll(/"(\w+)" (=|>=|<=|<|>) \$(\d+)/g)].map((m) => ({
+    col: m[1],
+    op: m[2],
+    idx: Number(m[3]) - 1,
+  }));
+}
 
-    // Mock authentication middleware to return our test user
-    jest.doMock("@/middleware/auth.middleware", () => ({
-      authenticateToken: (req: any, res: any, next: any) => {
-        req.user = { userId: testUserId, email: "test@example.com" };
-        next();
-      },
-      requireValidOAuth: (req: any, res: any, next: any) => {
-        next();
-      },
-    }));
+function whereClause(sql: string): string {
+  const m = / where (.*?)(?= order by | limit | offset | returning |$)/.exec(sql);
+  return m ? m[1] : "";
+}
 
-    // Mock services
-    (services as any) = {
-      calendarManager: {
-        getCalendarEvents: jest.fn(),
-        createCalendarEvent: jest.fn(),
-        updateCalendarEvent: jest.fn(),
-        deleteCalendarEvent: jest.fn(),
-        updateCalendarEventFromSchedule: jest.fn(),
-        getCalendarList: jest.fn(),
-      },
-      oauth2: {
-        getOAuthStatus: jest.fn(),
-      },
-    };
-  });
+function matches(row: Row, sql: string, params: readonly unknown[]): boolean {
+  return conditions(whereClause(sql)).every((c) =>
+    COMPARE[c.op](norm(row[c.col]), norm(params[c.idx]))
+  );
+}
 
-  beforeEach(async () => {
-    // Create test email
-    const testEmail = await prisma.processedEmail.create({
-      data: {
-        messageId: "test-message-id",
-        subject: "Test Schedule Email",
-        sender: "test@stillontime.com",
-        receivedAt: new Date(),
-        threadId: "test-thread-id",
-        processed: true,
-        processingStatus: "completed",
-        userId: testUserId,
-      },
-    });
+function runQuery(tables: Tables, q: RecordedQuery): Row[] {
+  const { sql, parameters: p } = q;
+  let m: RegExpExecArray | null;
 
-    // Create test schedule
-    const testSchedule = await prisma.scheduleData.create({
-      data: {
-        shootingDate: new Date("2024-01-15"),
-        callTime: "08:00",
-        location: "Test Location, Warsaw",
-        baseLocation: "Panavision Warsaw",
-        sceneType: "EXT",
-        scenes: ["Scene 1", "Scene 2"],
-        safetyNotes: "Wear safety gear",
-        equipment: ["Camera", "Lights"],
-        contacts: [{ name: "Director", phone: "+48123456789" }],
-        notes: "Test shooting day",
-        userId: testUserId,
-        emailId: testEmail.id,
-      },
-    });
+  if ((m = /^update "(\w+)" set (.*?) where /.exec(sql))) {
+    const sets = conditions(m[2]);
+    const hit = (tables[m[1]] ?? []).filter((r) => matches(r, sql, p));
+    hit.forEach((r) => sets.forEach((s) => (r[s.col] = p[s.idx])));
+    return hit.map((r) => ({ ...r }));
+  }
 
-    testScheduleId = testSchedule.id;
+  if ((m = /^delete from "(\w+)"/.exec(sql))) {
+    const rows = tables[m[1]] ?? [];
+    const hit = rows.filter((r) => matches(r, sql, p));
+    tables[m[1]] = rows.filter((r) => !hit.includes(r));
+    return hit;
+  }
 
-    // Create test route plan
-    await prisma.routePlan.create({
-      data: {
-        wakeUpTime: new Date("2024-01-15T05:00:00Z"),
-        departureTime: new Date("2024-01-15T06:30:00Z"),
-        arrivalTime: new Date("2024-01-15T07:45:00Z"),
-        totalTravelMinutes: 75,
-        routeSegments: [
-          {
-            from: "Home",
-            to: "Panavision",
-            duration: 30,
-            distance: "15 km",
-          },
-        ],
-        buffers: {
-          carChange: 15,
-          parking: 10,
-          entry: 10,
-          traffic: 20,
-          morningRoutine: 45,
-        },
-        userId: testUserId,
-        scheduleId: testScheduleId,
-      },
-    });
+  if ((m = /^select .*? from "(\w+)"/.exec(sql))) {
+    let rows = (tables[m[1]] ?? []).filter((r) => matches(r, sql, p));
+    const off = / offset \$(\d+)/.exec(sql);
+    if (off) rows = rows.slice(Number(p[Number(off[1]) - 1]));
+    const lim = / limit \$(\d+)/.exec(sql);
+    if (lim) rows = rows.slice(0, Number(p[Number(lim[1]) - 1]));
+    if (/^select count\(\*\)/.test(sql)) return [{ count: String(rows.length) }];
+    return rows.map((r) => ({ ...r }));
+  }
 
-    // Create test weather data
-    await prisma.weatherData.create({
-      data: {
-        forecastDate: new Date("2024-01-15"),
-        temperature: 15,
-        description: "Partly cloudy",
-        windSpeed: 5,
-        precipitation: 0,
-        humidity: 65,
-        warnings: [],
-        userId: testUserId,
-        scheduleId: testScheduleId,
-      },
-    });
+  return [];
+}
 
-    // Reset mocks
-    jest.clearAllMocks();
-  });
+/** Answer every query of the next request(s) from `tables`. */
+function serve(tables: Tables): Tables {
+  for (let i = 0; i < 50; i++) {
+    testDb.enqueueFn((q) => ({ rows: runQuery(tables, q) }));
+  }
+  return tables;
+}
 
-  afterEach(async () => {
-    // Clean up test data
-    await prisma.weatherData.deleteMany({ where: { userId: testUserId } });
-    await prisma.routePlan.deleteMany({ where: { userId: testUserId } });
-    await prisma.calendarEvent.deleteMany({ where: { userId: testUserId } });
-    await prisma.scheduleData.deleteMany({ where: { userId: testUserId } });
-    await prisma.processedEmail.deleteMany({ where: { userId: testUserId } });
-  });
+const queriesOn = (table: string): RecordedQuery[] =>
+  testDb.queries.filter((q) => q.sql.includes(`"${table}"`));
 
-  afterAll(async () => {
-    // Clean up test user
-    await prisma.user.delete({ where: { id: testUserId } });
-    await prisma.$disconnect();
-  });
+// ------------------------------------------------------------------ fixtures
 
+const userRow = (id: string): Row => ({
+  id,
+  email: `${id}@example.invalid`,
+  name: "Test User",
+  googleId: `google-${id}`,
+  accessToken: "encrypted-access-token",
+  refreshToken: "encrypted-refresh-token",
+  tokenExpiry: new Date(Date.now() + 3600_000),
+  createdAt: new Date("2024-01-01T00:00:00Z"),
+  updatedAt: new Date("2024-01-01T00:00:00Z"),
+});
+
+const schedule = (over: Row = {}): Row => ({
+  id: SCHED,
+  userId: USER,
+  emailId: "cemail000000000001",
+  shootingDate: new Date("2024-01-15T00:00:00.000Z"),
+  callTime: "08:00",
+  location: "Test Location, Warsaw",
+  baseLocation: "Panavision Warsaw",
+  sceneType: "EXT",
+  scenes: ["Scene 1", "Scene 2"],
+  safetyNotes: "Wear safety gear",
+  equipment: ["Camera", "Lights"],
+  contacts: [{ name: "Director", phone: "+48123456789" }],
+  notes: "Test shooting day",
+  createdAt: new Date("2024-01-10T00:00:00Z"),
+  updatedAt: new Date("2024-01-10T00:00:00Z"),
+  ...over,
+});
+
+const routePlan = (over: Row = {}): Row => ({
+  id: "route-1",
+  scheduleId: SCHED,
+  userId: USER,
+  wakeUpTime: new Date("2024-01-15T05:00:00Z"),
+  departureTime: new Date("2024-01-15T06:30:00Z"),
+  arrivalTime: new Date("2024-01-15T07:45:00Z"),
+  totalTravelMinutes: 75,
+  routeSegments: [{ from: "Home", to: "Panavision", duration: 30, distance: "15 km" }],
+  buffers: { carChange: 15, parking: 10, entry: 10, traffic: 20, morningRoutine: 45 },
+  calculatedAt: new Date("2024-01-14T00:00:00Z"),
+  ...over,
+});
+
+const weather = (over: Row = {}): Row => ({
+  id: "weather-1",
+  scheduleId: SCHED,
+  userId: USER,
+  forecastDate: new Date("2024-01-15T00:00:00.000Z"),
+  temperature: 15,
+  description: "Partly cloudy",
+  windSpeed: 5,
+  precipitation: 0,
+  humidity: 65,
+  warnings: [],
+  fetchedAt: new Date("2024-01-14T00:00:00Z"),
+  ...over,
+});
+
+const calendarEvent = (over: Row = {}): Row => ({
+  id: "cal-event-1",
+  userId: USER,
+  scheduleId: SCHED,
+  calendarEventId: "google-event-1",
+  title: "StillOnTime — Dzień zdjęciowy (Test Location)",
+  description: "Shooting schedule details",
+  location: "Test Location, Warsaw",
+  startTime: new Date("2024-01-15T08:00:00Z"),
+  endTime: new Date("2024-01-15T18:00:00Z"),
+  createdAt: new Date("2024-01-14T10:00:00Z"),
+  ...over,
+});
+
+function world(over: Partial<Tables> = {}): Tables {
+  return {
+    users: [userRow(USER), userRow(OTHER)],
+    schedule_data: [schedule()],
+    route_plans: [routePlan()],
+    weather_data: [weather()],
+    calendar_events: [],
+    user_configs: [],
+    ...over,
+  };
+}
+
+// ----------------------------------------------------------------------- app
+
+function buildApp(): express.Application {
+  const a = express();
+  a.use(express.json());
+  a.use("/api", apiRoutes);
+  a.use(errorHandler);
+  return a;
+}
+
+const app = buildApp();
+
+const auth = (id: string = USER): Record<string, string> => ({
+  Authorization: `Bearer ${services.oauth2.generateJWT({
+    id,
+    email: `${id}@example.invalid`,
+  } as any)}`,
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+// --------------------------------------------------------------------- tests
+
+describe("Calendar endpoints (route-level)", () => {
   describe("GET /api/calendar/events", () => {
-    it("should return calendar events with default parameters", async () => {
-      const mockEvents = [
-        {
-          id: "event-1",
-          summary: "StillOnTime — Dzień zdjęciowy (Test Location)",
-          description: "Shooting schedule details",
-          location: "Test Location, Warsaw",
-          start: { dateTime: "2024-01-15T08:00:00Z" },
-          end: { dateTime: "2024-01-15T18:00:00Z" },
-          attendees: [],
-          reminders: { useDefault: false },
-          created: "2024-01-14T10:00:00Z",
-          updated: "2024-01-14T10:00:00Z",
-        },
-      ];
+    it("returns the caller's calendar events with default parameters", async () => {
+      serve(
+        world({
+          calendar_events: [
+            calendarEvent(),
+            calendarEvent({ id: "cal-other", userId: OTHER, calendarEventId: "google-other" }),
+          ],
+        })
+      );
 
-      services.calendarManager.getCalendarEvents = jest
-        .fn()
-        .mockResolvedValue(mockEvents);
+      const res = await request(app).get("/api/calendar/events").set(auth());
 
-      const response = await request(app)
-        .get("/api/calendar/events")
-        .set("Authorization", authToken)
-        .expect(200);
-
-      expect(response.body).toMatchObject({
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         success: true,
         events: [
           {
-            id: "event-1",
-            title: "StillOnTime — Dzień zdjęciowy (Test Location)",
+            id: "google-event-1",
+            summary: "StillOnTime — Dzień zdjęciowy (Test Location)",
             description: "Shooting schedule details",
             location: "Test Location, Warsaw",
-            startTime: "2024-01-15T08:00:00Z",
-            endTime: "2024-01-15T18:00:00Z",
-            attendees: [],
-            reminders: { useDefault: false },
-            created: "2024-01-14T10:00:00Z",
-            updated: "2024-01-14T10:00:00Z",
+            start: { dateTime: "2024-01-15T08:00:00.000Z" },
+            end: { dateTime: "2024-01-15T18:00:00.000Z" },
+            created: "2024-01-14T10:00:00.000Z",
+            updated: "2024-01-14T10:00:00.000Z",
           },
         ],
       });
-
-      expect(services.calendarManager.getCalendarEvents).toHaveBeenCalledWith(
-        testUserId,
-        {
-          timeMin: undefined,
-          timeMax: undefined,
-          maxResults: 50,
-        }
-      );
+      const [q] = queriesOn("calendar_events");
+      expect(q.sql).toMatch(/from "calendar_events" where "userId" = \$1 .*limit \$2/);
+      expect(q.parameters).toEqual([USER, 50]);
     });
 
-    it("should handle date range filtering", async () => {
-      services.calendarManager.getCalendarEvents = jest
-        .fn()
-        .mockResolvedValue([]);
+    it("passes the date range and maxResults to the calendar service as typed options", async () => {
+      const spy = jest.spyOn(services.calendarManager, "getCalendarEvents");
+      serve(world());
 
-      const response = await request(app)
+      const res = await request(app)
         .get("/api/calendar/events")
         .query({
           startDate: "2024-01-15T00:00:00Z",
           endDate: "2024-01-16T00:00:00Z",
           maxResults: "10",
         })
-        .set("Authorization", authToken)
-        .expect(200);
+        .set(auth());
 
-      expect(services.calendarManager.getCalendarEvents).toHaveBeenCalledWith(
-        testUserId,
-        {
-          timeMin: new Date("2024-01-15T00:00:00Z"),
-          timeMax: new Date("2024-01-16T00:00:00Z"),
-          maxResults: 10,
-        }
-      );
-
-      expect(response.body).toMatchObject({
-        success: true,
-        events: [],
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true, events: [] });
+      expect(spy).toHaveBeenCalledWith(USER, {
+        timeMin: new Date("2024-01-15T00:00:00Z"),
+        timeMax: new Date("2024-01-16T00:00:00Z"),
+        maxResults: 10,
       });
     });
 
-    it("should return 401 without authentication", async () => {
-      await request(app).get("/api/calendar/events").expect(401);
+    it("returns 400 for an invalid startDate", async () => {
+      const spy = jest.spyOn(services.calendarManager, "getCalendarEvents");
+      serve(world());
+
+      const res = await request(app)
+        .get("/api/calendar/events")
+        .query({ startDate: "yesterday" })
+        .set(auth());
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: "Bad Request", code: "VALIDATION_ERROR" });
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("returns 401 without authentication", async () => {
+      const res = await request(app).get("/api/calendar/events");
+
+      expect(res.status).toBe(401);
+      expect(res.body).toMatchObject({ error: "Unauthorized", code: "MISSING_TOKEN" });
+      expect(testDb.queries).toHaveLength(0);
     });
   });
 
   describe("POST /api/calendar/events", () => {
-    it("should create calendar event for schedule", async () => {
-      const mockCalendarEvent = {
-        id: "cal-event-1",
-        calendarEventId: "google-event-1",
-        title: "StillOnTime — Dzień zdjęciowy (Test Location)",
-        startTime: new Date("2024-01-15T06:30:00Z"),
-        endTime: new Date("2024-01-15T18:00:00Z"),
-        description: "Shooting schedule with route and weather info",
-        location: "Test Location, Warsaw",
-      };
+    const created = {
+      id: "cal-event-1",
+      calendarEventId: "google-event-1",
+      title: "StillOnTime — Dzień zdjęciowy (Test Location)",
+      startTime: new Date("2024-01-15T06:30:00Z"),
+      endTime: new Date("2024-01-15T18:00:00Z"),
+      description: "Shooting schedule with route and weather info",
+      location: "Test Location, Warsaw",
+    };
 
-      services.calendarManager.createCalendarEvent = jest
-        .fn()
-        .mockResolvedValue(mockCalendarEvent);
+    it("creates a calendar event for the caller's schedule", async () => {
+      const spy = jest
+        .spyOn(services.calendarManager, "createCalendarEvent")
+        .mockResolvedValue(created as any);
+      serve(world());
 
-      const response = await request(app)
+      const res = await request(app)
         .post("/api/calendar/events")
-        .set("Authorization", authToken)
-        .send({ scheduleId: testScheduleId })
-        .expect(200);
+        .set(auth())
+        .send({ scheduleId: SCHED });
 
-      expect(response.body).toMatchObject({
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         success: true,
         calendarEvent: {
           id: "cal-event-1",
@@ -290,411 +331,379 @@ describe("Calendar Endpoints Integration Tests", () => {
         },
         message: "Calendar event created successfully",
       });
-
-      expect(services.calendarManager.createCalendarEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: testScheduleId,
-          location: "Test Location, Warsaw",
-        }),
-        expect.any(Object), // routePlan
-        expect.any(Object), // weatherData
-        testUserId
-      );
-    });
-
-    it("should return 400 when schedule ID is missing", async () => {
-      const response = await request(app)
-        .post("/api/calendar/events")
-        .set("Authorization", authToken)
-        .send({}) // Missing scheduleId
-        .expect(400);
-
-      expect(response.body).toMatchObject({
-        error: "Bad Request",
-        code: "MISSING_SCHEDULE_ID",
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0][0]).toMatchObject({
+        id: SCHED,
+        userId: USER,
+        location: "Test Location, Warsaw",
       });
+      expect(spy.mock.calls[0][3]).toBe(USER);
+      const [q] = queriesOn("schedule_data");
+      expect(q.sql).toMatch(/from "schedule_data" where "id" = \$1/);
+      expect(q.parameters).toEqual([SCHED]);
     });
 
-    it("should return 404 when schedule not found", async () => {
-      const response = await request(app)
-        .post("/api/calendar/events")
-        .set("Authorization", authToken)
-        .send({ scheduleId: "non-existent-id" })
-        .expect(404);
+    it("passes the schedule's route plan and weather data to the calendar service", async () => {
+      const spy = jest
+        .spyOn(services.calendarManager, "createCalendarEvent")
+        .mockResolvedValue(created as any);
+      serve(world());
 
-      expect(response.body).toMatchObject({
-        error: "Not Found",
+      const res = await request(app)
+        .post("/api/calendar/events")
+        .set(auth())
+        .send({ scheduleId: SCHED });
+
+      expect(res.status).toBe(200);
+      expect(spy.mock.calls[0][1]).toMatchObject({ id: "route-1", scheduleId: SCHED });
+      expect(spy.mock.calls[0][2]).toMatchObject({ id: "weather-1", scheduleId: SCHED });
+    });
+
+    it("returns 400 when the schedule ID is missing", async () => {
+      const spy = jest.spyOn(services.calendarManager, "createCalendarEvent");
+      serve(world());
+
+      const res = await request(app).post("/api/calendar/events").set(auth()).send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: "Bad Request", code: "VALIDATION_ERROR" });
+      expect(res.body.details.length).toBeGreaterThan(0);
+      res.body.details.forEach((d: Row) => expect(d.path).toBe("scheduleId"));
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when the schedule does not exist", async () => {
+      const spy = jest.spyOn(services.calendarManager, "createCalendarEvent");
+      serve(world({ schedule_data: [] }));
+
+      const res = await request(app)
+        .post("/api/calendar/events")
+        .set(auth())
+        .send({ scheduleId: "non-existent-id" });
+
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({
+        error: "Schedule not found or access denied",
         code: "SCHEDULE_NOT_FOUND",
       });
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 for another user's schedule and creates nothing", async () => {
+      const spy = jest.spyOn(services.calendarManager, "createCalendarEvent");
+      serve(world({ schedule_data: [schedule({ userId: OTHER })] }));
+
+      const res = await request(app)
+        .post("/api/calendar/events")
+        .set(auth())
+        .send({ scheduleId: SCHED });
+
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe("SCHEDULE_NOT_FOUND");
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe("PUT /api/calendar/events/:eventId", () => {
-    it("should update calendar event successfully", async () => {
-      const mockUpdatedEvent = {
-        id: "google-event-1",
-        summary: "Updated Event Title",
-        description: "Updated description",
-        location: "Test Location",
-        start: { dateTime: "2024-01-15T08:00:00Z" },
-        end: { dateTime: "2024-01-15T18:00:00Z" },
-        updated: "2024-01-14T12:00:00Z",
-      };
-
-      services.calendarManager.updateCalendarEvent = jest
-        .fn()
-        .mockResolvedValue(mockUpdatedEvent);
-
-      const updateData = {
+    it("updates the calendar event", async () => {
+      const spy = jest.spyOn(services.calendarManager, "updateCalendarEvent").mockResolvedValue({
+        id: "cal-event-1",
+        calendarEventId: "google-event-1",
         title: "Updated Event Title",
         description: "Updated description",
-      };
+        location: "Test Location",
+        startTime: new Date("2024-01-15T08:00:00Z"),
+        endTime: new Date("2024-01-15T18:00:00Z"),
+        createdAt: new Date("2024-01-14T12:00:00Z"),
+      } as any);
+      serve(world());
+      const updateData = { title: "Updated Event Title", description: "Updated description" };
 
-      const response = await request(app)
+      const res = await request(app)
         .put("/api/calendar/events/google-event-1")
-        .set("Authorization", authToken)
-        .send(updateData)
-        .expect(200);
+        .set(auth())
+        .send(updateData);
 
-      expect(response.body).toMatchObject({
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         success: true,
         event: {
-          id: "google-event-1",
+          id: "cal-event-1",
+          calendarEventId: "google-event-1",
           title: "Updated Event Title",
           description: "Updated description",
           location: "Test Location",
-          startTime: "2024-01-15T08:00:00Z",
-          endTime: "2024-01-15T18:00:00Z",
-          updated: "2024-01-14T12:00:00Z",
+          startTime: "2024-01-15T08:00:00.000Z",
+          endTime: "2024-01-15T18:00:00.000Z",
+          createdAt: "2024-01-14T12:00:00.000Z",
         },
         message: "Calendar event updated successfully",
       });
-
-      expect(services.calendarManager.updateCalendarEvent).toHaveBeenCalledWith(
-        "google-event-1",
-        updateData,
-        testUserId
-      );
+      expect(spy).toHaveBeenCalledWith("google-event-1", updateData, USER);
     });
 
-    it("should return 400 for invalid data", async () => {
-      const invalidData = {
-        title: "", // Empty title
-      };
+    it("returns 400 for an empty title", async () => {
+      const spy = jest.spyOn(services.calendarManager, "updateCalendarEvent");
+      serve(world());
 
-      const response = await request(app)
+      const res = await request(app)
         .put("/api/calendar/events/google-event-1")
-        .set("Authorization", authToken)
-        .send(invalidData)
-        .expect(400);
+        .set(auth())
+        .send({ title: "" });
 
-      expect(response.body).toMatchObject({
-        error: "Bad Request",
-        code: "VALIDATION_ERROR",
-      });
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: "Bad Request", code: "VALIDATION_ERROR" });
+      expect(res.body.details).toEqual([expect.objectContaining({ path: "title" })]);
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe("DELETE /api/calendar/events/:eventId", () => {
-    it("should delete calendar event successfully", async () => {
-      services.calendarManager.deleteCalendarEvent = jest
-        .fn()
-        .mockResolvedValue(undefined);
+    function mockGoogleDelete(): jest.Mock {
+      const del = jest.fn().mockResolvedValue({ status: 204 });
+      jest.spyOn(services.oauth2, "getGoogleClient").mockResolvedValue({} as any);
+      (google.calendar as unknown as jest.Mock).mockReturnValue({ events: { delete: del } });
+      return del;
+    }
 
-      const response = await request(app)
-        .delete("/api/calendar/events/google-event-1")
-        .set("Authorization", authToken)
-        .expect(200);
+    it("deletes the caller's event from Google Calendar and the local store", async () => {
+      const del = mockGoogleDelete();
+      const tables = serve(world({ calendar_events: [calendarEvent()] }));
 
-      expect(response.body).toMatchObject({
+      const res = await request(app).delete("/api/calendar/events/cal-event-1").set(auth());
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         success: true,
         message: "Calendar event deleted successfully",
       });
+      expect(services.oauth2.getGoogleClient).toHaveBeenCalledWith(USER);
+      expect(del).toHaveBeenCalledWith({ calendarId: "primary", eventId: "google-event-1" });
+      const deletes = queriesOn("calendar_events").filter((q) => q.sql.startsWith("delete"));
+      expect(deletes).toHaveLength(1);
+      expect(deletes[0].sql).toMatch(/^delete from "calendar_events" where "id" = \$1/);
+      expect(deletes[0].parameters).toEqual(["cal-event-1"]);
+      expect(tables.calendar_events).toHaveLength(0);
+    });
 
-      expect(services.calendarManager.deleteCalendarEvent).toHaveBeenCalledWith(
-        "google-event-1",
-        testUserId
-      );
+    it("does not delete another user's event", async () => {
+      const del = mockGoogleDelete();
+      const tables = serve(world({ calendar_events: [calendarEvent({ userId: OTHER })] }));
+
+      const res = await request(app).delete("/api/calendar/events/cal-event-1").set(auth());
+
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.body.success).not.toBe(true);
+      expect(del).not.toHaveBeenCalled();
+      expect(tables.calendar_events).toHaveLength(1);
     });
   });
 
   describe("GET /api/calendar/sync/status", () => {
-    it("should return calendar sync status with access", async () => {
-      const mockOAuthStatus = {
-        isAuthenticated: true,
-        scopes: [
-          "https://www.googleapis.com/auth/gmail.readonly",
-          "https://www.googleapis.com/auth/calendar",
-        ],
-        expiresAt: new Date("2024-01-16T00:00:00Z"),
-        needsReauth: false,
-      };
+    it("returns the sync status with calendar access", async () => {
+      serve(
+        world({
+          calendar_events: [
+            calendarEvent(),
+            calendarEvent({ id: "cal-event-2", calendarEventId: "google-event-2" }),
+          ],
+        })
+      );
 
-      const mockEvents = [
-        { id: "event-1", summary: "Test Event 1" },
-        { id: "event-2", summary: "Test Event 2" },
-      ];
+      const res = await request(app).get("/api/calendar/sync/status").set(auth());
 
-      services.oauth2.getOAuthStatus = jest
-        .fn()
-        .mockResolvedValue(mockOAuthStatus);
-      services.calendarManager.getCalendarEvents = jest
-        .fn()
-        .mockResolvedValue(mockEvents);
-
-      const response = await request(app)
-        .get("/api/calendar/sync/status")
-        .set("Authorization", authToken)
-        .expect(200);
-
-      expect(response.body).toMatchObject({
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
         success: true,
         syncStatus: {
           isConnected: true,
           hasCalendarAccess: true,
           lastSync: expect.any(String),
           recentEventsCount: 2,
-          scopes: mockOAuthStatus.scopes,
+          scopes: expect.arrayContaining([CALENDAR_SCOPE]),
         },
       });
+      const [q] = queriesOn("calendar_events");
+      expect(q.parameters).toEqual([USER, 10]);
     });
 
-    it("should return sync status without calendar access", async () => {
-      const mockOAuthStatus = {
+    it("returns the sync status without calendar access", async () => {
+      const scopes = ["https://www.googleapis.com/auth/gmail.readonly"];
+      jest.spyOn(services.oauth2, "getOAuthStatus").mockResolvedValue({
         isAuthenticated: true,
-        scopes: ["https://www.googleapis.com/auth/gmail.readonly"], // No calendar scope
-        expiresAt: new Date("2024-01-16T00:00:00Z"),
+        scopes,
+        expiresAt: new Date("2099-01-16T00:00:00Z"),
         needsReauth: false,
-      };
+      });
+      const events = jest.spyOn(services.calendarManager, "getCalendarEvents");
+      serve(world());
 
-      services.oauth2.getOAuthStatus = jest
-        .fn()
-        .mockResolvedValue(mockOAuthStatus);
+      const res = await request(app).get("/api/calendar/sync/status").set(auth());
 
-      const response = await request(app)
-        .get("/api/calendar/sync/status")
-        .set("Authorization", authToken)
-        .expect(200);
-
-      expect(response.body).toMatchObject({
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         success: true,
         syncStatus: {
           isConnected: false,
           hasCalendarAccess: false,
           lastSync: expect.any(String),
           recentEventsCount: 0,
-          scopes: mockOAuthStatus.scopes,
+          scopes,
         },
       });
+      expect(services.oauth2.getOAuthStatus).toHaveBeenCalledWith(USER);
+      expect(events).not.toHaveBeenCalled();
     });
   });
 
   describe("POST /api/calendar/sync", () => {
-    it("should sync calendar events for multiple schedules", async () => {
-      // Create second schedule
-      const testEmail2 = await prisma.processedEmail.create({
-        data: {
-          messageId: "test-message-id-2",
-          subject: "Test Schedule Email 2",
-          sender: "test@stillontime.com",
-          receivedAt: new Date(),
-          threadId: "test-thread-id-2",
-          processed: true,
-          processingStatus: "completed",
-          userId: testUserId,
-        },
-      });
+    it("creates calendar events for schedules that have none", async () => {
+      const create = jest
+        .spyOn(services.calendarManager, "createCalendarEvent")
+        .mockImplementation(async (s: any) => ({ calendarEventId: `google-for-${s.id}` }) as any);
+      const update = jest.spyOn(services.calendarManager, "updateCalendarEventFromSchedule");
+      serve(world({ schedule_data: [schedule(), schedule({ id: SCHED2 })] }));
 
-      const testSchedule2 = await prisma.scheduleData.create({
-        data: {
-          shootingDate: new Date("2024-01-16"),
-          callTime: "09:00",
-          location: "Location 2, Warsaw",
-          baseLocation: "Panavision Warsaw",
-          sceneType: "INT",
-          userId: testUserId,
-          emailId: testEmail2.id,
-        },
-      });
-
-      // Create calendar event for second schedule
-      await prisma.calendarEvent.create({
-        data: {
-          calendarEventId: "google-event-2",
-          title: "Existing Event",
-          startTime: new Date("2024-01-16T08:00:00Z"),
-          endTime: new Date("2024-01-16T18:00:00Z"),
-          description: "Existing event description",
-          location: "Location 2, Warsaw",
-          userId: testUserId,
-          scheduleId: testSchedule2.id,
-        },
-      });
-
-      const mockNewEvent = {
-        id: "cal-event-1",
-        calendarEventId: "google-event-1",
-        title: "New Event",
-      };
-
-      const mockUpdatedEvent = {
-        id: "cal-event-2",
-        calendarEventId: "google-event-2",
-        title: "Updated Event",
-      };
-
-      services.calendarManager.createCalendarEvent = jest
-        .fn()
-        .mockResolvedValue(mockNewEvent);
-      services.calendarManager.updateCalendarEventFromSchedule = jest
-        .fn()
-        .mockResolvedValue(mockUpdatedEvent);
-
-      const response = await request(app)
+      const res = await request(app)
         .post("/api/calendar/sync")
-        .set("Authorization", authToken)
-        .send({ scheduleIds: [testScheduleId, testSchedule2.id] })
-        .expect(200);
+        .set(auth())
+        .send({ scheduleIds: [SCHED, SCHED2] });
 
-      expect(response.body).toMatchObject({
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         success: true,
         results: [
-          {
-            scheduleId: testScheduleId,
-            success: true,
-            eventId: "google-event-1",
-          },
-          {
-            scheduleId: testSchedule2.id,
-            success: true,
-            eventId: "google-event-2",
-          },
+          { scheduleId: SCHED, success: true, eventId: `google-for-${SCHED}` },
+          { scheduleId: SCHED2, success: true, eventId: `google-for-${SCHED2}` },
         ],
-        summary: {
-          total: 2,
-          successful: 2,
-          failed: 0,
-        },
+        summary: { total: 2, successful: 2, failed: 0 },
         message: "Calendar sync completed: 2/2 events synced",
       });
-
-      expect(
-        services.calendarManager.createCalendarEvent
-      ).toHaveBeenCalledTimes(1);
-      expect(
-        services.calendarManager.updateCalendarEventFromSchedule
-      ).toHaveBeenCalledTimes(1);
-
-      // Clean up
-      await prisma.calendarEvent.deleteMany({
-        where: { scheduleId: testSchedule2.id },
-      });
-      await prisma.scheduleData.delete({ where: { id: testSchedule2.id } });
-      await prisma.processedEmail.delete({ where: { id: testEmail2.id } });
+      expect(create).toHaveBeenCalledTimes(2);
+      create.mock.calls.forEach((call) => expect(call[3]).toBe(USER));
+      expect(update).not.toHaveBeenCalled();
     });
 
-    it("should return 400 when schedule IDs are missing", async () => {
-      const response = await request(app)
-        .post("/api/calendar/sync")
-        .set("Authorization", authToken)
-        .send({}) // Missing scheduleIds
-        .expect(400);
+    it("updates (does not duplicate) the event of a schedule already synced", async () => {
+      const create = jest
+        .spyOn(services.calendarManager, "createCalendarEvent")
+        .mockResolvedValue({ calendarEventId: "google-event-1" } as any);
+      const update = jest
+        .spyOn(services.calendarManager, "updateCalendarEventFromSchedule")
+        .mockResolvedValue({ calendarEventId: "google-event-2" } as any);
+      serve(
+        world({
+          schedule_data: [schedule(), schedule({ id: SCHED2, sceneType: "INT" })],
+          calendar_events: [
+            calendarEvent({ id: "cal-event-2", scheduleId: SCHED2, calendarEventId: "google-event-2" }),
+          ],
+        })
+      );
 
-      expect(response.body).toMatchObject({
-        error: "Bad Request",
-        code: "MISSING_SCHEDULE_IDS",
+      const res = await request(app)
+        .post("/api/calendar/sync")
+        .set(auth())
+        .send({ scheduleIds: [SCHED, SCHED2] });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        results: [
+          { scheduleId: SCHED, success: true, eventId: "google-event-1" },
+          { scheduleId: SCHED2, success: true, eventId: "google-event-2" },
+        ],
+        summary: { total: 2, successful: 2, failed: 0 },
       });
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][0]).toBe("google-event-2");
+      expect(update.mock.calls[0][1]).toMatchObject({ id: SCHED2 });
+      expect(update.mock.calls[0][4]).toBe(USER);
     });
 
-    it("should return 400 when schedule IDs is not an array", async () => {
-      const response = await request(app)
-        .post("/api/calendar/sync")
-        .set("Authorization", authToken)
-        .send({ scheduleIds: "not-an-array" })
-        .expect(400);
+    it("reports a schedule the caller does not own as failed and does not sync it", async () => {
+      const create = jest
+        .spyOn(services.calendarManager, "createCalendarEvent")
+        .mockResolvedValue({ calendarEventId: "google-event-1" } as any);
+      serve(world({ schedule_data: [schedule(), schedule({ id: SCHED2, userId: OTHER })] }));
 
-      expect(response.body).toMatchObject({
-        error: "Bad Request",
-        code: "VALIDATION_ERROR",
+      const res = await request(app)
+        .post("/api/calendar/sync")
+        .set(auth())
+        .send({ scheduleIds: [SCHED, SCHED2] });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        results: [
+          { scheduleId: SCHED, success: true, eventId: "google-event-1" },
+          { scheduleId: SCHED2, success: false, error: "Schedule not found or access denied" },
+        ],
+        summary: { total: 2, successful: 1, failed: 1 },
+        message: "Calendar sync completed: 1/2 events synced",
       });
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(create.mock.calls[0][0]).toMatchObject({ id: SCHED });
+    });
+
+    it("returns 400 when schedule IDs are missing", async () => {
+      const create = jest.spyOn(services.calendarManager, "createCalendarEvent");
+      serve(world());
+
+      const res = await request(app).post("/api/calendar/sync").set(auth()).send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: "Bad Request", code: "VALIDATION_ERROR" });
+      expect(res.body.details).toEqual(
+        expect.arrayContaining([expect.objectContaining({ path: "scheduleIds" })])
+      );
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when schedule IDs is not an array", async () => {
+      const create = jest.spyOn(services.calendarManager, "createCalendarEvent");
+      serve(world());
+
+      const res = await request(app)
+        .post("/api/calendar/sync")
+        .set(auth())
+        .send({ scheduleIds: "not-an-array" });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: "Bad Request", code: "VALIDATION_ERROR" });
+      expect(create).not.toHaveBeenCalled();
     });
   });
 
   describe("GET /api/calendar/settings", () => {
-    it("should return calendar settings with available calendars", async () => {
-      const mockCalendars = [
-        {
-          id: "primary",
-          summary: "Primary Calendar",
-          description: "Main calendar",
-          primary: true,
-          accessRole: "owner",
-        },
-        {
-          id: "work-calendar",
-          summary: "Work Calendar",
-          description: "Work events",
-          primary: false,
-          accessRole: "writer",
-        },
-      ];
+    it("returns the calendar settings, reading the caller's config", async () => {
+      serve(world());
 
-      services.calendarManager.getCalendarList = jest
-        .fn()
-        .mockResolvedValue(mockCalendars);
+      const res = await request(app).get("/api/calendar/settings").set(auth());
 
-      const response = await request(app)
-        .get("/api/calendar/settings")
-        .set("Authorization", authToken)
-        .expect(200);
-
-      expect(response.body).toMatchObject({
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         success: true,
         settings: {
-          defaultCalendarId: "primary",
-          reminderSettings: {
-            wakeUpReminders: [-10, 0, 5],
-            departureReminders: [-60, -15, 0],
-            eventReminders: [-720, -180, -60, 0],
-          },
-          eventDefaults: {
-            duration: 600, // 10 hours in minutes
-            visibility: "private",
-            guestsCanModify: false,
-          },
+          autoSync: true,
+          defaultCalendar: "primary",
+          syncPastEvents: false,
+          eventReminders: true,
+          reminderMinutes: 15,
         },
-        availableCalendars: [
-          {
-            id: "primary",
-            summary: "Primary Calendar",
-            description: "Main calendar",
-            primary: true,
-            accessRole: "owner",
-          },
-          {
-            id: "work-calendar",
-            summary: "Work Calendar",
-            description: "Work events",
-            primary: false,
-            accessRole: "writer",
-          },
-        ],
       });
-
-      expect(services.calendarManager.getCalendarList).toHaveBeenCalledWith(
-        testUserId
-      );
+      const [q] = queriesOn("user_configs");
+      expect(q.sql).toMatch(/from "user_configs" where "userId" = \$1/);
+      expect(q.parameters).toEqual([USER]);
     });
   });
 
   describe("GET /api/calendar/health", () => {
-    it("should return health status", async () => {
-      const response = await request(app)
-        .get("/api/calendar/health")
-        .set("Authorization", authToken)
-        .expect(200);
+    it("returns the health status", async () => {
+      serve(world());
 
-      expect(response.body).toMatchObject({
+      const res = await request(app).get("/api/calendar/health").set(auth());
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
         status: "healthy",
         service: "calendar-management",
         timestamp: expect.any(String),

@@ -3,13 +3,13 @@ import request from 'supertest';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { config } from '../src/config/config';
-import { initializeDatabase } from '../src/config/database';
-import { logger } from '../src/utils/logger';
+import { config } from '../../src/config/config';
+import { initializeDatabase } from '../../src/config/database';
+import { logger } from '../../src/utils/logger';
 
 // Mock dependencies
-jest.mock('../src/config/database');
-jest.mock('../src/utils/logger');
+jest.mock('../../src/config/database');
+jest.mock('../../src/utils/logger');
 
 const mockInitializeDatabase = initializeDatabase as jest.MockedFunction<typeof initializeDatabase>;
 const mockLogger = logger as jest.Mocked<typeof logger>;

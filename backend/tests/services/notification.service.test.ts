@@ -1,3 +1,4 @@
+import nodemailer from "nodemailer";
 import { NotificationService } from "../../src/services/notification.service";
 import { NotificationRepository } from "../../src/repositories/notification.repository";
 import { UserRepository } from "../../src/repositories/user.repository";
@@ -20,6 +21,9 @@ jest.mock("nodemailer");
 const mockNotificationRepository =
   new NotificationRepository() as jest.Mocked<NotificationRepository>;
 const mockUserRepository = new UserRepository() as jest.Mocked<UserRepository>;
+// nodemailer is auto-mocked (tests/setup.ts), so createTransport() would return
+// undefined; give the service a transporter whose sendMail succeeds.
+const mockSendMail = jest.fn();
 
 describe("NotificationService", () => {
   let notificationService: NotificationService;
@@ -31,6 +35,10 @@ describe("NotificationService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSendMail.mockResolvedValue({ messageId: "smtp-message-id" });
+    (nodemailer.createTransport as jest.Mock).mockReturnValue({
+      sendMail: mockSendMail,
+    });
 
     notificationService = new NotificationService(
       mockNotificationRepository,
@@ -317,10 +325,18 @@ describe("NotificationService", () => {
         mockNotificationRepository.findPendingScheduled
       ).toHaveBeenCalled();
       expect(mockUserRepository.findById).toHaveBeenCalledWith("user-1");
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "test@example.com",
+          subject: "Wake Up!",
+          html: "Time to wake up",
+        })
+      );
       expect(mockNotificationRepository.markAsSent).toHaveBeenCalledWith(
         "notification-1",
-        expect.any(String)
+        "smtp-message-id"
       );
+      expect(mockNotificationRepository.markAsFailed).not.toHaveBeenCalled();
     });
 
     it("should handle user not found during scheduled processing", async () => {
@@ -407,10 +423,18 @@ describe("NotificationService", () => {
       // Assert
       expect(mockNotificationRepository.findRetryable).toHaveBeenCalled();
       expect(mockUserRepository.findById).toHaveBeenCalledWith("user-1");
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "test@example.com",
+          subject: "Test Subject",
+          html: "Test Message",
+        })
+      );
       expect(mockNotificationRepository.markAsSent).toHaveBeenCalledWith(
         "notification-1",
-        expect.any(String)
+        "smtp-message-id"
       );
+      expect(mockNotificationRepository.markAsFailed).not.toHaveBeenCalled();
     });
   });
 
@@ -432,8 +456,8 @@ describe("NotificationService", () => {
         userId: "user-1",
         channel: "email",
         template: "schedule_processed",
-        subject: "✅ Plan zdjęciowy przetworzony - Test Location",
-        message: expect.stringContaining("Test Location"),
+        subject: "✅ Shooting Schedule Processed - Test Location",
+        message: "rendered",
         data: {},
         scheduledFor: null,
         sentAt: null,
@@ -451,10 +475,13 @@ describe("NotificationService", () => {
         sentAt: new Date(),
       });
 
+      // Flat keys (location) feed the subject, as callers such as
+      // WeatherMonitoringService pass them; nested paths feed the email body.
       const templateData: NotificationTemplateData = {
         scheduleData: mockScheduleData,
         routePlan: mockRoutePlan,
         weatherData: mockWeatherData,
+        location: "Test Location",
       };
 
       // Act
@@ -468,10 +495,16 @@ describe("NotificationService", () => {
       // Assert
       expect(mockNotificationRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          subject: "✅ Plan zdjęciowy przetworzony - Test Location",
-          message: expect.stringContaining("Test Location"),
+          subject: "✅ Shooting Schedule Processed - Test Location",
+          message: expect.stringContaining(
+            "<p><strong>Location:</strong> Test Location</p>"
+          ),
         })
       );
+      const { message } = mockNotificationRepository.create.mock.calls[0][0];
+      expect(message).toContain("<p><strong>Call time:</strong> 08:00</p>");
+      expect(message).not.toContain("{{scheduleData.");
+      expect(message).not.toContain("{{routePlan.");
     });
   });
 

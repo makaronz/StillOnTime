@@ -96,7 +96,8 @@ describe("SummaryService", () => {
       user: mockUser,
       email: {} as any,
       routePlan: mockRoutePlan,
-      weatherData: mockWeatherData,
+      // ScheduleDataWithRelations.weatherData is WeatherData[] (src/types/index.ts)
+      weatherData: [mockWeatherData],
       calendarEvent: null,
     } as unknown as ScheduleDataWithRelations;
   });
@@ -194,28 +195,26 @@ describe("SummaryService", () => {
           wakeUpTime: new Date("2024-01-15T03:00:00"), // Very early
           totalTravelMinutes: 150, // Long travel
         },
-        weatherData: {
-          ...mockWeatherData,
-          temperature: -5, // Cold weather
-        },
+        weatherData: [
+          {
+            ...mockWeatherData,
+            temperature: -5, // Cold weather
+          },
+        ],
       };
 
-      // Act
+      // Act (default language is English)
       const result = await summaryService.generateSummary(
         scheduleWithEarlyWakeUp
       );
 
       // Assert
-      expect(result.warnings).toContain("Strong wind warning"); // From weather data
-      expect(result.warnings.some((w) => w.includes("wczesna pobudka"))).toBe(
-        true
-      );
-      expect(result.warnings.some((w) => w.includes("Długa podróż"))).toBe(
-        true
-      );
-      expect(result.warnings.some((w) => w.includes("Zimna pogoda"))).toBe(
-        true
-      );
+      expect(result.warnings).toEqual([
+        "Strong wind warning", // From weather data
+        "Very early wake up - prepare to go to bed earlier",
+        "Long journey - check route and road conditions",
+        "Cold weather - dress warmly",
+      ]);
     });
 
     it("should handle missing route plan", async () => {
@@ -230,7 +229,8 @@ describe("SummaryService", () => {
 
       // Assert
       expect(result.timeline).toHaveLength(2); // Only call time and wrap
-      expect(result.content).not.toContain("Harmonogram");
+      // Default language is English: no "Route and Times" section without a route
+      expect(result.content).not.toContain("Route and Times");
     });
 
     it("should handle missing weather data", async () => {
@@ -252,7 +252,8 @@ describe("SummaryService", () => {
 
       // Assert
       expect(result.weatherSummary).toBeUndefined();
-      expect(result.content).not.toContain("Pogoda");
+      // Default language is English: no "Weather" section without weather data
+      expect(result.content).not.toContain("Weather");
     });
 
     it("should exclude sections based on options", async () => {
@@ -272,10 +273,11 @@ describe("SummaryService", () => {
       );
 
       // Assert
-      expect(result.content).not.toContain("Trasa i Czasy");
-      expect(result.content).not.toContain("Kontakty");
-      expect(result.content).not.toContain("Sprzęt");
-      expect(result.content).not.toContain("Uwagi BHP");
+      // Default language is English
+      expect(result.content).not.toContain("Route and Times");
+      expect(result.content).not.toContain("Contacts");
+      expect(result.content).not.toContain("Equipment");
+      expect(result.content).not.toContain("Safety Notes");
       expect(result.weatherSummary).toBeUndefined();
     });
 

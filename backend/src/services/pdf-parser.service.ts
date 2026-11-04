@@ -287,7 +287,7 @@ export class PDFParserService {
     }
 
     // Validate time format
-    if (data.callTime && !/^\d{1,2}:\d{2}$/.test(data.callTime)) {
+    if (data.callTime && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(data.callTime)) {
       errors.push("Call time must be in HH:MM format");
       isValid = false;
     }
@@ -378,6 +378,9 @@ export class PDFParserService {
     confidence: number;
   } {
     for (const pattern of this.LOCATION_PATTERNS) {
+      // Patterns are /g and shared by the instance: reset the cursor left by
+      // a previous call, or later parses start mid-text and miss the field.
+      pattern.lastIndex = 0;
       const match = pattern.exec(text);
       if (match && match[1]) {
         const location = match[1].trim();
@@ -408,10 +411,12 @@ export class PDFParserService {
     }
 
     // Extract scene numbers
+    // String.match with /g drops capture groups ("Scena 15A" instead of
+    // "15A"); keep the last captured group of each match instead.
     for (const pattern of this.SCENE_PATTERNS) {
-      const matches = text.match(pattern);
-      if (matches) {
-        scenes.push(...matches.map((m) => m.trim()));
+      for (const m of text.matchAll(pattern)) {
+        const groups = m.slice(1).filter((g) => g !== undefined);
+        scenes.push((groups[groups.length - 1] ?? m[0]).trim());
       }
     }
 
@@ -434,9 +439,16 @@ export class PDFParserService {
       let match;
       while ((match = pattern.exec(text)) !== null) {
         if (match[1] && match[2]) {
+          const phone = match[2].trim();
+          const digits = phone.replace(/\D/g, "");
+          // The generic name+phone pattern also matches lines a role pattern
+          // already captured; keep the first (role) match per phone number.
+          if (contacts.some((c) => c.phone.replace(/\D/g, "") === digits)) {
+            continue;
+          }
           contacts.push({
             name: match[1].trim(),
-            phone: match[2].trim(),
+            phone,
           });
         }
       }
@@ -452,6 +464,7 @@ export class PDFParserService {
     const equipment: string[] = [];
 
     for (const pattern of this.EQUIPMENT_PATTERNS) {
+      pattern.lastIndex = 0; // shared /g pattern, see extractLocation
       const match = pattern.exec(text);
       if (match && match[1]) {
         equipment.push(match[1].trim());
@@ -466,6 +479,7 @@ export class PDFParserService {
    */
   private extractSafetyNotes(text: string): string | undefined {
     for (const pattern of this.SAFETY_PATTERNS) {
+      pattern.lastIndex = 0; // shared /g pattern, see extractLocation
       const match = pattern.exec(text);
       if (match && match[1]) {
         return match[1].trim();

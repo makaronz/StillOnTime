@@ -3,23 +3,15 @@
  * Comprehensive testing of error recovery mechanisms and fallback strategies
  */
 
-import {
-  ErrorHandlerService,
-  ErrorRecoveryResult,
+import type {
+  ErrorHandlerService as ErrorHandlerServiceType,
   FallbackOptions,
 } from "../../src/services/error-handler.service";
-import { OAuth2Service } from "../../src/services/oauth2.service";
-import { CacheService } from "../../src/services/cache.service";
-import { NotificationService } from "../../src/services/notification.service";
-import {
-  OAuthError,
-  APIError,
-  PDFProcessingError,
-  DatabaseError,
-  SystemError,
-  ErrorCode,
-} from "../../src/utils/errors";
-import { CircuitBreakerRegistry } from "../../src/utils/circuit-breaker";
+import type { OAuth2Service } from "../../src/services/oauth2.service";
+import type { CacheService } from "../../src/services/cache.service";
+import type { NotificationService } from "../../src/services/notification.service";
+import type { CircuitBreakerRegistry as CircuitBreakerRegistryType } from "../../src/utils/circuit-breaker";
+import type * as Errors from "../../src/utils/errors";
 
 // Mock dependencies
 jest.mock("../../src/services/oauth2.service");
@@ -28,42 +20,87 @@ jest.mock("../../src/services/notification.service");
 jest.mock("../../src/utils/circuit-breaker");
 
 describe("ErrorHandlerService", () => {
-  let errorHandlerService: ErrorHandlerService;
+  let errorHandlerService: ErrorHandlerServiceType;
   let mockOAuth2Service: jest.Mocked<OAuth2Service>;
   let mockCacheService: jest.Mocked<CacheService>;
   let mockNotificationService: jest.Mocked<NotificationService>;
-  let mockCircuitBreakerRegistry: jest.Mocked<CircuitBreakerRegistry>;
+  let mockCircuitBreakerRegistry: jest.Mocked<CircuitBreakerRegistryType>;
+  let OAuthError: typeof Errors.OAuthError;
+  let APIError: typeof Errors.APIError;
+  let PDFProcessingError: typeof Errors.PDFProcessingError;
+  let DatabaseError: typeof Errors.DatabaseError;
+  let SystemError: typeof Errors.SystemError;
+  let ErrorCode: typeof Errors.ErrorCode;
 
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
 
-    // Create mock instances
-    mockOAuth2Service = new OAuth2Service() as jest.Mocked<OAuth2Service>;
-    mockCacheService = new CacheService() as jest.Mocked<CacheService>;
-    mockNotificationService = new NotificationService(
-      null as any,
-      null as any
-    ) as jest.Mocked<NotificationService>;
+    // The constructor starts an hourly metrics-cleanup setInterval; keep it
+    // from leaking out of the test (Date stays real for the metrics logic).
+    jest.useFakeTimers({
+      doNotFake: ["Date", "nextTick", "setImmediate", "queueMicrotask"],
+    });
 
-    // Mock CircuitBreakerRegistry
-    mockCircuitBreakerRegistry = {
-      getInstance: jest.fn().mockReturnThis(),
-      get: jest.fn(),
-      getAllStats: jest.fn().mockReturnValue({}),
-      resetAll: jest.fn(),
-    } as any;
+    // tests/setup.ts imports the whole route graph, which already loaded
+    // error-handler.service bound to the REAL circuit-breaker registry. Load a
+    // fresh copy so the mocks above (and the error classes it checks with
+    // instanceof) come from the same module registry as the service.
+    jest.isolateModules(() => {
+      ({
+        OAuthError,
+        APIError,
+        PDFProcessingError,
+        DatabaseError,
+        SystemError,
+        ErrorCode,
+      } = require("../../src/utils/errors"));
+      const { OAuth2Service } = require("../../src/services/oauth2.service");
+      const { CacheService } = require("../../src/services/cache.service");
+      const {
+        NotificationService,
+      } = require("../../src/services/notification.service");
+      const { CircuitBreakerRegistry } = require("../../src/utils/circuit-breaker");
+      const { RetryManager } = require("../../src/utils/retry");
+      const { ErrorHandlerService } = require("../../src/services/error-handler.service");
 
-    (CircuitBreakerRegistry.getInstance as jest.Mock).mockReturnValue(
-      mockCircuitBreakerRegistry
-    );
+      // Retry backoff waits real seconds (GMAIL_API: 2s, 5s, 12.5s ...);
+      // skip the waiting, keep the retry logic itself.
+      jest.spyOn(RetryManager as any, "sleep").mockResolvedValue(undefined);
 
-    // Create service instance
-    errorHandlerService = new ErrorHandlerService(
-      mockOAuth2Service,
-      mockCacheService,
-      mockNotificationService
-    );
+      // Create mock instances
+      mockOAuth2Service = new OAuth2Service() as jest.Mocked<OAuth2Service>;
+      mockCacheService = new CacheService() as jest.Mocked<CacheService>;
+      mockNotificationService = new NotificationService(
+        null as any,
+        null as any
+      ) as jest.Mocked<NotificationService>;
+
+      // Mock CircuitBreakerRegistry
+      mockCircuitBreakerRegistry = {
+        getInstance: jest.fn().mockReturnThis(),
+        get: jest.fn(),
+        getAllStats: jest.fn().mockReturnValue({}),
+        resetAll: jest.fn(),
+      } as any;
+
+      (CircuitBreakerRegistry.getInstance as jest.Mock).mockReturnValue(
+        mockCircuitBreakerRegistry
+      );
+
+      // Create service instance
+      errorHandlerService = new ErrorHandlerService(
+        mockOAuth2Service,
+        mockCacheService,
+        mockNotificationService
+      );
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   describe("OAuth Error Handling", () => {
@@ -148,9 +185,14 @@ describe("ErrorHandlerService", () => {
         true
       );
 
+      // A transient failure RetryManager classifies as retryable
       const mockOperation = jest
         .fn()
-        .mockRejectedValueOnce(new Error("First attempt failed"))
+        .mockRejectedValueOnce(
+          Object.assign(new Error("First attempt failed"), {
+            code: "SERVICE_UNAVAILABLE",
+          })
+        )
         .mockResolvedValue("success");
 
       // Mock circuit breaker as closed
@@ -166,7 +208,8 @@ describe("ErrorHandlerService", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBe("success");
-      expect(result.recoveryAction).toContain("retry_succeeded_after");
+      expect(result.recoveryAction).toBe("retry_succeeded_after_2_attempts");
+      expect(mockOperation).toHaveBeenCalledTimes(2);
     });
 
     it("should use fallback when circuit breaker is open", async () => {
@@ -279,9 +322,14 @@ describe("ErrorHandlerService", () => {
         true
       );
 
+      // A transient failure that RETRY_CONFIGS.DATABASE treats as retryable
       const mockOperation = jest
         .fn()
-        .mockRejectedValueOnce(new Error("Connection failed"))
+        .mockRejectedValueOnce(
+          Object.assign(new Error("Connection failed"), {
+            code: "CONNECTION_ERROR",
+          })
+        )
         .mockResolvedValue("database-result");
 
       const result = await errorHandlerService.handleDatabaseError(
@@ -291,7 +339,10 @@ describe("ErrorHandlerService", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBe("database-result");
-      expect(result.recoveryAction).toContain("database_retry_succeeded_after");
+      expect(result.recoveryAction).toBe(
+        "database_retry_succeeded_after_2_attempts"
+      );
+      expect(mockOperation).toHaveBeenCalledTimes(2);
     });
 
     it("should not retry constraint errors", async () => {

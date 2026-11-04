@@ -1,5 +1,4 @@
-import { CacheService } from "@/services/cache.service";
-import { createClient } from "redis";
+import type { CacheService as CacheServiceType } from "@/services/cache.service";
 
 // Mock Redis client
 jest.mock("redis", () => ({
@@ -11,7 +10,7 @@ jest.mock("@/config/redis", () => ({
 }));
 
 describe("CacheService", () => {
-  let cacheService: CacheService;
+  let cacheService: CacheServiceType;
   let mockRedisClient: any;
 
   beforeEach(() => {
@@ -32,11 +31,15 @@ describe("CacheService", () => {
       flushDb: jest.fn(),
     };
 
-    // Mock getRedisClient to return our mock
-    const { getRedisClient } = require("@/config/redis");
-    getRedisClient.mockResolvedValue(mockRedisClient);
-
-    cacheService = new CacheService();
+    // tests/setup.ts imports the whole route graph, which already loaded
+    // cache.service bound to the real @/config/redis. Load a fresh copy so the
+    // service resolves the mocked @/config/redis above (no real Redis needed).
+    jest.isolateModules(() => {
+      const { getRedisClient } = require("@/config/redis");
+      getRedisClient.mockResolvedValue(mockRedisClient);
+      const { CacheService } = require("@/services/cache.service");
+      cacheService = new CacheService();
+    });
   });
 
   afterEach(() => {
@@ -110,7 +113,7 @@ describe("CacheService", () => {
 
       const result = await cacheService.get("non-existent-key");
 
-      expect(result).toBeUndefined(); // Fixed: cache miss returns undefined
+      expect(result).toBeNull(); // get() returns null on a cache miss
     });
 
     it("should handle Redis errors gracefully", async () => {
@@ -118,7 +121,7 @@ describe("CacheService", () => {
 
       const result = await cacheService.get("key");
 
-      expect(result).toBeUndefined(); // Fixed: error handling returns undefined
+      expect(result).toBeNull(); // get() swallows Redis errors and returns null
     });
   });
 
@@ -209,7 +212,8 @@ describe("CacheService", () => {
   describe("mget", () => {
     it("should get multiple values", async () => {
       const keys = ["key1", "key2", "key3"];
-      const values = ["value1", "value2", null];
+      // values are stored JSON-serialised by set()/mset(), so Redis returns JSON
+      const values = [JSON.stringify("value1"), JSON.stringify("value2"), null];
       mockRedisClient.mGet.mockResolvedValue(values);
 
       const result = await cacheService.mget(keys);

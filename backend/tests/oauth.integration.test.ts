@@ -23,15 +23,6 @@ const mockOAuth2 = {
   },
 };
 
-jest.mock("googleapis", () => ({
-  google: {
-    auth: {
-      OAuth2: jest.fn().mockImplementation(() => mockOAuth2Client),
-    },
-    oauth2: jest.fn().mockReturnValue(mockOAuth2),
-  },
-}));
-
 describe("OAuth Integration Tests", () => {
   let oauth2Service: OAuth2Service;
   let mockUserRepository: jest.Mocked<Partial<UserRepository>>;
@@ -48,7 +39,21 @@ describe("OAuth Integration Tests", () => {
     } as jest.Mocked<Partial<UserRepository>>;
 
     oauth2Service = new OAuth2Service(mockUserRepository as UserRepository);
+    // tests/setup.ts loads the route graph (and with it oauth2.service and an
+    // automocked googleapis) before this file runs, so a googleapis factory
+    // mock here never reaches the service. Wire the two Google boundaries the
+    // service actually uses: its OAuth2 client and google.oauth2().
+    (oauth2Service as any).oauth2Client = mockOAuth2Client;
+    jest.spyOn(google, "oauth2").mockReturnValue(mockOAuth2 as any);
   });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // Tokens as the service stores them (AES-256-GCM, salt:iv:authTag:data).
+  const encrypt = (token: string): string =>
+    (oauth2Service as any).encryptToken(token);
 
   describe("OAuth Login Flow", () => {
     it("should complete full OAuth flow successfully", async () => {
@@ -215,8 +220,8 @@ describe("OAuth Integration Tests", () => {
     it("should refresh expired access token", async () => {
       const user = {
         id: "user-123",
-        accessToken: "encrypted-access-token",
-        refreshToken: "encrypted-refresh-token",
+        accessToken: encrypt("old-access-token"),
+        refreshToken: encrypt("old-refresh-token"),
         tokenExpiry: new Date(Date.now() - 3600000), // Expired 1 hour ago
       };
 
@@ -233,13 +238,24 @@ describe("OAuth Integration Tests", () => {
       mockUserRepository.update!.mockResolvedValue(user as any);
 
       // This should trigger automatic refresh
-      try {
-        await oauth2Service.getGoogleClient("user-123");
-      } catch (error) {
-        // Expected to fail at decryption since we're using mock data
-      }
+      const client = await oauth2Service.getGoogleClient("user-123");
 
-      expect(mockOAuth2Client.setCredentials).toHaveBeenCalled();
+      expect(client).toBe(mockOAuth2Client);
+      expect(mockOAuth2Client.setCredentials).toHaveBeenCalledWith({
+        refresh_token: "old-refresh-token",
+      });
+      expect(mockOAuth2Client.setCredentials).toHaveBeenLastCalledWith({
+        access_token: "new-access-token",
+        refresh_token: "new-refresh-token",
+        expiry_date: expect.any(Number),
+      });
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
+        "user-123",
+        expect.objectContaining({
+          accessToken: expect.stringMatching(/^[a-f0-9]+:[a-f0-9]+:[a-f0-9]+:[a-f0-9]+$/),
+          tokenExpiry: expect.any(Date),
+        })
+      );
     });
 
     it("should handle token refresh failure", async () => {
@@ -364,7 +380,7 @@ describe("OAuth Integration Tests", () => {
     it("should handle missing refresh token for expired access token", async () => {
       const user = {
         id: "user-123",
-        accessToken: "encrypted-token",
+        accessToken: encrypt("expired-access-token"),
         refreshToken: null,
         tokenExpiry: new Date(Date.now() - 3600000),
       };
@@ -417,8 +433,8 @@ describe("OAuth Integration Tests", () => {
     it("should revoke tokens and clean up user data", async () => {
       const user = {
         id: "user-123",
-        accessToken: "encrypted-token",
-        refreshToken: "encrypted-refresh-token",
+        accessToken: encrypt("access-token-to-revoke"),
+        refreshToken: encrypt("refresh-token-to-revoke"),
       };
       mockUserRepository.findById!.mockResolvedValue(user as any);
       mockUserRepository.update!.mockResolvedValue(user as any);
@@ -426,7 +442,7 @@ describe("OAuth Integration Tests", () => {
 
       await oauth2Service.revokeTokens("user-123");
 
-      expect(mockOAuth2Client.revokeToken).toHaveBeenCalled();
+      expect(mockOAuth2Client.revokeToken).toHaveBeenCalledWith("access-token-to-revoke");
       expect(mockUserRepository.update).toHaveBeenCalledWith("user-123", {
         accessToken: null,
         refreshToken: null,
@@ -437,7 +453,7 @@ describe("OAuth Integration Tests", () => {
     it("should handle revocation errors gracefully", async () => {
       const user = {
         id: "user-123",
-        accessToken: "encrypted-token",
+        accessToken: encrypt("already-revoked-token"),
       };
       mockUserRepository.findById!.mockResolvedValue(user as any);
       mockUserRepository.update!.mockResolvedValue(user as any);
@@ -516,9 +532,15 @@ describe("OAuth Integration Tests", () => {
         },
       });
 
+      // getUserInfo wraps every failure (incl. the "Incomplete user information"
+      // check) in one generic message; the Google call itself must have succeeded.
       await expect(oauth2Service.getUserInfo("access-token")).rejects.toThrow(
-        "Incomplete user information received from Google"
+        "Failed to retrieve user information from Google"
       );
+      expect(mockOAuth2.userinfo.get).toHaveBeenCalledTimes(1);
+      expect(mockOAuth2Client.setCredentials).toHaveBeenCalledWith({
+        access_token: "access-token",
+      });
     });
 
     it("should use email as name fallback", async () => {

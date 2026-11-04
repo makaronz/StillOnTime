@@ -95,9 +95,11 @@ describe("FallbackService", () => {
     });
 
     it("should execute default fallback strategy", async () => {
+      // weather_api's default strategy is registered for EXTERNAL_SERVICE_UNAVAILABLE
+      // (WEATHER_API_ERROR maps to the cache strategy)
       const error = new APIError(
         "Service unavailable",
-        ErrorCode.WEATHER_API_ERROR,
+        ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
         "weather_api"
       );
 
@@ -137,7 +139,7 @@ describe("FallbackService", () => {
       expect(result.success).toBe(true);
       expect(result.strategy).toBe("skip");
       expect(result.degraded).toBe(true);
-      expect(result.data).toBeUndefined(); // Fixed: service returns undefined for skipped operations
+      expect(result.data).toBeNull(); // executeSkipStrategy returns data: null
       expect(result.warnings).toContain(
         "Operation email_monitoring skipped due to gmail_api failure"
       );
@@ -150,13 +152,22 @@ describe("FallbackService", () => {
         "calendar_api"
       );
 
+      // partial degradation runs the first fallback operation, which reads its
+      // result from the cache
+      const fallbackOpData = { manualEntry: true };
+      mockCacheService.get.mockResolvedValue(fallbackOpData);
+
       const result = await fallbackService.executeFallback(
         "calendar_api",
         error,
         "event_creation"
       );
 
+      expect(mockCacheService.get).toHaveBeenCalledWith(
+        "fallback_op:manual_calendar_entry:event_creation"
+      );
       expect(result.success).toBe(true);
+      expect(result.data).toEqual(fallbackOpData);
       expect(result.strategy).toBe("degrade");
       expect(result.degraded).toBe(true);
       expect(result.warnings).toContain(
@@ -208,11 +219,15 @@ describe("FallbackService", () => {
     });
 
     it("should send notification for degradation requiring user notification", async () => {
+      // database's degrade (minimal) strategy is registered for DATABASE_TIMEOUT_ERROR
       const error = new APIError(
-        "Service unavailable",
-        ErrorCode.DATABASE_CONNECTION_ERROR,
+        "Timeout",
+        ErrorCode.DATABASE_TIMEOUT_ERROR,
         "database"
       );
+
+      // minimal degradation serves the degraded copy from the cache
+      mockCacheService.get.mockResolvedValue({ readonly: true });
 
       const result = await fallbackService.executeFallback(
         "database",
@@ -225,21 +240,22 @@ describe("FallbackService", () => {
       expect(mockNotificationService.sendSystemAlert).toHaveBeenCalledWith({
         type: "service_degradation",
         serviceName: "database",
-        degradationLevel: "minimal",
-        operation: "data_persistence",
-        message: "Service database is running in minimal degraded mode",
+        errorCode: ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        impact: "medium",
+        affectedOperations: ["data_persistence"],
+        estimatedRecoveryTime: 600,
         timestamp: expect.any(Date),
-        severity: "medium",
       });
     });
 
     it("should handle notification failure gracefully", async () => {
       const error = new APIError(
-        "Service unavailable",
-        ErrorCode.DATABASE_CONNECTION_ERROR,
+        "Timeout",
+        ErrorCode.DATABASE_TIMEOUT_ERROR,
         "database"
       );
 
+      mockCacheService.get.mockResolvedValue({ readonly: true });
       mockNotificationService.sendSystemAlert.mockRejectedValue(
         new Error("Notification failed")
       );
@@ -250,6 +266,7 @@ describe("FallbackService", () => {
         "data_persistence"
       );
 
+      expect(mockNotificationService.sendSystemAlert).toHaveBeenCalledTimes(1);
       expect(result.success).toBe(true);
       expect(result.strategy).toBe("degrade");
       // Should not throw error even if notification fails
@@ -305,13 +322,20 @@ describe("FallbackService", () => {
         "database"
       );
 
+      const degradedData = { readonly: true };
+      mockCacheService.get.mockResolvedValue(degradedData);
+
       const result = await fallbackService.executeFallback(
         "database",
         error,
         "data_persistence"
       );
 
+      expect(mockCacheService.get).toHaveBeenCalledWith(
+        "degraded:database:data_persistence:minimal"
+      );
       expect(result.success).toBe(true);
+      expect(result.data).toEqual(degradedData);
       expect(result.strategy).toBe("degrade");
       expect(result.degraded).toBe(true);
       expect(result.warnings).toContain("Degradation level: minimal");
@@ -323,6 +347,8 @@ describe("FallbackService", () => {
         ErrorCode.API_RATE_LIMITED,
         "calendar_api"
       );
+
+      mockCacheService.get.mockResolvedValue({ manualEntry: true });
 
       const result = await fallbackService.executeFallback(
         "calendar_api",
@@ -383,22 +409,32 @@ describe("FallbackService", () => {
     });
 
     it("should handle multiple strategy failures", async () => {
-      const error = new APIError(
-        "Service unavailable",
-        ErrorCode.MAPS_API_ERROR,
-        "maps_api"
-      );
-
-      // Mock cache failure
+      // Strategies are selected per (service, error code). For maps_api,
+      // MAPS_API_ERROR maps to the cache strategy and
+      // EXTERNAL_SERVICE_UNAVAILABLE to the default-data strategy.
       mockCacheService.get.mockResolvedValue(null);
 
-      const result = await fallbackService.executeFallback(
+      const cacheOnly = await fallbackService.executeFallback(
         "maps_api",
-        error,
+        new APIError("Service unavailable", ErrorCode.MAPS_API_ERROR, "maps_api"),
         "route_calculation"
       );
 
-      // Should fall back to default strategy
+      // primary key + 3 backup keys all miss -> every strategy failed
+      expect(mockCacheService.get).toHaveBeenCalledTimes(4);
+      expect(cacheOnly.success).toBe(false);
+      expect(cacheOnly.strategy).toBe("all_failed");
+
+      const result = await fallbackService.executeFallback(
+        "maps_api",
+        new APIError(
+          "Service unavailable",
+          ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          "maps_api"
+        ),
+        "route_calculation"
+      );
+
       expect(result.success).toBe(true);
       expect(result.strategy).toBe("default");
       expect(result.data).toHaveProperty("duration", 3600);

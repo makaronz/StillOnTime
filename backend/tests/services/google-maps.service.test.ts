@@ -5,15 +5,8 @@ import { logger } from "../../src/utils/logger";
 global.fetch = jest.fn();
 const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
-// Mock logger
-jest.mock("../../src/utils/logger", () => ({
-  logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+// The real logger instance is already loaded by tests/setup.ts (via the route
+// graph), so a jest.mock() factory here would not reach the service: spy on it.
 
 describe("GoogleMapsService", () => {
   let googleMapsService: GoogleMapsService;
@@ -21,6 +14,10 @@ describe("GoogleMapsService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(logger, "info").mockImplementation(() => logger);
+    jest.spyOn(logger, "warn").mockImplementation(() => logger);
+    jest.spyOn(logger, "error").mockImplementation(() => logger);
+    jest.spyOn(logger, "debug").mockImplementation(() => logger);
     process.env = {
       ...originalEnv,
       GOOGLE_MAPS_API_KEY: "test-api-key",

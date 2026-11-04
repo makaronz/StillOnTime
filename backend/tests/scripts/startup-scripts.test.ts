@@ -4,7 +4,7 @@
  * Tests individual startup script functions and behaviors
  */
 
-import { execSync } from 'child_process';
+import { execSync, spawnSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { resolve, join } from 'path';
 import { tmpdir } from 'os';
@@ -424,10 +424,28 @@ describe('Startup Scripts - Unit Tests', () => {
     });
 
     test('should validate prerequisites before execution', () => {
-      const testApisContent = readFileSync(join(SCRIPTS_DIR, 'test-apis.sh'), 'utf-8');
+      const testApisPath = join(SCRIPTS_DIR, 'test-apis.sh');
+      const testApisContent = readFileSync(testApisPath, 'utf-8');
 
+      // The script looks for backend/.env, then ./.env, and aborts otherwise
+      // (if/elif/else rather than a negated `if [ ! -f ... ]`).
       expect(testApisContent).toContain('.env');
-      expect(testApisContent).toMatch(/if.*!.*-f/);
+      expect(testApisContent).toMatch(/if \[ -f "backend\/\.env" \]/);
+
+      // Run it in a directory with no .env: it must abort with exit 1 before
+      // any API is contacted (no network is touched on this path).
+      const emptyDir = join(testTmpDir, 'no-env');
+      mkdirSync(emptyDir, { recursive: true });
+      const result = spawnSync('bash', [testApisPath], {
+        cwd: emptyDir,
+        encoding: 'utf-8',
+        env: { ...process.env, TERM: 'dumb' },
+        timeout: 10000,
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain('❌ Error: No .env file found!');
+      expect(result.stdout).not.toContain('Testing API Connectivity');
     });
   });
 });

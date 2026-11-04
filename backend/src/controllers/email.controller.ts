@@ -289,7 +289,7 @@ export class EmailController {
         return;
       }
 
-      const { emailId } = req.body;
+      const { emailId } = req.params;
 
       // Get email to verify ownership
       const email = await this.processedEmailRepository.findById(emailId);

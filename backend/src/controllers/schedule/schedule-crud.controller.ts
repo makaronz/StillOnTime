@@ -9,6 +9,31 @@ import { logger } from "@/utils/logger";
  * Schedule CRUD Controller
  * Handles schedule create, update, delete operations
  */
+/** Fields PUT /api/schedule/:scheduleId validates and may update. */
+const UPDATABLE_SCHEDULE_FIELDS = [
+  "shootingDate",
+  "callTime",
+  "location",
+  "baseLocation",
+  "sceneType",
+  "scenes",
+  "safetyNotes",
+  "equipment",
+  "contacts",
+  "notes",
+] as const;
+
+function pickFields(
+  source: Record<string, unknown> | undefined,
+  fields: readonly string[]
+): Record<string, any> {
+  const picked: Record<string, any> = {};
+  for (const field of fields) {
+    if (source && source[field] !== undefined) picked[field] = source[field];
+  }
+  return picked;
+}
+
 export class ScheduleCrudController extends BaseScheduleController {
   /**
    * Update schedule data
@@ -105,7 +130,9 @@ export class ScheduleCrudController extends BaseScheduleController {
 
     try {
       const { scheduleId } = req.params;
-      const updateData = req.body;
+      // Only the fields the route validates may be written; never userId,
+      // emailId or id from the body (mass assignment).
+      const updateData = pickFields(req.body, UPDATABLE_SCHEDULE_FIELDS);
 
       // Verify schedule exists and belongs to user
       const { schedule: _schedule, error } = await this.verifyScheduleOwnership(

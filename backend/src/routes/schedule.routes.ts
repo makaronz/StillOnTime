@@ -149,6 +149,19 @@ router.post(
   scheduleController.createSchedule.bind(scheduleController)
 );
 
+/**
+ * Health check route for schedule service.
+ * Declared before "/:scheduleId" so "health" is not captured as a schedule id.
+ */
+router.get("/health", (req: Request, res: Response): void => {
+  res.json({
+    status: "healthy",
+    service: "schedule-management",
+    timestamp: new Date().toISOString(),
+    version: "1.0.0",
+  });
+});
+
 // GET /api/schedule/:scheduleId - Get schedule by ID
 router.get(
   "/:scheduleId",
@@ -338,16 +351,5 @@ router.post(
   scheduleController.updateWeatherData.bind(scheduleController)
 );
 
-/**
- * Health check route for schedule service
- */
-router.get("/health", (req: Request, res: Response): void => {
-  res.json({
-    status: "healthy",
-    service: "schedule-management",
-    timestamp: new Date().toISOString(),
-    version: "1.0.0",
-  });
-});
 
 export { router as scheduleRoutes };

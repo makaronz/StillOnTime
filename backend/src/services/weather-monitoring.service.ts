@@ -399,9 +399,19 @@ export class WeatherMonitoringService {
       return;
     }
 
+    // Each concern may only raise the severity; a later, milder concern
+    // (e.g. strong wind after heavy precipitation) must not downgrade it.
+    const order = ["none", "minor", "moderate", "severe"] as const;
+    const raiseSeverity = (level: (typeof order)[number]): void => {
+      const current = impact.shootingConditions.severity as (typeof order)[number];
+      if (order.indexOf(level) > order.indexOf(current)) {
+        impact.shootingConditions.severity = level;
+      }
+    };
+
     // Temperature concerns for exterior shoots
     if (temperature < 0) {
-      impact.shootingConditions.severity = "moderate";
+      raiseSeverity("moderate");
       impact.shootingConditions.concerns.push("Very low temperature");
       impact.shootingConditions.recommendations.push(
         "Prepare warm clothing for the crew"
@@ -412,7 +422,7 @@ export class WeatherMonitoringService {
     }
 
     if (temperature > 30) {
-      impact.shootingConditions.severity = "moderate";
+      raiseSeverity("moderate");
       impact.shootingConditions.concerns.push("High temperature");
       impact.shootingConditions.recommendations.push(
         "Provide shade and hydration for the crew"
@@ -425,13 +435,13 @@ export class WeatherMonitoringService {
     // Precipitation concerns
     if (precipitation > 0) {
       if (precipitation < 5) {
-        impact.shootingConditions.severity = "minor";
+        raiseSeverity("minor");
         impact.shootingConditions.concerns.push("Light precipitation");
         impact.shootingConditions.recommendations.push(
           "Prepare equipment protection"
         );
       } else {
-        impact.shootingConditions.severity = "severe";
+        raiseSeverity("severe");
         impact.shootingConditions.concerns.push("Heavy precipitation");
         impact.shootingConditions.recommendations.push(
           "Consider postponing outdoor shoots"
@@ -444,7 +454,7 @@ export class WeatherMonitoringService {
 
     // Wind concerns
     if (windSpeed > 10) {
-      impact.shootingConditions.severity = "moderate";
+      raiseSeverity("moderate");
       impact.shootingConditions.concerns.push("Strong wind");
       impact.shootingConditions.recommendations.push("Secure film equipment");
       impact.shootingConditions.recommendations.push(
@@ -453,8 +463,14 @@ export class WeatherMonitoringService {
     }
 
     // Severe weather
-    if (warnings.some((w) => w.includes("Storm") || w.includes("Thunder"))) {
-      impact.shootingConditions.severity = "severe";
+    // WeatherService emits the storm warning in Polish ("⛈️ Burza - ..."),
+    // as the route-planning check above already assumes.
+    if (
+      warnings.some(
+        (w) => w.includes("Burza") || w.includes("Storm") || w.includes("Thunder")
+      )
+    ) {
+      raiseSeverity("severe");
       impact.shootingConditions.concerns.push("Storm");
       impact.shootingConditions.recommendations.push(
         "Stop outdoor shooting during storms"

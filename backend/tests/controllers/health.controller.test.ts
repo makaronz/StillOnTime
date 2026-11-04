@@ -10,17 +10,17 @@ import { CacheService } from "../../src/services/cache.service";
 import { OAuth2Service } from "../../src/services/oauth2.service";
 import { MonitoringService } from "../../src/services/monitoring.service";
 import { ErrorHandlerService } from "../../src/services/error-handler.service";
+import { testDb } from "../helpers/kysely-test-db";
 
 // Mock dependencies
 jest.mock("../../src/services/cache.service");
 jest.mock("../../src/services/oauth2.service");
 jest.mock("../../src/services/monitoring.service");
 jest.mock("../../src/services/error-handler.service");
-jest.mock("../../src/config/database", () => ({
-  prisma: {
-    $queryRaw: jest.fn().mockResolvedValue([{ result: 1 }]),
-  },
-}));
+// `@/config/database` is mocked globally in tests/setup.ts: `db` is a Kysely
+// instance on a fake driver (tests/helpers/kysely-test-db.ts), so the
+// database check (`SELECT 1`) never touches Postgres and can be made to fail
+// with testDb.enqueueError().
 
 describe("HealthController", () => {
   let app: express.Application;
@@ -41,10 +41,18 @@ describe("HealthController", () => {
     mockErrorHandlerService =
       new ErrorHandlerService() as jest.Mocked<ErrorHandlerService>;
 
-    // Mock cache service methods
-    mockCacheService.set = jest.fn().mockResolvedValue(undefined);
-    mockCacheService.get = jest.fn().mockResolvedValue("test");
-    mockCacheService.delete = jest.fn().mockResolvedValue(undefined);
+    // Mock cache service methods with an in-memory store: the cache health
+    // check writes a fresh value and expects to read the same value back.
+    const cacheStore = new Map<string, unknown>();
+    mockCacheService.set = jest.fn(async (key: string, value: unknown) => {
+      cacheStore.set(key, value);
+    }) as any;
+    mockCacheService.get = jest.fn(async (key: string) =>
+      cacheStore.has(key) ? cacheStore.get(key) : null
+    ) as any;
+    mockCacheService.delete = jest.fn(async (key: string) => {
+      cacheStore.delete(key);
+    }) as any;
 
     // Mock monitoring service methods
     mockMonitoringService.getMonitoringDashboard = jest.fn().mockResolvedValue({
@@ -216,7 +224,14 @@ describe("HealthController", () => {
 
       expect(response.body).toHaveProperty("status");
       expect(["ready", "not_ready"]).toContain(response.body.status);
+      expect(response.body.status).toBe("ready");
       expect(response.body).toHaveProperty("services");
+      expect(
+        response.body.services.map((s: any) => [s.name, s.status])
+      ).toEqual([
+        ["database", "healthy"],
+        ["cache", "healthy"],
+      ]);
     });
 
     it("should return liveness probe status", async () => {
@@ -405,7 +420,8 @@ describe("HealthController", () => {
         .get("/monitoring/apm/history")
         .expect(200);
 
-      expect(response.body.summary.averageApdex).toBe(0.85); // (0.8 + 0.9) / 2
+      // (0.8 + 0.9) / 2 in IEEE-754 is 0.8500000000000001
+      expect(response.body.summary.averageApdex).toBeCloseTo(0.85, 10);
       expect(response.body.summary.averageErrorRate).toBe(1.5); // (2.0 + 1.0) / 2
       expect(response.body.summary.averageP99ResponseTime).toBe(175); // (200 + 150) / 2
     });
@@ -651,16 +667,22 @@ describe("HealthController", () => {
 
   describe("Error Handling", () => {
     it("should handle database connection errors in health check", async () => {
-      // Mock database error
-      const { prisma } = require("../../src/config/database");
-      prisma.$queryRaw.mockRejectedValue(
-        new Error("Database connection failed")
+      // The first query of the health check is the database `SELECT 1`.
+      testDb.enqueueError(new Error("Database connection failed"));
+
+      // An unhealthy critical service makes the whole check unhealthy -> 503
+      // (HealthController.getStatusCode).
+      const response = await request(app).get("/health").expect(503);
+
+      expect(testDb.lastQuery().sql).toBe("SELECT 1");
+      expect(response.body.status).toBe("unhealthy");
+      const database = response.body.services.find(
+        (s: any) => s.name === "database"
       );
-
-      const response = await request(app).get("/health").expect(200); // Should still return 200 but with unhealthy status
-
-      expect(response.body.services).toBeDefined();
-      // The database service should be marked as unhealthy
+      expect(database).toMatchObject({
+        status: "unhealthy",
+        error: "Database connection failed",
+      });
     });
 
     it("should handle cache service errors in health check", async () => {
@@ -668,9 +690,15 @@ describe("HealthController", () => {
         new Error("Cache connection failed")
       );
 
-      const response = await request(app).get("/health").expect(200);
+      // An unhealthy critical service makes the whole check unhealthy -> 503.
+      const response = await request(app).get("/health").expect(503);
 
-      expect(response.body.services).toBeDefined();
+      expect(response.body.status).toBe("unhealthy");
+      const cache = response.body.services.find((s: any) => s.name === "cache");
+      expect(cache).toMatchObject({
+        status: "unhealthy",
+        error: "Cache connection failed",
+      });
     });
 
     it("should handle monitoring service errors gracefully", async () => {

@@ -13,6 +13,34 @@ import type {
 import crypto from "crypto";
 
 /**
+ * Apply a Prisma-style `where` object: plain values compile to `=`, and a
+ * `{ gte, lte }` range (as built by EmailController's date filters) compiles
+ * to `>=` / `<=` instead of being bound as an object value.
+ */
+function applyWhere<Q extends { where: (...args: any[]) => any }>(
+  query: Q,
+  where: Record<string, unknown>
+): Q {
+  let q = query;
+  for (const [key, value] of Object.entries(where)) {
+    if (isRange(value)) {
+      if (value.gte !== undefined) q = q.where(key as any, ">=", value.gte as any);
+      if (value.lte !== undefined) q = q.where(key as any, "<=", value.lte as any);
+    } else {
+      q = q.where(key as any, "=", value as any);
+    }
+  }
+  return q;
+}
+
+function isRange(value: unknown): value is { gte?: unknown; lte?: unknown } {
+  if (value === null || typeof value !== "object") return false;
+  if (value instanceof Date || Array.isArray(value)) return false;
+  const keys = Object.keys(value);
+  return keys.length > 0 && keys.every((k) => k === "gte" || k === "lte");
+}
+
+/**
  * ProcessedEmail Repository Interface
  */
 export interface IProcessedEmailRepository {
@@ -86,10 +114,7 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
     let query = db.selectFrom("processed_emails").selectAll();
 
     if (options.where) {
-      // Apply where conditions
-      Object.entries(options.where).forEach(([key, value]) => {
-        query = query.where(key as any, "=", value as any);
-      });
+      query = applyWhere(query, options.where);
     }
 
     if (options.orderBy) {
@@ -130,9 +155,7 @@ export class ProcessedEmailRepository implements IProcessedEmailRepository {
     );
 
     if (options.where) {
-      Object.entries(options.where).forEach(([key, value]) => {
-        query = query.where(key as any, "=", value as any);
-      });
+      query = applyWhere(query, options.where);
     }
 
     const result = await query.executeTakeFirstOrThrow();
