@@ -1,4 +1,5 @@
 import winston from "winston";
+import { AsyncLocalStorage } from "async_hooks";
 import { config } from "../config/config";
 import { BaseError } from "./errors";
 
@@ -131,7 +132,9 @@ export interface LogContext {
 
 export class StructuredLogger {
   private static instance: StructuredLogger;
-  private requestId: string | null = null;
+  // Per-async-context request id. A plain field would be shared by every
+  // in-flight request and get overwritten/cleared by whichever ran last.
+  private requestIdStore = new AsyncLocalStorage<string | null>();
 
   static getInstance(): StructuredLogger {
     if (!StructuredLogger.instance) {
@@ -141,18 +144,23 @@ export class StructuredLogger {
   }
 
   setRequestId(requestId: string): void {
-    this.requestId = requestId;
+    this.requestIdStore.enterWith(requestId);
   }
 
   clearRequestId(): void {
-    this.requestId = null;
+    this.requestIdStore.enterWith(null);
+  }
+
+  getRequestId(): string | null {
+    return this.requestIdStore.getStore() ?? null;
   }
 
   private enrichContext(context: LogContext = {}): LogContext {
     const enriched = { ...context };
 
-    if (this.requestId) {
-      enriched.requestId = this.requestId;
+    const requestId = this.getRequestId();
+    if (requestId) {
+      enriched.requestId = requestId;
     }
 
     enriched.timestamp = new Date().toISOString();

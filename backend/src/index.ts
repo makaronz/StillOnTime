@@ -10,6 +10,7 @@ import { helmetConfig, corsConfig, securityConfig } from "@/config/security";
 import { errorHandler, notFoundHandler } from "@/middleware/errorHandler";
 import { installCsrf } from "@/middleware/csrf-wiring";
 import { structuredLogger } from "@/utils/logger";
+import { resolveRequestId } from "@/utils/request-id";
 import { config } from "@/config/config";
 import { initializeDatabase } from "@/config/database";
 import { initializeRedis } from "@/config/redis";
@@ -69,9 +70,7 @@ installCsrf(app, { nodeEnv: config.nodeEnv });
 
 // Request ID middleware for tracing
 app.use((req: any, res: Response, next: NextFunction) => {
-  const requestId =
-    (req.headers["x-request-id"] as string) ||
-    `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = resolveRequestId(req.headers["x-request-id"]);
 
   req.headers["x-request-id"] = requestId;
   res.setHeader("x-request-id", requestId);
