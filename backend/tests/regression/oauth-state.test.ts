@@ -120,6 +120,29 @@ describe("other flows that mint a state", () => {
     }
     expect(status).toBe(403);
     expect(typeof body.authUrl).toBe("string");
+    // the state minted together with the URL must be returned so the client can keep it
+    expect(body.state).toBe("s");
     expect(body.authUrl).toMatch(/^https:\/\/accounts\.google\.com\//);
+  });
+});
+
+describe("AuthController.reauth", () => {
+  it("returns authUrl as a string and the matching state", async () => {
+    const { AuthController } = await import("@/controllers/auth.controller");
+    const urlSpy = jest
+      .spyOn(services.oauth2, "getAuthUrl")
+      .mockResolvedValue({ authUrl: "https://accounts.google.com/o/oauth2/auth?x=1", state: "s2" });
+    let body: any;
+    const res: any = {
+      status() { return this; },
+      json(b: any) { body = b; return this; },
+    };
+    try {
+      await new AuthController().reauth({ user: { userId: "u" }, path: "/x" } as any, res);
+    } finally {
+      urlSpy.mockRestore();
+    }
+    expect(body.authUrl).toBe("https://accounts.google.com/o/oauth2/auth?x=1");
+    expect(body.state).toBe("s2");
   });
 });

@@ -12,6 +12,7 @@ import express from "express";
 import request from "supertest";
 import { installCsrf, shouldSkipCsrf } from "@/middleware/csrf-wiring";
 import { corsConfig } from "@/config/security";
+import { errorHandler } from "@/middleware/errorHandler";
 
 function buildApp(nodeEnv: string): express.Application {
   const app = express();
@@ -104,5 +105,20 @@ describe("CORS config", () => {
   it("allows the CSRF header the frontend sends", () => {
     const allowed = corsConfig.allowedHeaders.map((h) => h.toLowerCase());
     expect(allowed).toContain("x-csrf-token");
+  });
+});
+
+describe("CSRF failures through the production error handler", () => {
+  it("maps a rejected token to 403 INVALID_CSRF_TOKEN, not 500", async () => {
+    const app = express();
+    app.use(express.json());
+    installCsrf(app, { nodeEnv: "production" });
+    app.post("/api/things", (_req, res) => res.json({ ok: true }));
+    app.use(errorHandler as any);
+
+    const res = await request(app).post("/api/things").send({});
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("INVALID_CSRF_TOKEN");
   });
 });

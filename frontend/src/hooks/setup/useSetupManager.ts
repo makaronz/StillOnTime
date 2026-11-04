@@ -47,8 +47,11 @@ export function useSetupManager() {
 
   // Check if setup is required
   const isSetupRequired = useCallback(() => {
-    return isAuthenticated && !isCompleted && currentStep < 5
-  }, [isAuthenticated, isCompleted, currentStep])
+    // Required until completeSetup has saved the configuration. The step
+    // number alone is not enough: reaching the Completion step (5) does not
+    // mean anything was persisted yet.
+    return isAuthenticated && !isCompleted
+  }, [isAuthenticated, isCompleted])
 
   // Get setup progress percentage
   const getProgressPercentage = useCallback(() => {

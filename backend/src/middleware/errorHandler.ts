@@ -121,6 +121,19 @@ export const errorHandler = (
         stack: error.stack,
       },
     });
+  } else if ((error as { code?: unknown }).code === "EBADCSRFTOKEN") {
+    // csurf rejects with a plain Error carrying code EBADCSRFTOKEN. Without
+    // this branch it fell through to "unexpected error" and returned 500.
+    statusCode = 403;
+    code = "INVALID_CSRF_TOKEN";
+    message = "Invalid or missing CSRF token";
+
+    structuredLogger.warn("CSRF token rejected", {
+      path: req.path,
+      method: req.method,
+      statusCode,
+      code,
+    });
   } else {
     // Handle unexpected errors
     structuredLogger.error(

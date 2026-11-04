@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 vi.mock("@/services/systemConfig", () => ({
   systemConfigService: {
@@ -116,5 +116,31 @@ describe("SystemConfigStep", () => {
       />
     );
     expect(screen.getAllByText("Enhanced Route Planning").length).toBeGreaterThan(0);
+  });
+});
+
+describe("OnboardingFlow completion", () => {
+  it("does not navigate to the dashboard when saving the configuration failed", async () => {
+    const { default: OnboardingFlow } = await import("@/pages/Onboarding/OnboardingFlow");
+    const { fireEvent, waitFor } = await import("@testing-library/react");
+    (systemConfigService.updateMailParsingConfig as any).mockRejectedValueOnce(new Error("save failed"));
+    useSetupStore.setState({ currentStep: 5, isCompleted: false });
+
+    render(
+      <MemoryRouter initialEntries={["/onboarding"]}>
+        <Routes>
+          <Route path="/onboarding" element={<OnboardingFlow />} />
+          <Route path="*" element={<div>dashboard content</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const completeBtn = await screen.findByRole("button", { name: /complete|go to dashboard|finish|start/i });
+    fireEvent.click(completeBtn);
+
+    await waitFor(() => expect(systemConfigService.updateMailParsingConfig).toHaveBeenCalled());
+    // let the failed save settle, then check we were NOT sent to the dashboard
+    await new Promise((r) => setTimeout(r, 50));
+    expect(useSetupStore.getState().isCompleted).toBe(false);
+    expect(screen.queryByText("dashboard content")).toBeNull();
   });
 });

@@ -64,7 +64,11 @@ export default function OnboardingFlow(): JSX.Element {
 
   const handleComplete = async () => {
     await completeSetup()
-    navigate('/dashboard', { replace: true })
+    // completeSetup swallows save errors (it toasts and leaves isCompleted
+    // false), so only leave the wizard when the configuration was saved.
+    if (useSetupStore.getState().isCompleted) {
+      navigate('/dashboard', { replace: true })
+    }
   }
 
   const handleRestart = () => {

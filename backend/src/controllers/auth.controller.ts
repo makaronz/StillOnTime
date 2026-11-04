@@ -346,7 +346,7 @@ export class AuthController {
       }
 
       // Generate new auth URL with force consent
-      const authUrl = await services.oauth2.getAuthUrl();
+      const { authUrl, state } = await services.oauth2.getAuthUrl();
 
       logger.info("OAuth re-authentication initiated", {
         userId: ((req).user).userId,
@@ -356,6 +356,7 @@ export class AuthController {
       res.json({
         success: true,
         authUrl,
+        state,
         message: "Re-authentication URL generated",
       });
     } catch (error) {
