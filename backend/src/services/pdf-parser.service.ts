@@ -437,9 +437,16 @@ export class PDFParserService {
       let match;
       while ((match = pattern.exec(text)) !== null) {
         if (match[1] && match[2]) {
+          const phone = match[2].trim();
+          const digits = phone.replace(/\D/g, "");
+          // The generic name+phone pattern also matches lines a role pattern
+          // already captured; keep the first (role) match per phone number.
+          if (contacts.some((c) => c.phone.replace(/\D/g, "") === digits)) {
+            continue;
+          }
           contacts.push({
             name: match[1].trim(),
-            phone: match[2].trim(),
+            phone,
           });
         }
       }
