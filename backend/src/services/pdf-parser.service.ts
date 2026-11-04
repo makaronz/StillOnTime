@@ -411,10 +411,12 @@ export class PDFParserService {
     }
 
     // Extract scene numbers
+    // String.match with /g drops capture groups ("Scena 15A" instead of
+    // "15A"); keep the last captured group of each match instead.
     for (const pattern of this.SCENE_PATTERNS) {
-      const matches = text.match(pattern);
-      if (matches) {
-        scenes.push(...matches.map((m) => m.trim()));
+      for (const m of text.matchAll(pattern)) {
+        const groups = m.slice(1).filter((g) => g !== undefined);
+        scenes.push((groups[groups.length - 1] ?? m[0]).trim());
       }
     }
 
