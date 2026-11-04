@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { EnhancedController } from "@/controllers/enhanced.controller";
-import { authMiddleware } from "@/middleware/auth.middleware";
+import { authMiddleware, requireSelfUserId } from "@/middleware/auth.middleware";
 import { validateRequest } from "@/middleware/validation";
 import { z } from "zod";
 
@@ -154,6 +154,7 @@ router.post(
 router.post(
   "/emails/:userId/monitor",
   authMiddleware,
+  requireSelfUserId,
   validateRequest(monitorEmailsSchema),
   EnhancedController.monitorEmailsEnhanced
 );
@@ -162,6 +163,7 @@ router.post(
 router.post(
   "/routes/calculate",
   authMiddleware,
+  requireSelfUserId,
   validateRequest(calculateRouteSchema),
   EnhancedController.calculateRouteEnhanced
 );
@@ -169,6 +171,7 @@ router.post(
 router.post(
   "/routes/optimize-multi",
   authMiddleware,
+  requireSelfUserId,
   validateRequest(optimizeMultiDestinationSchema),
   EnhancedController.optimizeMultiDestinationRoute
 );
@@ -177,6 +180,7 @@ router.post(
 router.post(
   "/calendar/create-enhanced",
   authMiddleware,
+  requireSelfUserId,
   validateRequest(createCalendarEventSchema),
   EnhancedController.createCalendarEventEnhanced
 );

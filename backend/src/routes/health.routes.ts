@@ -71,4 +71,5 @@ router.get("/ready", healthController.getReadiness.bind(healthController));
  */
 router.get("/live", healthController.getLiveness.bind(healthController));
 
+export { healthController, monitoringService };
 export default router;

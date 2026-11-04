@@ -370,6 +370,52 @@ export const authErrorHandler = (
 };
 
 /**
+ * Reject requests that name a different user than the authenticated one
+ * (path `:userId` or body `userId`). Prevents IDOR on routes that accept a
+ * userId from the client. Must run after authenticateToken.
+ */
+export const requireSelfUserId = (
+  req: any,
+  res: Response,
+  next: NextFunction
+): void => {
+  const authenticatedId = req.user?.userId;
+
+  if (!authenticatedId) {
+    res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required",
+      code: "NOT_AUTHENTICATED",
+      timestamp: new Date().toISOString(),
+      path: req.path,
+    });
+    return;
+  }
+
+  const supplied = [req.params?.userId, req.body?.userId].filter(
+    (value) => value !== undefined && value !== null
+  );
+
+  if (supplied.some((value) => value !== authenticatedId)) {
+    logger.warn("Blocked cross-user access attempt", {
+      authenticatedUserId: authenticatedId,
+      path: req.path,
+      method: req.method,
+    });
+    res.status(403).json({
+      error: "Forbidden",
+      message: "You can only act on your own account",
+      code: "USER_MISMATCH",
+      timestamp: new Date().toISOString(),
+      path: req.path,
+    });
+    return;
+  }
+
+  next();
+};
+
+/**
  * Alias for authenticateToken to match expected import name
  */
 export const authMiddleware = authenticateToken;
