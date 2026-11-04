@@ -287,7 +287,7 @@ export class PDFParserService {
     }
 
     // Validate time format
-    if (data.callTime && !/^\d{1,2}:\d{2}$/.test(data.callTime)) {
+    if (data.callTime && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(data.callTime)) {
       errors.push("Call time must be in HH:MM format");
       isValid = false;
     }
