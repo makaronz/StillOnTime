@@ -356,7 +356,8 @@ describe("SMSController", () => {
         configured: true,
         verified: true,
         hasPhoneNumber: true,
-        phoneNumber: "*****6789", // Masked phone number
+        // Every digit except the last four is masked; "+" and length are kept.
+        phoneNumber: "+*******6789",
         serviceConfigured: true,
         pendingVerification: false,
         accountInfo: mockServiceTest.accountInfo,
@@ -408,9 +409,11 @@ describe("SMSController", () => {
         userId: "test-user-id",
       };
 
-      mockNotificationService.notificationRepository = {
-        findByMessageId: jest.fn().mockResolvedValue(mockNotification),
-      } as any;
+      // The controller looks the notification up through the service
+      // (NotificationService.findNotificationByMessageId), not the repository.
+      mockNotificationService.findNotificationByMessageId.mockResolvedValue(
+        mockNotification as any
+      );
 
       mockNotificationService.updateDeliveryStatus = jest
         .fn()
@@ -423,6 +426,9 @@ describe("SMSController", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
+      expect(
+        mockNotificationService.findNotificationByMessageId
+      ).toHaveBeenCalledWith("test-message-sid");
       expect(mockNotificationService.updateDeliveryStatus).toHaveBeenCalledWith(
         "notification-id",
         "delivered",
@@ -441,9 +447,9 @@ describe("SMSController", () => {
     });
 
     it("should handle webhook when notification is not found", async () => {
-      mockNotificationService.notificationRepository = {
-        findByMessageId: jest.fn().mockResolvedValue(null),
-      } as any;
+      mockNotificationService.findNotificationByMessageId.mockResolvedValue(
+        null
+      );
 
       const response = await request(app).post("/sms/webhook").send({
         MessageSid: "test-message-sid",
@@ -452,13 +458,17 @@ describe("SMSController", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
+      expect(
+        mockNotificationService.findNotificationByMessageId
+      ).toHaveBeenCalledWith("test-message-sid");
+      expect(mockNotificationService.updateDeliveryStatus).not.toHaveBeenCalled();
     });
 
     it("should map different message statuses correctly", async () => {
       const mockNotification = { id: "notification-id" };
-      mockNotificationService.notificationRepository = {
-        findByMessageId: jest.fn().mockResolvedValue(mockNotification),
-      } as any;
+      mockNotificationService.findNotificationByMessageId.mockResolvedValue(
+        mockNotification as any
+      );
       mockNotificationService.updateDeliveryStatus = jest.fn();
 
       const statusMappings = [
@@ -477,7 +487,7 @@ describe("SMSController", () => {
 
         expect(
           mockNotificationService.updateDeliveryStatus
-        ).toHaveBeenCalledWith("notification-id", expected, undefined);
+        ).toHaveBeenLastCalledWith("notification-id", expected, undefined);
       }
     });
   });
