@@ -878,5 +878,16 @@
     "verification": "shell repro: exit 0 before, exit 1 after; bash -n",
     "status": "fixed",
     "commit": "(review round 2)"
+  },
+  {
+    "id": "BUG-047",
+    "severity": "High",
+    "category": "Security",
+    "files": "backend/src/middleware/auth.middleware.ts; backend/src/routes/monitoring.routes.ts",
+    "component": "Monitoring API",
+    "description": "After /api/monitoring was mounted (BUG-002) any authenticated user could reset circuit breakers, rewrite alerting rules, resolve alerts, record custom metrics and fire test alerts; these routes now require requireAdmin (caller e-mail in ADMIN_EMAILS, fails closed with 403 ADMIN_NOT_CONFIGURED when unset). Read-only routes unchanged.",
+    "verification": "tests/regression/monitoring-admin.test.ts: 8 red on old code (non-admin got through), 16/16 green after; full backend Jest: same 7 pre-existing failures (OPEN-22, OPEN-31)",
+    "status": "fixed",
+    "commit": "(this change)"
   }
 ]

@@ -5,7 +5,7 @@
 
 import { Router } from "express";
 import { HealthController } from "../controllers/health.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { authMiddleware, requireAdmin } from "../middleware/auth.middleware";
 import { MonitoringMiddleware } from "../middleware/monitoring.middleware";
 
 export function createMonitoringRoutes(
@@ -29,7 +29,9 @@ export function createMonitoringRoutes(
     healthController.getLiveness.bind(healthController)
   );
 
-  // Protected monitoring endpoints (require authentication)
+  // Protected monitoring endpoints (require authentication).
+  // State-changing operations additionally require requireAdmin
+  // (caller's e-mail listed in ADMIN_EMAILS; fails closed when unset).
   router.use(authMiddleware);
 
   // Monitoring dashboard and metrics
@@ -67,6 +69,7 @@ export function createMonitoringRoutes(
 
   router.post(
     "/metrics/custom",
+    requireAdmin,
     monitoringMiddleware.trackOperation("custom_metrics_record"),
     healthController.recordCustomMetric.bind(healthController)
   );
@@ -87,6 +90,7 @@ export function createMonitoringRoutes(
 
   router.post(
     "/circuit-breakers/reset",
+    requireAdmin,
     monitoringMiddleware.trackOperation("circuit_breaker_reset"),
     healthController.resetCircuitBreakers.bind(healthController)
   );
@@ -100,12 +104,14 @@ export function createMonitoringRoutes(
 
   router.put(
     "/alerts/rules/:ruleId",
+    requireAdmin,
     monitoringMiddleware.trackOperation("alerting_rules_update"),
     healthController.updateAlertingRule.bind(healthController)
   );
 
   router.post(
     "/alerts/:alertId/resolve",
+    requireAdmin,
     monitoringMiddleware.trackOperation("alert_resolve"),
     healthController.resolveAlert.bind(healthController)
   );
@@ -114,6 +120,7 @@ export function createMonitoringRoutes(
   if (process.env.NODE_ENV !== "production") {
     router.post(
       "/test/alert",
+      requireAdmin,
       monitoringMiddleware.trackOperation("test_alert"),
       healthController.triggerTestAlert.bind(healthController)
     );
