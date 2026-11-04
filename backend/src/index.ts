@@ -5,10 +5,10 @@ import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
-import csrf from "csurf";
 import { helmetConfig, corsConfig, securityConfig } from "@/config/security";
 
 import { errorHandler, notFoundHandler } from "@/middleware/errorHandler";
+import { installCsrf } from "@/middleware/csrf-wiring";
 import { structuredLogger } from "@/utils/logger";
 import { config } from "@/config/config";
 import { initializeDatabase } from "@/config/database";
@@ -64,52 +64,8 @@ app.use("/api/auth", authLimiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CSRF Protection middleware
-const csrfProtection = csrf({
-  cookie: {
-    httpOnly: true,
-    secure: config.nodeEnv === "production",
-    sameSite: "strict",
-    key: "_csrf",
-  },
-});
-
-// Apply CSRF protection to all routes except health checks and OAuth callback
-app.use((req: any, res: Response, next: NextFunction) => {
-  // Skip CSRF for health checks, OAuth callbacks, GET requests, and development API calls
-  if (
-    req.path === "/health" ||
-    req.path.startsWith("/health/") ||
-    req.path === "/api/auth/callback" ||
-    req.method === "GET" ||
-    (config.nodeEnv === "development" && req.path.startsWith("/api/"))
-  ) {
-    return next();
-  }
-
-  // Apply CSRF protection
-  (csrfProtection as any)(req, res, next);
-});
-
-// CSRF token endpoint - provides token to frontend
-app.get("/api/csrf-token", (req: any, res: Response, next: NextFunction) => {
-  (csrfProtection as any)(req, res, (err: any) => {
-    if (err) return next(err);
-    res.json({ csrfToken: (req as any).csrfToken() });
-  });
-});
-
-// Middleware to set CSRF token in cookie for frontend
-app.use((req: any, res: Response, next: NextFunction) => {
-  if (req.csrfToken) {
-    res.cookie("XSRF-TOKEN", req.csrfToken(), {
-      httpOnly: false, // Frontend needs to read this
-      secure: config.nodeEnv === "production",
-      sameSite: "strict",
-    });
-  }
-  next();
-});
+// CSRF protection (cookie-parser + csurf, token endpoint, exemptions)
+installCsrf(app, { nodeEnv: config.nodeEnv });
 
 // Request ID middleware for tracing
 app.use((req: any, res: Response, next: NextFunction) => {
