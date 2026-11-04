@@ -69,7 +69,7 @@ export class OAuthService {
       const response = await api.get<OAuthStatusResponse>("/api/oauth/status");
 
       // Convert date strings to Date objects
-      const status = response.data.status;
+      const status = response.status;
       return {
         ...status,
         tokenExpiry: status.tokenExpiry ? new Date(status.tokenExpiry) : null,
@@ -92,8 +92,8 @@ export class OAuthService {
 
       // Convert date string to Date object
       return {
-        ...response.data,
-        expiresAt: new Date(response.data.expiresAt),
+        ...response,
+        expiresAt: new Date(response.expiresAt),
       };
     } catch (error) {
       console.error("Failed to refresh OAuth token:", error);
@@ -109,7 +109,7 @@ export class OAuthService {
       const response = await api.post<DisconnectResponse>(
         "/api/oauth/disconnect"
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error("Failed to disconnect OAuth account:", error);
       throw error;
@@ -124,7 +124,7 @@ export class OAuthService {
       const response = await api.get<ReconnectResponse>(
         "/api/oauth/reconnect"
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error("Failed to get reconnection URL:", error);
       throw error;
@@ -139,7 +139,7 @@ export class OAuthService {
       const response = await api.get<TestConnectionResponse>(
         "/api/oauth/test"
       );
-      return response.data;
+      return response;
     } catch (error: any) {
       console.error("OAuth connection test failed:", error);
 
@@ -179,7 +179,7 @@ export class OAuthService {
       const response = await api.get<{ folders: string[] }>(
         "/api/oauth/folders"
       );
-      return response.data.folders;
+      return response.folders;
     } catch (error) {
       console.error("Failed to get Gmail folders:", error);
       throw error;
@@ -194,7 +194,7 @@ export class OAuthService {
       const response = await api.get<{
         calendars: Array<{ id: string; name: string }>;
       }>("/api/oauth/calendars");
-      return response.data.calendars;
+      return response.calendars;
     } catch (error) {
       console.error("Failed to get calendars:", error);
       throw error;
