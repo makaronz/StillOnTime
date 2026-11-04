@@ -721,11 +721,7 @@ export class ErrorHandlerService {
   /**
    * Record error metrics for monitoring
    */
-  private recordErrorMetrics(
-    serviceName: string,
-    error: BaseError,
-    recoveryTime?: number
-  ): void {
+  private recordErrorMetrics(serviceName: string, error: BaseError): void {
     const key = `${serviceName}:${error.code}`;
     const existing = this.errorMetrics.get(key) || {
       errorCount: 0,
@@ -739,18 +735,30 @@ export class ErrorHandlerService {
     existing.errorCount++;
     existing.lastErrorTime = new Date();
 
-    if (recoveryTime) {
-      existing.recoveryCount++;
-      existing.averageRecoveryTime =
-        (existing.averageRecoveryTime * (existing.recoveryCount - 1) +
-          recoveryTime) /
-        existing.recoveryCount;
-    }
-
     this.errorMetrics.set(key, existing);
 
     // Check if this constitutes a critical failure
     this.evaluateCriticalFailure(serviceName, error, existing);
+  }
+
+  /**
+   * Record a successful recovery for an error already counted by
+   * recordErrorMetrics. It must not count the error again or re-evaluate
+   * critical failure (that double-counted every recovered error).
+   */
+  private recordRecovery(
+    serviceName: string,
+    error: BaseError,
+    recoveryTime: number
+  ): void {
+    const existing = this.errorMetrics.get(`${serviceName}:${error.code}`);
+    if (!existing) return;
+
+    existing.recoveryCount++;
+    existing.averageRecoveryTime =
+      (existing.averageRecoveryTime * (existing.recoveryCount - 1) +
+        recoveryTime) /
+      existing.recoveryCount;
   }
 
   /**
@@ -1257,7 +1265,7 @@ export class ErrorHandlerService {
       const recoveryTime = Date.now() - startTime;
 
       if (result.success) {
-        this.recordErrorMetrics(serviceName, error, recoveryTime);
+        this.recordRecovery(serviceName, error, recoveryTime);
         structuredLogger.info("Error recovery successful", {
           serviceName,
           errorCode: error.code,
