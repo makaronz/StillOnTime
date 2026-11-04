@@ -151,7 +151,7 @@ export class ErrorHandlerService {
 
     // If circuit breaker is open, try fallback immediately
     if (circuitBreaker?.getStats().state === "OPEN") {
-      return await this.tryFallback(error, fallbackOptions);
+      return await this.tryAPIFallback<T>(error, fallbackOptions);
     }
 
     // Try retry if error is retryable
@@ -179,12 +179,30 @@ export class ErrorHandlerService {
               : String(retryError),
         });
 
-        return await this.tryFallback(error, fallbackOptions);
+        return await this.tryAPIFallback<T>(error, fallbackOptions);
       }
     }
 
     // Non-retryable error, try fallback
-    return await this.tryFallback(error, fallbackOptions);
+    return await this.tryAPIFallback<T>(error, fallbackOptions);
+  }
+
+  /**
+   * Fallback for API errors: the advanced path first (it honours cacheKey,
+   * fallbackData, gracefulDegradation and alternativeService, which the
+   * basic tryFallback ignores), then the basic one for useDefaultValues.
+   */
+  private async tryAPIFallback<T>(
+    error: APIError,
+    options: FallbackOptions
+  ): Promise<ErrorRecoveryResult<T>> {
+    const advanced = await this.tryAdvancedFallback<T>(
+      error,
+      options,
+      error.apiName
+    );
+    if (advanced.success) return advanced;
+    return await this.tryFallback<T>(error, options);
   }
 
   /**
