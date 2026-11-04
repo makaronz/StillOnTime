@@ -264,11 +264,20 @@ describe("NotificationRepository", () => {
   });
 
   describe("findByMessageId", () => {
-    // NOTE: the repository currently ignores its messageId argument (see the
-    // report). Only the shape that is safe to rely on is asserted here.
     it("returns null when no notification row exists", async () => {
       expect(await repo.findByMessageId("msg-1")).toBeNull();
       expect(testDb.lastQuery().sql).toMatch(/^select \* from "notifications"/);
+    });
+
+    // OPEN-11: the lookup used to run with no WHERE clause and return an
+    // arbitrary row, so SMS delivery webhooks could update the wrong one.
+    it("filters on the provider message id stored in data", async () => {
+      await repo.findByMessageId("SM123");
+      const q = testDb.lastQuery();
+      expect(q.sql).toBe(
+        `select * from "notifications" where "data"->>'messageId' = $1`
+      );
+      expect(q.parameters).toEqual(["SM123"]);
     });
   });
 
