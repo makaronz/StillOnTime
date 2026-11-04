@@ -2,6 +2,7 @@ import { OAuth2Service } from "@/services/oauth2.service";
 import { UserRepository } from "@/repositories/user.repository";
 import { config } from "@/config/config";
 import * as crypto from "crypto";
+import { verifyOAuthState } from "@/utils/oauth-state";
 
 // Mock dependencies
 jest.mock("@/utils/logger");
@@ -49,8 +50,9 @@ describe("OAuth Security and Edge Case Tests", () => {
       const { state } = await oauth2Service.getAuthUrl();
 
       expect(state).toBeDefined();
-      expect(state.length).toBe(64); // 32 bytes as hex
-      expect(state).toMatch(/^[a-f0-9]+$/);
+      // State is a server-signed value: <32 hex nonce>.<expiry ms>.<64 hex HMAC>
+      expect(state).toMatch(/^[a-f0-9]{32}\.\d+\.[a-f0-9]{64}$/);
+      expect(verifyOAuthState(state)).toBe(true);
 
       // Ensure uniqueness
       const { state: state2 } = await oauth2Service.getAuthUrl();
