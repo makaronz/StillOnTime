@@ -643,7 +643,9 @@ export class NotificationService {
     template: string,
     data: NotificationTemplateData
   ): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    // Keys may be dotted paths ({{scheduleData.location}}); getNestedValue
+    // resolves them, so the pattern must accept "." as well.
+    return template.replace(/\{\{([\w.]+)\}\}/g, (match, key) => {
       const value = this.getNestedValue(data, key);
       return value !== undefined ? String(value) : match;
     });
