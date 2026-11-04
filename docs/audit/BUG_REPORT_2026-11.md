@@ -1,7 +1,8 @@
 # Raport błędów — StillOnTime (listopad 2026)
 
 Zakres: backend (Express/Kysely), frontend (React/Vite), konfiguracja testów i zależności.
-Rejestr maszynowy: `bug-findings.json`, `bug-findings.csv` (41 pozycji: 21 naprawionych, 20 otwartych).
+Rejestr maszynowy: `bug-findings.json`, `bug-findings.csv` (75 pozycji: 44 naprawione, 31 otwartych).
+Pozycje BUG-022..BUG-042 i OPEN-21..OPEN-33 oraz zamknięcie OPEN-11 i OPEN-20 pochodzą z naprawy testów backendu (gałąź `claude/busy-volta-oy0otf`); poniższe podsumowanie opisuje stan sprzed tej zmiany.
 
 ## Podsumowanie
 
