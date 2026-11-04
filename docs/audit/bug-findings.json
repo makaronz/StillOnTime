@@ -823,5 +823,16 @@
     "verification": "Read from code",
     "status": "open",
     "commit": "-"
+  },
+  {
+    "id": "OPEN-34",
+    "severity": "High",
+    "category": "Functional",
+    "files": "backend/src/repositories/calendar-event.repository.ts:55-66,188-198; tests/repositories/calendar-event.repository.test.ts",
+    "component": "Calendar",
+    "description": "create() and update() write an updatedAt column that calendar_events does not have (schema.sql, migrations, database-types.ts; hidden by 'as unknown as' casts), so every calendar event insert/update fails on Postgres: POST /calendar/events, /calendar/sync and re-sync updates. Same class as OPEN-13. The repository tests pin the current SQL including updatedAt, so a fix must update them too",
+    "verification": "Live Postgres 16 with schema.sql: UPDATE ... \"updatedAt\" = now() -> column does not exist",
+    "status": "open",
+    "commit": "-"
   }
 ]
