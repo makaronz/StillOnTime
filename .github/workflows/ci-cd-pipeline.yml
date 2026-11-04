@@ -53,15 +53,14 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         
+    # One install at the repository root covers every npm workspace (backend,
+    # frontend, monitoring/performance). Running `npm ci` again inside
+    # backend/ or frontend/ reinstalls only that workspace's scope and removes
+    # the others from the shared node_modules (e.g. dotenv/express after the
+    # frontend install), which broke the backend type check.
     - name: Install dependencies
       run: npm ci
-      
-    - name: Install backend dependencies
-      run: cd backend && npm ci
-      
-    - name: Install frontend dependencies
-      run: cd frontend && npm ci
-      
+
     # Backend Quality Gates
     - name: Backend - Lint
       # Non-blocking until the existing lint backlog is cleared (230 errors on
