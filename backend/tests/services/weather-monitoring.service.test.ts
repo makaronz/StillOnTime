@@ -182,6 +182,9 @@ describe("WeatherMonitoringService", () => {
       shootingDate: new Date("2024-01-15"),
       sceneType: "EXT",
       callTime: "08:00",
+      // A real schedule_data row always carries userId; findWithRelations does
+      // not load the `user` relation.
+      userId: "user-1",
       user: { id: "user-1" } as any,
       // ScheduleDataWithRelations.weatherData is WeatherData[] (src/types/index.ts)
       weatherData: [

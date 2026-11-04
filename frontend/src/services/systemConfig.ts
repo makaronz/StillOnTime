@@ -64,7 +64,8 @@ export interface LLMConfig {
 }
 
 class SystemConfigService {
-  private baseURL = `${config.apiBaseUrl}/api/config`
+  // config.apiBaseUrl already ends in /api (e.g. http://localhost:3001/api).
+  private baseURL = `${config.apiBaseUrl}/config`
 
   async getSystemStatus(): Promise<{ success: boolean; status: SystemStatus; timestamp: string }> {
     try {

@@ -123,7 +123,7 @@ describe("OnboardingFlow completion", () => {
   it("does not navigate to the dashboard when saving the configuration failed", async () => {
     const { default: OnboardingFlow } = await import("@/pages/Onboarding/OnboardingFlow");
     const { fireEvent, waitFor } = await import("@testing-library/react");
-    (systemConfigService.updateMailParsingConfig as any).mockRejectedValueOnce(new Error("save failed"));
+    vi.mocked(systemConfigService.updateMailParsingConfig).mockRejectedValueOnce(new Error("save failed"));
     useSetupStore.setState({ currentStep: 5, isCompleted: false });
 
     render(
@@ -135,6 +135,8 @@ describe("OnboardingFlow completion", () => {
       </MemoryRouter>
     );
     const completeBtn = await screen.findByRole("button", { name: /complete|go to dashboard|finish|start/i });
+    // Drop calls made by earlier tests so the assertion below proves this click saved.
+    vi.mocked(systemConfigService.updateMailParsingConfig).mockClear();
     fireEvent.click(completeBtn);
 
     await waitFor(() => expect(systemConfigService.updateMailParsingConfig).toHaveBeenCalled());

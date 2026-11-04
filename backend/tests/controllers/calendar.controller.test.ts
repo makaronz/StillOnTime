@@ -104,10 +104,8 @@ describe("CalendarController", () => {
       });
     });
 
-    // KNOWN SRC DEFECT (left red on purpose): calendar.routes.ts validates
-    // startDate/endDate/maxResults, but the controller forwards req.query
-    // verbatim, so the service never receives timeMin/timeMax and gets
-    // maxResults as a string.
+    // Regression for BUG-026: the controller maps startDate/endDate/maxResults
+    // to timeMin/timeMax and a numeric maxResults before calling the service.
     it("should handle date range filtering", async () => {
       mockRequest.query = {
         startDate: "2024-01-15T00:00:00Z",

@@ -106,7 +106,9 @@ export class WeatherMonitoringService {
     schedule: ScheduleDataWithRelations
   ): Promise<WeatherChangeNotification | null> {
     try {
-      const { id: scheduleId, location, shootingDate, user } = schedule;
+      // findWithRelations does not load `user`; the owning user id is a column
+      // on schedule_data, so use it directly.
+      const { id: scheduleId, location, shootingDate, userId } = schedule;
       const dateStr = shootingDate.toISOString().split("T")[0];
 
       logger.debug("Updating weather for schedule", {
@@ -183,7 +185,7 @@ export class WeatherMonitoringService {
         // Create new weather data
         await this.weatherService.storeWeatherData(
           scheduleId,
-          user.id,
+          userId,
           freshWeatherData
         );
 

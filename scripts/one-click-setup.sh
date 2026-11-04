@@ -400,6 +400,12 @@ if [ "$BACKEND_ENV_EXISTS" = true ] && [ "$FRONTEND_ENV_EXISTS" = true ]; then
         if [ -f "$SCRIPTS_DIR/create-env.sh" ]; then
             log "Running environment setup..."
             bash "$SCRIPTS_DIR/create-env.sh" 2>&1 | tee -a "$SETUP_LOG"
+            # The pipeline's status is tee's, so `set -e` does not stop on a
+            # create-env.sh failure; check the first command explicitly.
+            if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+                log_error "Environment setup failed (create-env.sh); see $SETUP_LOG"
+                exit 1
+            fi
         else
             log_error "create-env.sh not found at $SCRIPTS_DIR/create-env.sh"
             exit 1

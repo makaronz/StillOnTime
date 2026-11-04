@@ -834,5 +834,49 @@
     "verification": "Live Postgres 16 with schema.sql: UPDATE ... \"updatedAt\" = now() -> column does not exist",
     "status": "open",
     "commit": "-"
+  },
+  {
+    "id": "BUG-043",
+    "severity": "High",
+    "category": "Functional",
+    "files": "frontend/src/services/systemConfig.ts",
+    "component": "Onboarding",
+    "description": "baseURL appended /api/config to an apiBaseUrl that already ends in /api, so every config call hit /api/api/config/... (404); with navigation now gated on a successful save the wizard could not finish",
+    "verification": "frontend test red->green (URL assertion)",
+    "status": "fixed",
+    "commit": "(review round 2)"
+  },
+  {
+    "id": "BUG-044",
+    "severity": "Medium",
+    "category": "Functional",
+    "files": "backend/src/services/weather-monitoring.service.ts",
+    "component": "Weather",
+    "description": "updateWeatherForSchedule read schedule.user.id, but findWithRelations does not load user, so creating a first weather row threw TypeError; now uses schedule.userId",
+    "verification": "regression test red->green; existing fixture given the real userId column",
+    "status": "fixed",
+    "commit": "(review round 2)"
+  },
+  {
+    "id": "BUG-045",
+    "severity": "Medium",
+    "category": "Security",
+    "files": "backend/src/services/notification.service.ts",
+    "component": "Notifications",
+    "description": "Untrusted values (e.g. location parsed from a PDF) were interpolated unescaped into the HTML e-mail body; now HTML-escaped for the e-mail channel only",
+    "verification": "regression tests (escaped body, unescaped subject/SMS/push)",
+    "status": "fixed",
+    "commit": "(review round 2)"
+  },
+  {
+    "id": "BUG-046",
+    "severity": "Medium",
+    "category": "Config",
+    "files": "scripts/one-click-setup.sh",
+    "component": "Setup",
+    "description": "Under set -e a failing create-env.sh piped into tee was ignored (pipeline status is tee's); now checks PIPESTATUS[0] and exits",
+    "verification": "shell repro: exit 0 before, exit 1 after; bash -n",
+    "status": "fixed",
+    "commit": "(review round 2)"
   }
 ]
