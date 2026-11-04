@@ -452,7 +452,12 @@ describe("WeatherMonitoringService", () => {
       expect(impact.routePlanning.affectsTravel).toBe(true);
       expect(impact.routePlanning.suggestedBufferIncrease).toBeGreaterThan(30);
       expect(impact.routePlanning.recommendations.length).toBeGreaterThan(0);
-      expect(impact.overallRisk).toBe("high");
+      // 15 mm is "Heavy precipitation" -> shooting severity "severe", and the
+      // buffer increase is > 30 (asserted above): calculateOverallRisk maps
+      // that combination to "critical". "high" was only reachable while the
+      // strong-wind branch downgraded "severe" to "moderate".
+      expect(impact.shootingConditions.severity).toBe("severe");
+      expect(impact.overallRisk).toBe("critical");
     });
 
     it("should analyze shooting conditions impact for exterior shoots", () => {
