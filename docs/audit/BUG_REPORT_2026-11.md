@@ -1,7 +1,7 @@
 # Raport błędów — StillOnTime (listopad 2026)
 
 Zakres: backend (Express/Kysely), frontend (React/Vite), konfiguracja testów i zależności.
-Rejestr maszynowy: `bug-findings.json`, `bug-findings.csv` (31 pozycji: 21 naprawionych, 10 otwartych).
+Rejestr maszynowy: `bug-findings.json`, `bug-findings.csv` (41 pozycji: 21 naprawionych, 20 otwartych).
 
 ## Podsumowanie
 
@@ -59,3 +59,11 @@ Pozostałe (OPEN-03, 06, 08, 09) są niskiej wagi; opis w rejestrze.
 4. Osobne zadanie: przepisać testy repozytoriów pod Kysely; do tego czasu nie traktować progu pokrycia 80% jako bramki.
 5. Dodać do CI: `tsc --noEmit` i `eslint` frontendu (oba teraz działają), `npm audit --omit=dev --audit-level=critical`.
 6. Wzorzec powtarzający się w repo: kod i jego testy rozjeżdżają się po migracjach (Prisma→Kysely, relaksacja walidacji, dopisane kroki wizarda). Warto łapać to w CI przez `tsc` oraz test na każdy publiczny kontrakt zamiast na szczegóły implementacji.
+
+## Dodatek: testy repozytoriów pod Kysely
+
+Dziewięć testów repozytoriów mockowało klienta Prisma, którego repozytoria już nie używają. Przepisano je na prawdziwy builder Kysely z fałszywym sterownikiem (`backend/tests/helpers/kysely-test-db.ts`): testy sprawdzają wygenerowany SQL, parametry i mapowanie wierszy. Wynik: 9 suite'ów, 447 testów zielonych (wcześniej wszystkie padały). Każdy plik był sprawdzony mutacyjnie (zepsuty operator, filtr, kierunek sortowania, wartość domyślna w źródle): wszystkie zepsucia zostały wykryte, źródło przywrócone bez zmian.
+
+Przy okazji testy ujawniły metody, które przyjmują filtr i go ignorują (OPEN-11 do OPEN-19). Nie są asertowane w testach i nie były naprawiane. OPEN-18 (jsonb jako surowa tablica JS) jest niezweryfikowany, bo wymaga prawdziwego Postgresa.
+
+Ograniczenie: fałszywy sterownik sprawdza to, co repozytorium wysyła, a nie to, jak zareaguje baza (typy kolumn, ograniczenia, indeksy).

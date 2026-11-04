@@ -339,5 +339,115 @@
     "verification": "not checked",
     "status": "open",
     "commit": "-"
+  },
+  {
+    "id": "OPEN-11",
+    "severity": "Medium",
+    "category": "Functional",
+    "files": "backend/src/repositories/notification.repository.ts:88-95",
+    "component": "Notifications",
+    "description": "findByMessageId ignores its argument: runs select * from notifications with no where, returns an arbitrary row. The SMS delivery webhook uses it to find the notification, so status updates can hit the wrong row",
+    "verification": "compiled SQL inspected in a test",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-12",
+    "severity": "Medium",
+    "category": "Functional",
+    "files": "backend/src/repositories/notification.repository.ts:171-177,181-195,250-252",
+    "component": "Notifications",
+    "description": "markAsSent overwrites the whole data column with {messageId}; markAsFailed read-then-write loses concurrent increments; getStatistics always returns empty byChannel/byTemplate",
+    "verification": "compiled SQL inspected in a test",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-13",
+    "severity": "Medium",
+    "category": "Functional",
+    "files": "backend/src/repositories/weather-data.repository.ts:57-63,80",
+    "component": "Weather",
+    "description": "create/update write createdAt/updatedAt but weather_data has no such columns (schema.sql:62-74, database-types.ts:68-80); would fail against real Postgres",
+    "verification": "SQL inspected; not run against Postgres",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-14",
+    "severity": "Medium",
+    "category": "Functional",
+    "files": "backend/src/repositories/weather-data.repository.ts:155-161,239-245",
+    "component": "Weather",
+    "description": "findWeatherWarnings does not filter on warnings; upsert update path never refreshes fetchedAt so refreshed rows stay stale",
+    "verification": "compiled SQL inspected in a test",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-15",
+    "severity": "Medium",
+    "category": "Functional",
+    "files": "backend/src/repositories/processed-email.repository.ts:85-105,227-241",
+    "component": "Emails",
+    "description": "findMany ignores skip (pagination offset dropped) and throws on an array orderBy; markAsProcessed drops scheduleId",
+    "verification": "reproduced with a probe by the test author",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-16",
+    "severity": "Medium",
+    "category": "Functional",
+    "files": "backend/src/repositories/schedule-data.repository.ts:204-216,267-282,344-375",
+    "component": "Schedules",
+    "description": "findSchedulesByLocation ignores location; findConflictingSchedules ignores callTime (any schedule on the same day conflicts); *NeedingWeatherUpdate/*NeedingRouteUpdate have no user filter and do not check whether data exists",
+    "verification": "compiled SQL inspected in a test",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-17",
+    "severity": "Low",
+    "category": "Functional",
+    "files": "backend/src/repositories/route-plan.repository.ts:170-228,264-274; calendar-event.repository.ts:177-218; summary.repository.ts:157-182",
+    "component": "Repositories",
+    "description": "Several methods accept filters they never apply: getAverageRouteTime (origin/destination), findRoutesByDateRange (dates), getRouteStats.mostCommonDestination hardcoded null, findEventsByLocation (location), findEventsNeedingSync (selects every event created in the last hour), findWithSchedule (dates, no join)",
+    "verification": "compiled SQL inspected in tests",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-18",
+    "severity": "Medium",
+    "category": "Integration",
+    "files": "backend/src/repositories/{summary,weather-data}.repository.ts",
+    "component": "Repositories",
+    "description": "JSON/jsonb columns (timeline, warnings) are passed as raw JS arrays; node-pg serialises arrays as Postgres array literals, which jsonb rejects, unless JSON.stringify is applied",
+    "verification": "UNVERIFIED: needs a real Postgres",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-19",
+    "severity": "Low",
+    "category": "Functional",
+    "files": "backend/src/repositories/user-config.repository.ts:134-139,324-331,374-379",
+    "component": "User config",
+    "description": "set({}) compiles to invalid SQL; updateNotificationPreferences validates only the partial input so all channels can end up disabled",
+    "verification": "reasoned from compiled SQL",
+    "status": "open",
+    "commit": "-"
+  },
+  {
+    "id": "OPEN-20",
+    "severity": "Low",
+    "category": "Quality",
+    "files": "backend/tests/controllers/{schedule,calendar}.controller.test.ts",
+    "component": "Tests",
+    "description": "'should handle errors gracefully' tests mock the wrong method / fail 24 of 28 in both old and new setup; they passed in one earlier full run for a reason not established",
+    "verification": "jest runs",
+    "status": "open",
+    "commit": "-"
   }
 ]
