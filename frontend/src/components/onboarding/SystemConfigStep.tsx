@@ -1,5 +1,13 @@
-import { Cpu, FileText, Mail, Calendar, Brain } from 'lucide-react'
+import { Cpu, FileText, Mail, Calendar, Brain, Route as RoutePlanning } from 'lucide-react'
 import { StepProps } from '@/types/setup'
+
+// Reads a dotted path such as 'enhancedServices.pdf' from the config object.
+const readFlag = (config: unknown, path: string): boolean =>
+  Boolean(
+    path
+      .split('.')
+      .reduce<any>((obj, key) => (obj == null ? undefined : obj[key]), config)
+  )
 
 const serviceFeatures = [
   {
@@ -93,7 +101,6 @@ export function SystemConfigStep({ data, updateData, onNext, onPrevious, onSkip,
     })
   }
 
-  const isStepComplete = true // This step is always valid as features can be toggled
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
@@ -118,7 +125,7 @@ export function SystemConfigStep({ data, updateData, onNext, onPrevious, onSkip,
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {serviceFeatures.map((feature) => {
-              const isEnabled = feature.key.split('.').reduce((obj, key) => obj[key], data.systemConfig) as boolean
+              const isEnabled = readFlag(data.systemConfig, feature.key)
 
               return (
                 <label
@@ -217,7 +224,7 @@ export function SystemConfigStep({ data, updateData, onNext, onPrevious, onSkip,
               <ul className="space-y-1 text-sm text-gray-600">
                 {serviceFeatures
                   .filter(feature => {
-                    const value = feature.key.split('.').reduce((obj, key) => obj[key], data.systemConfig) as boolean
+                    const value = readFlag(data.systemConfig, feature.key)
                     return value
                   })
                   .map(feature => (
@@ -227,7 +234,7 @@ export function SystemConfigStep({ data, updateData, onNext, onPrevious, onSkip,
                     </li>
                   ))}
                 {serviceFeatures.filter(feature => {
-                  const value = feature.key.split('.').reduce((obj, key) => obj[key], data.systemConfig) as boolean
+                  const value = readFlag(data.systemConfig, feature.key)
                   return value
                 }).length === 0 && (
                   <li className="text-gray-400 italic">No enhanced services enabled</li>

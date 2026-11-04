@@ -24,7 +24,7 @@ export function UserPreferencesStep({ data, updateData, onNext, onPrevious, onSk
       userPreferences: {
         ...data.userPreferences,
         [section]: {
-          ...data.userPreferences[section as keyof typeof data.userPreferences],
+          ...(data.userPreferences[section as keyof typeof data.userPreferences] as Record<string, unknown>),
           [field]: value,
         },
       },

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type ComponentType } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSetupStore } from '@/stores/setupStore'
 import { WelcomeStep } from '@/components/onboarding/WelcomeStep'
@@ -9,6 +9,7 @@ import { SystemConfigStep } from '@/components/onboarding/SystemConfigStep'
 import { CompletionStep } from '@/components/onboarding/CompletionStep'
 import { SetupProgress } from '@/components/setup/SetupProgress'
 import { useAuthStore } from '@/stores/authStore'
+import type { StepProps } from '@/types/setup'
 
 const onboardingSteps = [
   { id: 'welcome', title: 'Welcome', component: WelcomeStep },
@@ -75,7 +76,12 @@ export default function OnboardingFlow(): JSX.Element {
     return <CompletionStep onComplete={handleComplete} onRestart={handleRestart} />
   }
 
-  const CurrentStepComponent = onboardingSteps[currentStep].component
+  // The completion step has a different prop contract (onComplete/onRestart);
+  // rendering it through the generic step props left both handlers undefined,
+  // so its buttons threw "is not a function".
+  const isCompletionStep = onboardingSteps[currentStep].id === 'completion'
+  const CurrentStepComponent = onboardingSteps[currentStep]
+    .component as ComponentType<StepProps>
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,17 +121,21 @@ export default function OnboardingFlow(): JSX.Element {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Step content */}
           <div className="lg:col-span-3">
-            <CurrentStepComponent
-              data={useSetupStore.getState().setupData}
-              updateData={useSetupStore.getState().updateSetupData}
-              validation={validateCurrentStep()}
-              onNext={nextStep}
-              onPrevious={previousStep}
-              onSkip={skipStep}
-              isFirstStep={currentStep === 0}
-              isLastStep={currentStep === onboardingSteps.length - 1}
-              isLoading={false}
-            />
+            {isCompletionStep ? (
+              <CompletionStep onComplete={handleComplete} onRestart={handleRestart} />
+            ) : (
+              <CurrentStepComponent
+                data={useSetupStore.getState().setupData}
+                updateData={useSetupStore.getState().updateSetupData}
+                validation={validateCurrentStep()}
+                onNext={nextStep}
+                onPrevious={previousStep}
+                onSkip={skipStep}
+                isFirstStep={currentStep === 0}
+                isLastStep={currentStep === onboardingSteps.length - 1}
+                isLoading={false}
+              />
+            )}
           </div>
 
           {/* Sidebar */}

@@ -10,7 +10,6 @@ import {
   Eye,
   AlertTriangle
 } from 'lucide-react';
-import { format } from 'date-fns';
 
 interface WeatherData {
   location: string;

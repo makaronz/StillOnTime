@@ -76,14 +76,6 @@ export const ServiceWorkerRegistration: React.FC = () => {
     }
   }, []);
 
-  // Manual service worker update trigger
-  const triggerUpdate = () => {
-    if (navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload();
-    }
-  };
-
   return null; // This component doesn't render anything visible
 };
 

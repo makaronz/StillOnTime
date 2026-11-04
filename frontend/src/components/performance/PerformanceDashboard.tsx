@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useWebVitals } from "./PerformanceOptimizer";
-import { performanceMonitoringService } from "@/services/performance-monitoring.service";
 
 interface PerformanceData {
   timestamp: number;
