@@ -18,7 +18,9 @@ router.get('/health', (req, res, next) =>
 // Everything below this line requires a valid session token. The routes
 // call the LLM (/generate) or mutate the vector store (/initialize), so they
 // must not be reachable anonymously. Only the health probe above stays public.
-router.use(authenticateToken);
+router.use((req, res, next) => {
+  void authenticateToken(req, res, next);
+});
 
 // Search similar code
 router.get('/search', (req, res, next) => 

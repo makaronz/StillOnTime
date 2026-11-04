@@ -91,7 +91,7 @@ router.use("/monitoring", (req, res, next): void => {
       createMonitoringMiddleware(monitoringService)
     );
   }
-  monitoringRouter!(req, res, next);
+  monitoringRouter(req, res, next);
 });
 
 // API health check

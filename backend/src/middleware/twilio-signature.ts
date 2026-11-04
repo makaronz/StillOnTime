@@ -1,4 +1,4 @@
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import twilio from "twilio";
 import { logger } from "@/utils/logger";
 
@@ -14,7 +14,7 @@ import { logger } from "@/utils/logger";
  * rather than open.
  */
 export const requireTwilioSignature = (
-  req: any,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {

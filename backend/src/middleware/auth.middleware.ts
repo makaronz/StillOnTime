@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
+import { AppRequest } from "@/types/requests";
 
 /**
  * Authentication middleware that verifies JWT tokens
@@ -375,7 +376,7 @@ export const authErrorHandler = (
  * userId from the client. Must run after authenticateToken.
  */
 export const requireSelfUserId = (
-  req: any,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ): void => {
