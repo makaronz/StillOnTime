@@ -307,7 +307,9 @@ FRONTEND_URL=http://localhost:${FRONTEND_PORT}
       const elapsed = Date.now() - startTime;
       expect(elapsed).toBeGreaterThanOrEqual(maxWaitTime - 1000);
       expect(serviceReady).toBe(false);
-    });
+      // The test deliberately waits maxWaitTime, so its own timeout must exceed it
+      // (the global testTimeout is also 10 s, which made it fail by construction).
+    }, 20000);
 
     test('should provide diagnostic information on failure', () => {
       // Check if diagnostic commands are available
@@ -315,7 +317,7 @@ FRONTEND_URL=http://localhost:${FRONTEND_PORT}
         const dockerStatus = execCommand('docker ps');
         expect(dockerStatus).toBeDefined();
       } catch (error) {
-        fail('Docker diagnostic command should be available');
+        throw new Error('Docker diagnostic command should be available');
       }
     });
 
@@ -352,7 +354,7 @@ FRONTEND_URL=http://localhost:${FRONTEND_PORT}
           const output = execCommand(`${cmd} --version`);
           expect(output).toBeDefined();
         } catch (error) {
-          fail(`Required command '${cmd}' not found`);
+          throw new Error(`Required command '${cmd}' not found`);
         }
       });
     });
@@ -364,7 +366,7 @@ FRONTEND_URL=http://localhost:${FRONTEND_PORT}
       try {
         execCommand('docker ps');
       } catch (error) {
-        fail('Docker should be running');
+        throw new Error('Docker should be running');
       }
 
       // 2. .env file exists
