@@ -3,18 +3,17 @@
  * Comprehensive testing of error recovery coordination and mechanisms
  */
 
-import {
-  ErrorRecoveryService,
+import type {
+  ErrorRecoveryService as ErrorRecoveryServiceType,
   RecoveryOptions,
   RecoveryContext,
-  RecoveryResult,
 } from "../../src/services/error-recovery.service";
-import { FallbackService } from "../../src/services/fallback.service";
-import { MonitoringService } from "../../src/services/monitoring.service";
-import { NotificationService } from "../../src/services/notification.service";
-import { CacheService } from "../../src/services/cache.service";
-import { SystemError, APIError, ErrorCode } from "../../src/utils/errors";
-import { CircuitBreakerRegistry } from "../../src/utils/circuit-breaker";
+import type { FallbackService } from "../../src/services/fallback.service";
+import type { MonitoringService } from "../../src/services/monitoring.service";
+import type { NotificationService } from "../../src/services/notification.service";
+import type { CacheService } from "../../src/services/cache.service";
+import type * as Errors from "../../src/utils/errors";
+import type { CircuitBreakerRegistry as CircuitBreakerRegistryType } from "../../src/utils/circuit-breaker";
 
 // Mock dependencies
 jest.mock("../../src/services/fallback.service");
@@ -24,12 +23,15 @@ jest.mock("../../src/services/cache.service");
 jest.mock("../../src/utils/circuit-breaker");
 
 describe("ErrorRecoveryService", () => {
-  let errorRecoveryService: ErrorRecoveryService;
+  let errorRecoveryService: ErrorRecoveryServiceType;
   let mockFallbackService: jest.Mocked<FallbackService>;
   let mockMonitoringService: jest.Mocked<MonitoringService>;
   let mockNotificationService: jest.Mocked<NotificationService>;
   let mockCacheService: jest.Mocked<CacheService>;
-  let mockCircuitBreakerRegistry: jest.Mocked<CircuitBreakerRegistry>;
+  let mockCircuitBreakerRegistry: jest.Mocked<CircuitBreakerRegistryType>;
+  let SystemError: typeof Errors.SystemError;
+  let APIError: typeof Errors.APIError;
+  let ErrorCode: typeof Errors.ErrorCode;
 
   const mockContext: RecoveryContext = {
     serviceName: "test_service",
@@ -63,9 +65,9 @@ describe("ErrorRecoveryService", () => {
       delete: jest.fn(),
     } as any;
 
-    // Mock CircuitBreakerRegistry
+    // Mock CircuitBreakerRegistry: a CLOSED breaker that runs the operation
     const mockCircuitBreaker = {
-      execute: jest.fn(),
+      execute: jest.fn((op: () => Promise<unknown>) => op()),
       getStats: jest.fn().mockReturnValue({ state: "CLOSED" }),
       reset: jest.fn(),
     };
@@ -78,16 +80,34 @@ describe("ErrorRecoveryService", () => {
       resetAll: jest.fn(),
     } as any;
 
-    (CircuitBreakerRegistry.getInstance as jest.Mock).mockReturnValue(
-      mockCircuitBreakerRegistry
-    );
+    // tests/setup.ts imports the whole route graph, which already loaded
+    // error-recovery.service bound to the REAL circuit-breaker registry. Load a
+    // fresh copy so it uses the mocked registry, and take the error classes
+    // (checked with instanceof) from the same module registry.
+    jest.isolateModules(() => {
+      ({ SystemError, APIError, ErrorCode } = require("../../src/utils/errors"));
+      const { CircuitBreakerRegistry } = require("../../src/utils/circuit-breaker");
+      (CircuitBreakerRegistry.getInstance as jest.Mock).mockReturnValue(
+        mockCircuitBreakerRegistry
+      );
+      const { ErrorRecoveryService } = require("../../src/services/error-recovery.service");
 
-    errorRecoveryService = new ErrorRecoveryService(
-      mockFallbackService,
-      mockMonitoringService,
-      mockNotificationService,
-      mockCacheService
-    );
+      errorRecoveryService = new ErrorRecoveryService(
+        mockFallbackService,
+        mockMonitoringService,
+        mockNotificationService,
+        mockCacheService
+      );
+    });
+
+    // Retry backoff waits real seconds; skip the waiting, keep the logic.
+    jest
+      .spyOn(errorRecoveryService as any, "sleep")
+      .mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe("executeWithRecovery", () => {
@@ -367,20 +387,15 @@ describe("ErrorRecoveryService", () => {
         options
       );
 
+      // payload shape of NotificationService.sendSystemAlert
       expect(mockNotificationService.sendSystemAlert).toHaveBeenCalledWith({
         type: "operation_failure",
         serviceName: "test_service",
-        operation: "test_operation",
         errorCode: ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
-        message: "Operation test_operation failed after 1 attempts",
-        userId: "test-user-123",
+        impact: "high",
+        affectedOperations: ["test_operation"],
+        estimatedRecoveryTime: 0,
         timestamp: expect.any(Date),
-        severity: "high",
-        metadata: {
-          requestId: "req-123",
-          attempts: 1,
-          errorMessage: "Service failure",
-        },
       });
     });
 

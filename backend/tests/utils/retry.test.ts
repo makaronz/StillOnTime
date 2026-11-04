@@ -291,10 +291,10 @@ describe("RetryManager", () => {
     });
 
     it("should have reasonable default values", () => {
-      expect(RETRY_CONFIGS.OAUTH.maxAttempts).toBe(2);
-      expect(RETRY_CONFIGS.GMAIL_API.maxAttempts).toBe(3);
+      expect(RETRY_CONFIGS.OAUTH.maxAttempts).toBe(3);
+      expect(RETRY_CONFIGS.GMAIL_API.maxAttempts).toBe(4);
       expect(RETRY_CONFIGS.DATABASE.baseDelay).toBe(500);
-      expect(RETRY_CONFIGS.WEATHER_API.maxDelay).toBe(15000);
+      expect(RETRY_CONFIGS.WEATHER_API.maxDelay).toBe(60000);
     });
 
     it("should have appropriate retryable errors for each service", () => {

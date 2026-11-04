@@ -16,6 +16,14 @@ describe("PDFParserService", () => {
   let pdfParserService: PDFParserService;
   const mockPdfBuffer = Buffer.from("mock pdf content");
 
+  // validateExtractedData requires the shooting date to lie between now and
+  // one year from now, so "valid" fixtures must be relative to today.
+  const upcomingShootingDate = (): Date => {
+    const date = new Date();
+    date.setDate(date.getDate() + 30);
+    return date;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     pdfParserService = new PDFParserService();
@@ -46,7 +54,8 @@ describe("PDFParserService", () => {
       expect(result.contacts).toHaveLength(2);
       expect(result.contacts![0].name).toBe("Jan Kowalski");
       expect(result.contacts![0].phone).toBe("+48 123 456 789");
-      expect(result.equipment).toContain("Kamera RED");
+      // equipment entries are the rest of the matched line
+      expect(result.equipment![0]).toBe("Kamera RED, Obiektyw 50mm");
       expect(result.safetyNotes).toContain("ruch uliczny");
       expect(result.confidence).toBeGreaterThan(0.5);
     });
@@ -143,7 +152,7 @@ describe("PDFParserService", () => {
   describe("validateExtractedData", () => {
     it("should validate complete and correct data", () => {
       const validData: ParsedScheduleData = {
-        shootingDate: new Date(2024, 11, 15),
+        shootingDate: upcomingShootingDate(),
         callTime: "08:30",
         location: "Studio A, Warsaw",
         sceneType: "INT",
@@ -196,7 +205,7 @@ describe("PDFParserService", () => {
 
     it("should reject data with invalid time format", () => {
       const invalidTimeData: ParsedScheduleData = {
-        shootingDate: new Date(2024, 11, 15),
+        shootingDate: upcomingShootingDate(),
         callTime: "25:70", // Invalid time
         location: "Studio A",
         confidence: 0.8,
@@ -226,7 +235,7 @@ describe("PDFParserService", () => {
   describe("createManualCorrectionInterface", () => {
     it("should create correction interface for incomplete data", () => {
       const incompleteData: ParsedScheduleData = {
-        shootingDate: new Date(2024, 11, 15),
+        shootingDate: upcomingShootingDate(),
         // Missing callTime and location
         confidence: 0.3,
       };
