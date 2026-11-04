@@ -417,6 +417,80 @@ export const requireSelfUserId = (
 };
 
 /**
+ * Parse ADMIN_EMAILS (comma-separated) into a normalized set.
+ * Read at request time so a config change does not need a code reload path.
+ */
+export const getAdminEmails = (
+  raw: string | undefined = process.env.ADMIN_EMAILS
+): Set<string> =>
+  new Set(
+    (raw ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter((email) => email.length > 0)
+  );
+
+/**
+ * Allow the request only if the authenticated user's e-mail is listed in
+ * ADMIN_EMAILS. Fails closed: with ADMIN_EMAILS unset or empty nobody passes.
+ * Must run after authenticateToken.
+ */
+export const requireAdmin = (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const email = req.user?.email?.trim().toLowerCase();
+
+  if (!email) {
+    res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required",
+      code: "NOT_AUTHENTICATED",
+      timestamp: new Date().toISOString(),
+      path: req.path,
+    });
+    return;
+  }
+
+  const admins = getAdminEmails();
+
+  if (admins.size === 0) {
+    logger.warn("Admin-only route called but ADMIN_EMAILS is not configured", {
+      userId: req.user?.userId,
+      path: req.path,
+      method: req.method,
+    });
+    res.status(403).json({
+      error: "Forbidden",
+      message: "Administrative operations are disabled on this server",
+      code: "ADMIN_NOT_CONFIGURED",
+      timestamp: new Date().toISOString(),
+      path: req.path,
+    });
+    return;
+  }
+
+  if (!admins.has(email)) {
+    logger.warn("Blocked non-admin access to admin-only route", {
+      userId: req.user?.userId,
+      path: req.path,
+      method: req.method,
+    });
+    res.status(403).json({
+      error: "Forbidden",
+      message: "Administrator privileges required",
+      code: "ADMIN_REQUIRED",
+      timestamp: new Date().toISOString(),
+      path: req.path,
+    });
+    return;
+  }
+
+  next();
+};
+
+/**
  * Alias for authenticateToken to match expected import name
  */
 export const authMiddleware = authenticateToken;

@@ -55,6 +55,7 @@ Pozostałe (OPEN-03, 06, 08, 09) są niskiej wagi; opis w rejestrze.
 ## Zalecenia
 
 1. Wdrożenie: ustawić `TWILIO_WEBHOOK_URL` (pełny publiczny adres webhooka) i `TWILIO_AUTH_TOKEN`; bez tokenu webhook odpowiada 503 (świadomie).
+   Ustawić też `ADMIN_EMAILS` (BUG-047): bez tej zmiennej modyfikujące trasy `/api/monitoring` (reset circuit breakerów, edycja i rozwiązywanie alertów, własne metryki) odpowiadają 403 wszystkim, także w panelu monitoringu frontendu.
 2. Zdecydować, kto może wywoływać `/api/codenet/initialize` (rola albo wyłączenie na produkcji).
 3. Osobne zadanie: aktualizacja `langchain`/`@langchain/*` i reszty zależności z OPEN-01, z testami integracyjnymi.
 4. Osobne zadanie: przepisać testy repozytoriów pod Kysely; do tego czasu nie traktować progu pokrycia 80% jako bramki.
