@@ -26,11 +26,11 @@ export function validateState(
   }
 
   if (!storedState) {
-    console.warn("OAuth: No stored state found - this may happen on page refresh during OAuth");
-    // Allow missing stored state on page refresh, but warn about it
-    // The backend will still validate the state parameter
-    console.info("OAuth: Proceeding with backend state validation only");
-    return true;
+    // Fail closed. No stored state means this browser never started the
+    // login (or storage was cleared), which is exactly what a login-CSRF
+    // attack looks like. The user just restarts the login.
+    console.warn("OAuth: No stored state found - rejecting callback");
+    return false;
   }
 
   // Use constant-time comparison to prevent timing attacks

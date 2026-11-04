@@ -132,7 +132,7 @@ export const requireValidOAuth = async (
         code: "OAUTH_REQUIRED",
         timestamp: new Date().toISOString(),
         path: req.path,
-        authUrl: await services.oauth2.getAuthUrl(),
+        authUrl: (await services.oauth2.getAuthUrl()).authUrl,
       });
       return;
     }
@@ -144,7 +144,7 @@ export const requireValidOAuth = async (
         code: "OAUTH_REAUTH_REQUIRED",
         timestamp: new Date().toISOString(),
         path: req.path,
-        authUrl: await services.oauth2.getAuthUrl(),
+        authUrl: (await services.oauth2.getAuthUrl()).authUrl,
       });
       return;
     }

@@ -1,4 +1,5 @@
 import { google, Auth } from "googleapis";
+import { issueOAuthState } from "@/utils/oauth-state";
 import * as jwt from "jsonwebtoken";
 import * as crypto from "crypto";
 import { config } from "@/config/config";
@@ -48,7 +49,9 @@ export class OAuth2Service {
    */
   async getAuthUrl(state?: string): Promise<{ authUrl: string; state: string }> {
     try {
-      const generatedState = state || crypto.randomBytes(32).toString("hex");
+      // Default to a signed, expiring state so every flow (login, reconnect)
+      // produces a value POST /auth/callback will accept.
+      const generatedState = state || issueOAuthState();
       const authUrl = this.oauth2Client.generateAuthUrl({
         access_type: "offline",
         scope: this.REQUIRED_SCOPES,

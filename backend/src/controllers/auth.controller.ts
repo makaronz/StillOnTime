@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { services } from "@/services";
 import { logger } from "@/utils/logger";
+import { issueOAuthState, verifyOAuthState } from "@/utils/oauth-state";
 
 /**
  * Authentication Controller
@@ -13,8 +14,11 @@ export class AuthController {
    */
   async login(req: any, res: Response): Promise<void> {
     try {
-      const state = req.query.state as string;
-      const { authUrl, state: generatedState } = await services.oauth2.getAuthUrl(state);
+      // Always mint the state server-side; a caller-chosen value would let an
+      // attacker pre-select the state the callback later accepts.
+      const { authUrl, state: generatedState } = await services.oauth2.getAuthUrl(
+        issueOAuthState()
+      );
 
       logger.info("OAuth login initiated", {
         ip: req.ip,
@@ -81,12 +85,12 @@ export class AuthController {
         return;
       }
 
-      // Validate state parameter for CSRF protection
-      // Note: In production, state should be validated against a session/cookie value
-      // For now, we verify it exists and has the expected format
-      if (!state || typeof state !== 'string' || state.length < 16) {
+      // Validate state parameter for CSRF protection: it must be a value this
+      // server issued (signed + unexpired). The frontend additionally checks it
+      // against the copy it stored in sessionStorage before calling us.
+      if (!verifyOAuthState(state)) {
         logger.warn("OAuth callback received invalid state parameter", {
-          state: state ? `${state.substring(0, 10)}...` : 'missing',
+          state: typeof state === "string" ? `${state.substring(0, 10)}...` : 'missing',
           ip: req.ip,
         });
 
