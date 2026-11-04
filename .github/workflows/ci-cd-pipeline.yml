@@ -17,7 +17,7 @@ jobs:
   # Quality Gates - Run tests and linting
   quality-gates:
     name: Quality Gates
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     services:
       postgres:
@@ -133,7 +133,7 @@ jobs:
   # Build and Package
   build:
     name: Build and Package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: quality-gates
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     
@@ -208,7 +208,7 @@ jobs:
   # Security Scanning
   security-scan:
     name: Security Scanning
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     
@@ -228,7 +228,7 @@ jobs:
   # Deploy to Staging
   deploy-staging:
     name: Deploy to Staging
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [quality-gates, build, security-scan]
     if: github.ref == 'refs/heads/develop'
     
@@ -278,7 +278,7 @@ jobs:
   # Deploy to Production
   deploy-production:
     name: Deploy to Production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [quality-gates, build, security-scan]
     if: github.ref == 'refs/heads/main'
     
@@ -359,7 +359,7 @@ jobs:
   # Performance Testing
   performance-test:
     name: Performance Testing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: deploy-production
     if: github.ref == 'refs/heads/main'
     
@@ -400,7 +400,7 @@ jobs:
   # Rollback capability
   rollback:
     name: Rollback Production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: failure() && github.ref == 'refs/heads/main'
     needs: [deploy-production, performance-test]
     
