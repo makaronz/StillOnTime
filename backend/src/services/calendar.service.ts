@@ -288,7 +288,9 @@ export class CalendarService {
       const existingEvent = await this.calendarEventRepository.findById(
         eventId
       );
-      if (!existingEvent) {
+      // Another user's event is reported exactly like a missing one, so the
+      // caller cannot delete it (or learn that it exists).
+      if (!existingEvent || existingEvent.userId !== userId) {
         throw new Error("Calendar event not found");
       }
 
