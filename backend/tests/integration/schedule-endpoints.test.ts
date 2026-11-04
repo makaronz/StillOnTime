@@ -787,4 +787,20 @@ describe("Schedule endpoints (route-level)", () => {
       });
     });
   });
+  describe("GET /api/schedule/health", () => {
+    // Static routes must be declared before "/:scheduleId" (CLAUDE.md, API
+    // path conventions); otherwise "health" is looked up as a schedule id.
+    it("answers the health probe instead of a schedule lookup", async () => {
+      serve(world({ schedule_data: [] }));
+
+      const res = await request(app).get("/api/schedule/health").set(auth());
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        status: "healthy",
+        service: "schedule-management",
+      });
+      expect(queriesOn("schedule_data")).toHaveLength(0);
+    });
+  });
 });
