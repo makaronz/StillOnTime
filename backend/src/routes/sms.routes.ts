@@ -4,6 +4,7 @@ import { NotificationService } from "../services/notification.service";
 import { UserRepository } from "../repositories/user.repository";
 import { NotificationRepository } from "../repositories/notification.repository";
 import { authenticateToken } from "../middleware/auth.middleware";
+import { requireTwilioSignature } from "../middleware/twilio-signature";
 
 const router = Router();
 
@@ -63,8 +64,9 @@ router.post("/test", authenticateToken, smsController.testSMS);
 /**
  * @route   POST /api/sms/webhook
  * @desc    Handle Twilio delivery status webhook
- * @access  Public (but should be secured with Twilio signature validation in production)
+ * @access  Public endpoint, authenticated by X-Twilio-Signature
+ *          (CSRF-exempt; see middleware/csrf-wiring.ts)
  */
-router.post("/webhook", smsController.handleWebhook);
+router.post("/webhook", requireTwilioSignature, smsController.handleWebhook);
 
 export default router;

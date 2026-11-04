@@ -195,6 +195,19 @@ router.get(
   emailController.exportHistory.bind(emailController)
 );
 
+/**
+ * Health check route for email service.
+ * Declared before "/:emailId" so "health" is not captured as an email id.
+ */
+router.get("/health", (req: Request, res: Response): void => {
+  res.json({
+    status: "healthy",
+    service: "email-processing",
+    timestamp: new Date().toISOString(),
+    version: "1.0.0",
+  });
+});
+
 // GET /api/email/:emailId - Get email details
 router.get(
   "/:emailId",
@@ -237,16 +250,5 @@ router.delete(
   emailController.deleteEmail.bind(emailController)
 );
 
-/**
- * Health check route for email service
- */
-router.get("/health", (req: Request, res: Response): void => {
-  res.json({
-    status: "healthy",
-    service: "email-processing",
-    timestamp: new Date().toISOString(),
-    version: "1.0.0",
-  });
-});
 
 export { router as emailRoutes };

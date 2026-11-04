@@ -2,16 +2,16 @@ import request from "supertest";
 import express from "express";
 import { authRoutes } from "@/routes/auth.routes";
 import { services } from "@/services";
-import { UserRepository } from "@/repositories/user.repository";
+import { userRepository } from "@/repositories/user.repository";
+import { issueOAuthState, verifyOAuthState } from "@/utils/oauth-state";
 
-// Mock services and repositories
-jest.mock("@/services");
-jest.mock("@/repositories/user.repository");
-
-const mockServices = services as jest.Mocked<typeof services>;
-const mockUserRepository = UserRepository as jest.MockedClass<
-  typeof UserRepository
->;
+// tests/setup.ts imports the whole route graph (`@/routes`) before this file
+// runs, so the controller/middleware already hold the real `services` and
+// `userRepository` singletons. Module-level jest.mock() would only produce a
+// disconnected copy; spy on the shared singletons instead.
+const oauth2 = services.oauth2;
+const spyOAuth2 = <K extends keyof typeof oauth2>(method: K): jest.SpyInstance =>
+  jest.spyOn(oauth2, method as any);
 
 const app = express();
 app.use(express.json());
@@ -22,11 +22,18 @@ describe("AuthController Integration Tests", () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe("GET /auth/login", () => {
     it("should return authorization URL", async () => {
       const authUrl =
         "https://accounts.google.com/oauth/authorize?client_id=test";
-      mockServices.oauth2.getAuthUrl.mockResolvedValue(authUrl);
+      const getAuthUrl = spyOAuth2("getAuthUrl").mockResolvedValue({
+        authUrl,
+        state: "server-issued-state",
+      });
 
       const response = await request(app)
         .get("/auth/login")
@@ -36,15 +43,18 @@ describe("AuthController Integration Tests", () => {
       expect(response.body).toEqual({
         success: true,
         authUrl,
+        state: "server-issued-state",
         message: "Redirect to Google OAuth for authentication",
       });
-      expect(mockServices.oauth2.getAuthUrl).toHaveBeenCalledWith("test-state");
+      // The caller-supplied state is ignored; the server mints its own (BUG-008).
+      expect(getAuthUrl).toHaveBeenCalledTimes(1);
+      const passedState = getAuthUrl.mock.calls[0][0];
+      expect(passedState).not.toBe("test-state");
+      expect(verifyOAuthState(passedState)).toBe(true);
     });
 
     it("should handle service errors", async () => {
-      mockServices.oauth2.getAuthUrl.mockRejectedValue(
-        new Error("Service error")
-      );
+      spyOAuth2("getAuthUrl").mockRejectedValue(new Error("Service error"));
 
       const response = await request(app).get("/auth/login");
 
@@ -90,14 +100,20 @@ describe("AuthController Integration Tests", () => {
       };
       const mockJWT = "jwt-token";
 
-      mockServices.oauth2.exchangeCodeForTokens.mockResolvedValue(mockTokens);
-      mockServices.oauth2.getUserInfo.mockResolvedValue(mockUserInfo);
-      mockServices.oauth2.storeUserTokens.mockResolvedValue(mockUser as any);
-      mockServices.oauth2.generateJWT.mockReturnValue(mockJWT);
+      const exchangeCodeForTokens = spyOAuth2(
+        "exchangeCodeForTokens"
+      ).mockResolvedValue(mockTokens);
+      const getUserInfo = spyOAuth2("getUserInfo").mockResolvedValue(
+        mockUserInfo
+      );
+      const storeUserTokens = spyOAuth2("storeUserTokens").mockResolvedValue(
+        mockUser as any
+      );
+      const generateJWT = spyOAuth2("generateJWT").mockReturnValue(mockJWT);
 
       const response = await request(app)
         .post("/auth/callback")
-        .send({ code: "auth-code", state: "test-state" });
+        .send({ code: "auth-code", state: issueOAuthState() });
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
@@ -111,18 +127,15 @@ describe("AuthController Integration Tests", () => {
         message: "Authentication successful",
       });
 
-      expect(mockServices.oauth2.exchangeCodeForTokens).toHaveBeenCalledWith(
-        "auth-code"
-      );
-      expect(mockServices.oauth2.getUserInfo).toHaveBeenCalledWith(
-        "access-token"
-      );
-      expect(mockServices.oauth2.storeUserTokens).toHaveBeenCalledWith(
+      expect(exchangeCodeForTokens).toHaveBeenCalledWith("auth-code");
+      expect(getUserInfo).toHaveBeenCalledWith("access-token");
+      expect(storeUserTokens).toHaveBeenCalledWith(
         "google-id",
         "test@example.com",
         "Test User",
         mockTokens
       );
+      expect(generateJWT).toHaveBeenCalledWith(mockUser);
     });
 
     it("should handle OAuth error from Google", async () => {
@@ -152,13 +165,13 @@ describe("AuthController Integration Tests", () => {
     });
 
     it("should handle token exchange errors", async () => {
-      mockServices.oauth2.exchangeCodeForTokens.mockRejectedValue(
+      spyOAuth2("exchangeCodeForTokens").mockRejectedValue(
         new Error("Invalid code")
       );
 
       const response = await request(app)
         .post("/auth/callback")
-        .send({ code: "invalid-code" });
+        .send({ code: "invalid-code", state: issueOAuthState() });
 
       expect(response.status).toBe(500);
       expect(response.body).toMatchObject({
@@ -179,20 +192,18 @@ describe("AuthController Integration Tests", () => {
       const newToken = "new-jwt-token";
 
       // Mock JWT verification
-      mockServices.oauth2.verifyJWT.mockReturnValue({
+      spyOAuth2("verifyJWT").mockReturnValue({
         userId: "user-id",
         email: "test@example.com",
         iat: 123456789,
         exp: 123456789 + 3600,
       });
 
-      // Mock user repository
-      const mockUserRepoInstance = {
-        findById: jest.fn().mockResolvedValue(mockUser),
-      };
-      mockUserRepository.mockImplementation(() => mockUserRepoInstance as any);
+      const findById = jest
+        .spyOn(userRepository, "findById")
+        .mockResolvedValue(mockUser as any);
 
-      mockServices.oauth2.generateJWT.mockReturnValue(newToken);
+      const generateJWT = spyOAuth2("generateJWT").mockReturnValue(newToken);
 
       const response = await request(app)
         .post("/auth/refresh")
@@ -209,6 +220,8 @@ describe("AuthController Integration Tests", () => {
         },
         message: "Token refreshed successfully",
       });
+      expect(findById).toHaveBeenCalledWith("user-id");
+      expect(generateJWT).toHaveBeenCalledWith(mockUser);
     });
 
     it("should require authentication", async () => {
@@ -225,13 +238,15 @@ describe("AuthController Integration Tests", () => {
 
   describe("POST /auth/logout", () => {
     it("should logout authenticated user", async () => {
-      mockServices.oauth2.verifyJWT.mockReturnValue({
+      spyOAuth2("verifyJWT").mockReturnValue({
         userId: "user-id",
         email: "test@example.com",
         iat: 123456789,
         exp: 123456789 + 3600,
       });
-      mockServices.oauth2.revokeTokens.mockResolvedValue();
+      const revokeTokens = spyOAuth2("revokeTokens").mockResolvedValue(
+        undefined
+      );
 
       const response = await request(app)
         .post("/auth/logout")
@@ -242,7 +257,7 @@ describe("AuthController Integration Tests", () => {
         success: true,
         message: "Logged out successfully",
       });
-      expect(mockServices.oauth2.revokeTokens).toHaveBeenCalledWith("user-id");
+      expect(revokeTokens).toHaveBeenCalledWith("user-id");
     });
 
     it("should require authentication", async () => {
@@ -266,19 +281,20 @@ describe("AuthController Integration Tests", () => {
         needsReauth: false,
       };
 
-      mockServices.oauth2.verifyJWT.mockReturnValue({
+      spyOAuth2("verifyJWT").mockReturnValue({
         userId: "user-id",
         email: "test@example.com",
         iat: 123456789,
         exp: 123456789 + 3600,
       });
 
-      const mockUserRepoInstance = {
-        findById: jest.fn().mockResolvedValue(mockUser),
-      };
-      mockUserRepository.mockImplementation(() => mockUserRepoInstance as any);
+      const findById = jest
+        .spyOn(userRepository, "findById")
+        .mockResolvedValue(mockUser as any);
 
-      mockServices.oauth2.getOAuthStatus.mockResolvedValue(mockOAuthStatus);
+      const getOAuthStatus = spyOAuth2("getOAuthStatus").mockResolvedValue(
+        mockOAuthStatus
+      );
 
       const response = await request(app)
         .get("/auth/status")
@@ -295,6 +311,8 @@ describe("AuthController Integration Tests", () => {
         },
         oauth: mockOAuthStatus,
       });
+      expect(getOAuthStatus).toHaveBeenCalledWith("user-id");
+      expect(findById).toHaveBeenCalledWith("user-id");
     });
 
     it("should return unauthenticated status without token", async () => {
@@ -318,13 +336,16 @@ describe("AuthController Integration Tests", () => {
       const authUrl =
         "https://accounts.google.com/oauth/authorize?prompt=consent";
 
-      mockServices.oauth2.verifyJWT.mockReturnValue({
+      spyOAuth2("verifyJWT").mockReturnValue({
         userId: "user-id",
         email: "test@example.com",
         iat: 123456789,
         exp: 123456789 + 3600,
       });
-      mockServices.oauth2.getAuthUrl.mockResolvedValue(authUrl);
+      spyOAuth2("getAuthUrl").mockResolvedValue({
+        authUrl,
+        state: "reauth-state",
+      });
 
       const response = await request(app)
         .post("/auth/reauth")
@@ -334,6 +355,7 @@ describe("AuthController Integration Tests", () => {
       expect(response.body).toEqual({
         success: true,
         authUrl,
+        state: "reauth-state",
         message: "Re-authentication URL generated",
       });
     });
@@ -364,18 +386,19 @@ describe("AuthController Integration Tests", () => {
         upcomingSchedules: 2,
       };
 
-      mockServices.oauth2.verifyJWT.mockReturnValue({
+      spyOAuth2("verifyJWT").mockReturnValue({
         userId: "user-id",
         email: "test@example.com",
         iat: 123456789,
         exp: 123456789 + 3600,
       });
 
-      const mockUserRepoInstance = {
-        findWithRelations: jest.fn().mockResolvedValue(mockUser),
-        getUserStats: jest.fn().mockResolvedValue(mockStats),
-      };
-      mockUserRepository.mockImplementation(() => mockUserRepoInstance as any);
+      const findWithRelations = jest
+        .spyOn(userRepository, "findWithRelations")
+        .mockResolvedValue(mockUser);
+      const getUserStats = jest
+        .spyOn(userRepository, "getUserStats")
+        .mockResolvedValue(mockStats as any);
 
       const response = await request(app)
         .get("/auth/profile")
@@ -396,6 +419,8 @@ describe("AuthController Integration Tests", () => {
         },
         configuration: null,
       });
+      expect(findWithRelations).toHaveBeenCalledWith("user-id");
+      expect(getUserStats).toHaveBeenCalledWith("user-id");
     });
 
     it("should require authentication", async () => {

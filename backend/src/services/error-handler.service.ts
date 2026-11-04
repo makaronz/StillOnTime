@@ -151,7 +151,7 @@ export class ErrorHandlerService {
 
     // If circuit breaker is open, try fallback immediately
     if (circuitBreaker?.getStats().state === "OPEN") {
-      return await this.tryFallback(error, fallbackOptions);
+      return await this.tryAPIFallback<T>(error, fallbackOptions);
     }
 
     // Try retry if error is retryable
@@ -179,12 +179,30 @@ export class ErrorHandlerService {
               : String(retryError),
         });
 
-        return await this.tryFallback(error, fallbackOptions);
+        return await this.tryAPIFallback<T>(error, fallbackOptions);
       }
     }
 
     // Non-retryable error, try fallback
-    return await this.tryFallback(error, fallbackOptions);
+    return await this.tryAPIFallback<T>(error, fallbackOptions);
+  }
+
+  /**
+   * Fallback for API errors: the advanced path first (it honours cacheKey,
+   * fallbackData, gracefulDegradation and alternativeService, which the
+   * basic tryFallback ignores), then the basic one for useDefaultValues.
+   */
+  private async tryAPIFallback<T>(
+    error: APIError,
+    options: FallbackOptions
+  ): Promise<ErrorRecoveryResult<T>> {
+    const advanced = await this.tryAdvancedFallback<T>(
+      error,
+      options,
+      error.apiName
+    );
+    if (advanced.success) return advanced;
+    return await this.tryFallback<T>(error, options);
   }
 
   /**
@@ -703,11 +721,7 @@ export class ErrorHandlerService {
   /**
    * Record error metrics for monitoring
    */
-  private recordErrorMetrics(
-    serviceName: string,
-    error: BaseError,
-    recoveryTime?: number
-  ): void {
+  private recordErrorMetrics(serviceName: string, error: BaseError): void {
     const key = `${serviceName}:${error.code}`;
     const existing = this.errorMetrics.get(key) || {
       errorCount: 0,
@@ -721,18 +735,30 @@ export class ErrorHandlerService {
     existing.errorCount++;
     existing.lastErrorTime = new Date();
 
-    if (recoveryTime) {
-      existing.recoveryCount++;
-      existing.averageRecoveryTime =
-        (existing.averageRecoveryTime * (existing.recoveryCount - 1) +
-          recoveryTime) /
-        existing.recoveryCount;
-    }
-
     this.errorMetrics.set(key, existing);
 
     // Check if this constitutes a critical failure
     this.evaluateCriticalFailure(serviceName, error, existing);
+  }
+
+  /**
+   * Record a successful recovery for an error already counted by
+   * recordErrorMetrics. It must not count the error again or re-evaluate
+   * critical failure (that double-counted every recovered error).
+   */
+  private recordRecovery(
+    serviceName: string,
+    error: BaseError,
+    recoveryTime: number
+  ): void {
+    const existing = this.errorMetrics.get(`${serviceName}:${error.code}`);
+    if (!existing) return;
+
+    existing.recoveryCount++;
+    existing.averageRecoveryTime =
+      (existing.averageRecoveryTime * (existing.recoveryCount - 1) +
+        recoveryTime) /
+      existing.recoveryCount;
   }
 
   /**
@@ -1239,7 +1265,7 @@ export class ErrorHandlerService {
       const recoveryTime = Date.now() - startTime;
 
       if (result.success) {
-        this.recordErrorMetrics(serviceName, error, recoveryTime);
+        this.recordRecovery(serviceName, error, recoveryTime);
         structuredLogger.info("Error recovery successful", {
           serviceName,
           errorCode: error.code,

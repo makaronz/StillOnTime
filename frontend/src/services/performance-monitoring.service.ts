@@ -1,4 +1,5 @@
-import { reportWebVitals } from "web-vitals";
+import React from "react";
+import { onCLS, onFCP, onFID, onINP, onLCP, onTTFB, type Metric } from "web-vitals";
 
 /**
  * Frontend Performance Monitoring Service
@@ -102,7 +103,7 @@ class PerformanceMonitoringService {
    */
   private setupWebVitals(): void {
     try {
-      reportWebVitals((metric) => {
+      const report = (metric: Metric): void => {
         this.recordMetric({
           [metric.name.toLowerCase()]: metric.value,
         } as any);
@@ -116,7 +117,14 @@ class PerformanceMonitoringService {
             rating: metric.rating,
           });
         }
-      });
+      };
+
+      onLCP(report);
+      onFID(report);
+      onCLS(report);
+      onINP(report);
+      onFCP(report);
+      onTTFB(report);
     } catch (error) {
       console.error("Failed to setup Web Vitals tracking:", error);
     }
@@ -133,7 +141,7 @@ class PerformanceMonitoringService {
 
           if (navigation) {
             const metrics: PerformanceMetrics = {
-              navigationStart: navigation.navigationStart,
+              navigationStart: navigation.startTime,
               domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
               loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
               firstPaint: 0,

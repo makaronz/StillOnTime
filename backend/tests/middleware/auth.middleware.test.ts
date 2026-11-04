@@ -9,25 +9,35 @@ import {
 } from "@/middleware/auth.middleware";
 import { services } from "@/services";
 
-// Mock services
-jest.mock("@/services", () => ({
-  services: {
-    oauth2: {
-      verifyJWT: jest.fn(),
-      getOAuthStatus: jest.fn(),
-      getAuthUrl: jest.fn(),
-    },
-  },
-}));
-
-const mockServices = services as jest.Mocked<typeof services>;
+// tests/setup.ts imports the full route graph before this file runs, so
+// auth.middleware is already bound to the real `services` singleton and a
+// jest.mock("@/services") here would never reach it. Spy on the singleton's
+// methods instead (restored after each test).
+let mockServices: {
+  oauth2: {
+    verifyJWT: jest.SpyInstance;
+    getOAuthStatus: jest.SpyInstance;
+    getAuthUrl: jest.SpyInstance;
+  };
+};
 
 describe("Authentication Middleware", () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
+    mockServices = {
+      oauth2: {
+        verifyJWT: jest.spyOn(services.oauth2, "verifyJWT"),
+        getOAuthStatus: jest.spyOn(services.oauth2, "getOAuthStatus"),
+        getAuthUrl: jest.spyOn(services.oauth2, "getAuthUrl"),
+      },
+    };
     mockRequest = {
       headers: {},
       path: "/test",
@@ -243,7 +253,10 @@ describe("Authentication Middleware", () => {
         scopes: [],
         needsReauth: true,
       });
-      mockServices.oauth2.getAuthUrl.mockResolvedValue("https://auth.url");
+      mockServices.oauth2.getAuthUrl.mockResolvedValue({
+        authUrl: "https://auth.url",
+        state: "issued-state",
+      });
 
       await requireValidOAuth(
         mockRequest as any,
@@ -259,6 +272,7 @@ describe("Authentication Middleware", () => {
         timestamp: expect.any(String),
         path: "/test",
         authUrl: "https://auth.url",
+        state: "issued-state",
       });
     });
 
@@ -268,7 +282,10 @@ describe("Authentication Middleware", () => {
         scopes: ["gmail"],
         needsReauth: true,
       });
-      mockServices.oauth2.getAuthUrl.mockResolvedValue("https://auth.url");
+      mockServices.oauth2.getAuthUrl.mockResolvedValue({
+        authUrl: "https://auth.url",
+        state: "issued-state",
+      });
 
       await requireValidOAuth(
         mockRequest as any,
@@ -284,6 +301,7 @@ describe("Authentication Middleware", () => {
         timestamp: expect.any(String),
         path: "/test",
         authUrl: "https://auth.url",
+        state: "issued-state",
       });
     });
   });
@@ -331,7 +349,8 @@ describe("Authentication Middleware", () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           error: "Too Many Requests",
-          code: "RATE_LIMIT_EXCEEDED",
+          code: "IP_RATE_LIMIT_EXCEEDED",
+          retryAfter: 60,
         })
       );
       expect(mockNext).not.toHaveBeenCalled();

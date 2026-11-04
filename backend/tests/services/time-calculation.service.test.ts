@@ -2,15 +2,8 @@ import { TimeCalculationService } from "../../src/services/time-calculation.serv
 import { TimeBuffers } from "../../src/types";
 import { logger } from "../../src/utils/logger";
 
-// Mock logger
-jest.mock("../../src/utils/logger", () => ({
-  logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+// The real logger instance is already loaded by tests/setup.ts (via the route
+// graph), so a jest.mock() factory here would not reach the service: spy on it.
 
 describe("TimeCalculationService", () => {
   let timeCalculationService: TimeCalculationService;
@@ -25,6 +18,10 @@ describe("TimeCalculationService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(logger, "info").mockImplementation(() => logger);
+    jest.spyOn(logger, "warn").mockImplementation(() => logger);
+    jest.spyOn(logger, "error").mockImplementation(() => logger);
+    jest.spyOn(logger, "debug").mockImplementation(() => logger);
     timeCalculationService = new TimeCalculationService();
   });
 
@@ -411,7 +408,8 @@ describe("TimeCalculationService", () => {
         const time = new Date("2024-01-15T08:30:00Z");
         const formatted = formatMethod(time);
 
-        expect(formatted).toBe("08:30");
+        // en-US, UTC, 2-digit (ICU may use a narrow no-break space before AM)
+        expect(formatted).toMatch(/^08:30\sAM$/);
       });
     });
 

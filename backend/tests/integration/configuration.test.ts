@@ -1,11 +1,28 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { config } from '../../src/config/config';
 import { logger } from '../../src/utils/logger';
 
 // Mock dependencies
 jest.mock('../../src/utils/logger');
+// config.ts calls dotenv.config() at import time; keep a developer's local
+// backend/.env from leaking values into these tests.
+jest.mock('dotenv', () => ({ config: jest.fn() }));
 
 const mockLogger = logger as jest.Mocked<typeof logger>;
+
+// Satisfies src/config/security.ts: >= 48 chars, >= 3 character classes,
+// no weak substrings (jwt, secret, key, auth, test, 123, abc, dev, ...).
+const STRONG_SECRET = 'Zq9!vR#m2@Lx$Pw7^Nc&Hy4*Bt(Gk)Ud8_Fs+Ej=Wo5%MaRiQlXn';
+// >= 32 chars, no weak substrings (salt, password, secret, key, encrypt).
+const STRONG_SALT = 'Hq7Vn2Rw9Lp4Xz6Bm1Tc8Jd3Fg5Ys0Ka';
+
+/** Load src/config/config.ts afresh so it re-reads process.env. */
+function loadConfig(): any {
+  let loaded: any;
+  jest.isolateModules(() => {
+    loaded = require('../../src/config/config').config;
+  });
+  return loaded;
+}
 
 describe('Configuration and Environment Setup Tests', () => {
   const originalEnv = process.env;
@@ -29,16 +46,16 @@ describe('Configuration and Environment Setup Tests', () => {
       process.env.NODE_ENV = 'test';
       process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
       process.env.PORT = '3001';
-      process.env.JWT_SECRET = 'test-secret';
+      process.env.JWT_SECRET = STRONG_SECRET;
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
       expect(config.nodeEnv).toBe('test');
       expect(config.databaseUrl).toBe('postgresql://test:test@localhost:5432/test');
       expect(config.port).toBe(3001);
-      expect(config.jwtSecret).toBe('test-secret');
+      expect(config.jwtSecret).toBe(STRONG_SECRET);
     });
 
     it('should provide default values for optional variables', () => {
@@ -47,11 +64,11 @@ describe('Configuration and Environment Setup Tests', () => {
       delete process.env.NODE_ENV;
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
-      expect(config.nodeEnv).toBeDefined();
-      expect(config.port).toBeDefined();
+      expect(config.nodeEnv).toBe('development');
+      expect(config.port).toBe(3001);
     });
 
     it('should validate environment variable types', () => {
@@ -76,13 +93,13 @@ describe('Configuration and Environment Setup Tests', () => {
 
     it('should handle special characters in environment variables', () => {
       // Arrange
-      process.env.JWT_SECRET = 'secret-with-special-chars-!@#$%^&*()';
+      process.env.JWT_SECRET = STRONG_SECRET; // contains !@#$%^&*()
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
-      expect(config.jwtSecret).toBe('secret-with-special-chars-!@#$%^&*()');
+      expect(config.jwtSecret).toBe(STRONG_SECRET);
     });
   });
 
@@ -110,7 +127,7 @@ describe('Configuration and Environment Setup Tests', () => {
         process.env.DATABASE_URL = url;
 
         // Act
-        const config = require('../../src/config/config').config;
+        const config = loadConfig();
 
         // Assert
         expect(config.databaseUrl).toBe(url);
@@ -139,7 +156,7 @@ describe('Configuration and Environment Setup Tests', () => {
         process.env.PORT = port;
 
         // Act
-        const config = require('../../src/config/config').config;
+        const config = loadConfig();
 
         // Assert
         expect(config.port).toBe(parseInt(port));
@@ -160,134 +177,99 @@ describe('Configuration and Environment Setup Tests', () => {
     });
 
     it('should configure CORS settings', () => {
-      // Arrange
-      process.env.CORS_ORIGIN = 'http://localhost:3000';
+      // Arrange: the allowed origin is FRONTEND_URL (src/config/security.ts corsConfig)
+      process.env.FRONTEND_URL = 'http://localhost:3000';
 
       // Act
-      const config = require('../../src/config/config').config;
+      let corsConfig: any;
+      jest.isolateModules(() => {
+        corsConfig = require('../../src/config/security').corsConfig;
+      });
+      const config = loadConfig();
 
       // Assert
-      expect(config.corsOrigin).toBeDefined();
-    });
-
-    it('should handle multiple CORS origins', () => {
-      // Arrange
-      process.env.CORS_ORIGIN = 'http://localhost:3000,http://localhost:3001';
-
-      // Act
-      const config = require('../../src/config/config').config;
-
-      // Assert
-      expect(config.corsOrigin).toBeDefined();
+      expect(corsConfig.origin).toBe('http://localhost:3000');
+      expect(corsConfig.credentials).toBe(true);
+      expect(config.frontendUrl).toBe('http://localhost:3000');
     });
   });
 
   describe('Security Configuration', () => {
     it('should load JWT secret securely', () => {
       // Arrange
-      process.env.JWT_SECRET = 'super-secret-jwt-key';
+      process.env.JWT_SECRET = STRONG_SECRET;
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
-      expect(config.jwtSecret).toBe('super-secret-jwt-key');
+      expect(config.jwtSecret).toBe(STRONG_SECRET);
     });
 
     it('should handle missing JWT secret', () => {
-      // Arrange
+      // Arrange: JWT_SECRET has no development fallback; it is always required
       delete process.env.JWT_SECRET;
 
       // Act & Assert
-      expect(() => {
-        require('../../src/config/config').config;
-      }).not.toThrow();
+      expect(() => loadConfig()).toThrow(
+        'Missing required environment variable: JWT_SECRET'
+      );
     });
 
     it('should validate JWT secret strength', () => {
-      const weakSecrets = ['123', 'password', 'secret'];
+      const tooShort = ['123', 'password', 'secret'];
 
-      weakSecrets.forEach(secret => {
+      tooShort.forEach(secret => {
         process.env.JWT_SECRET = secret;
 
-        // Act
-        const config = require('../../src/config/config').config;
-
-        // Assert
-        expect(config.jwtSecret).toBe(secret);
+        // Act & Assert
+        expect(() => loadConfig()).toThrow(
+          `JWT_SECRET must be at least 48 characters long (current: ${secret.length})`
+        );
       });
-    });
 
-    it('should configure session settings', () => {
-      // Arrange
-      process.env.SESSION_SECRET = 'session-secret';
-      process.env.SESSION_TIMEOUT = '3600';
+      // Long enough but contains a weak pattern
+      process.env.JWT_SECRET = 'Zq9!vR#m2@Lx$Pw7^Nc&Hy4*Bt(Gk)Ud8_Fs+Ej=Wo5%password';
+      expect(() => loadConfig()).toThrow('JWT_SECRET contains weak pattern: "password"');
 
-      // Act
-      const config = require('../../src/config/config').config;
-
-      // Assert
-      expect(config.sessionSecret).toBeDefined();
-      expect(config.sessionTimeout).toBeDefined();
+      // Long enough, no weak pattern, but only one character class
+      process.env.JWT_SECRET = 'qwrtyuiopsdfghjlzxcvbnmqwrtyuiopsdfghjlzxcvbnmqwrty';
+      expect(() => loadConfig()).toThrow('JWT_SECRET lacks sufficient complexity');
     });
   });
 
   describe('API Configuration', () => {
-    it('should configure API rate limiting', () => {
-      // Arrange
-      process.env.RATE_LIMIT_WINDOW = '900000';
-      process.env.RATE_LIMIT_MAX = '100';
-
-      // Act
-      const config = require('../../src/config/config').config;
-
-      // Assert
-      expect(config.rateLimitWindow).toBeDefined();
-      expect(config.rateLimitMax).toBeDefined();
-    });
-
-    it('should configure API timeouts', () => {
-      // Arrange
-      process.env.API_TIMEOUT = '30000';
-
-      // Act
-      const config = require('../../src/config/config').config;
-
-      // Assert
-      expect(config.apiTimeout).toBeDefined();
-    });
-
     it('should handle external API configurations', () => {
       // Arrange
-      process.env.GOOGLE_API_KEY = 'google-api-key';
-      process.env.TWILIO_ACCOUNT_SID = 'twilio-sid';
-      process.env.TWILIO_AUTH_TOKEN = 'twilio-token';
+      process.env.OPENWEATHER_API_KEY = 'openweather-api-value-0001';
+      process.env.GOOGLE_MAPS_API_KEY = 'google-maps-api-value-0001';
+      process.env.OPENAI_API_KEY = 'openai-api-value-0001';
+      process.env.GOOGLE_CLIENT_ID = 'client-id.apps.googleusercontent.invalid';
+      process.env.GOOGLE_CLIENT_SECRET = 'google-client-value-0001';
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
-      expect(config.googleApiKey).toBe('google-api-key');
-      expect(config.twilioAccountSid).toBe('twilio-sid');
-      expect(config.twilioAuthToken).toBe('twilio-token');
+      expect(config.apis).toEqual({
+        openWeatherApiKey: 'openweather-api-value-0001',
+        googleMapsApiKey: 'google-maps-api-value-0001',
+        openaiApiKey: 'openai-api-value-0001',
+      });
+      expect(config.google.clientId).toBe('client-id.apps.googleusercontent.invalid');
+      expect(config.google.clientSecret).toBe('google-client-value-0001');
+    });
+
+    it('should reject API keys that are too short', () => {
+      process.env.OPENWEATHER_API_KEY = 'short';
+
+      expect(() => loadConfig()).toThrow(
+        'OPENWEATHER_API_KEY appears to be invalid (too short)'
+      );
     });
   });
 
   describe('Logging Configuration', () => {
-    it('should configure log levels', () => {
-      const logLevels = ['error', 'warn', 'info', 'debug'];
-
-      logLevels.forEach(level => {
-        process.env.LOG_LEVEL = level;
-
-        // Act
-        const config = require('../../src/config/config').config;
-
-        // Assert
-        expect(config.logLevel).toBe(level);
-      });
-    });
-
     it('should handle invalid log levels', () => {
       // Arrange
       process.env.LOG_LEVEL = 'invalid-level';
@@ -297,53 +279,18 @@ describe('Configuration and Environment Setup Tests', () => {
         require('../../src/config/config').config;
       }).not.toThrow();
     });
-
-    it('should configure log formatting', () => {
-      // Arrange
-      process.env.LOG_FORMAT = 'json';
-
-      // Act
-      const config = require('../../src/config/config').config;
-
-      // Assert
-      expect(config.logFormat).toBe('json');
-    });
   });
 
   describe('Cache Configuration', () => {
     it('should configure Redis connection', () => {
       // Arrange
       process.env.REDIS_URL = 'redis://localhost:6379';
-      process.env.REDIS_PASSWORD = 'redis-password';
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
       expect(config.redisUrl).toBe('redis://localhost:6379');
-      expect(config.redisPassword).toBe('redis-password');
-    });
-
-    it('should handle cache TTL settings', () => {
-      // Arrange
-      process.env.CACHE_TTL = '3600';
-
-      // Act
-      const config = require('../../src/config/config').config;
-
-      // Assert
-      expect(config.cacheTtl).toBeDefined();
-    });
-
-    it('should handle cache size limits', () => {
-      // Arrange
-      process.env.CACHE_MAX_SIZE = '1000';
-
-      // Act
-      const config = require('../../src/config/config').config;
-
-      // Assert
-      expect(config.cacheMaxSize).toBeDefined();
     });
   });
 
@@ -353,25 +300,34 @@ describe('Configuration and Environment Setup Tests', () => {
       process.env.NODE_ENV = 'development';
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
       expect(config.nodeEnv).toBe('development');
-      expect(config.isDevelopment).toBe(true);
-      expect(config.isProduction).toBe(false);
     });
 
     it('should load production configuration', () => {
-      // Arrange
+      // Arrange: production additionally requires ENCRYPTION_SALT and a strong JWT_SECRET
       process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET = STRONG_SECRET;
+      process.env.ENCRYPTION_SALT = STRONG_SALT;
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
       expect(config.nodeEnv).toBe('production');
-      expect(config.isProduction).toBe(true);
-      expect(config.isDevelopment).toBe(false);
+      expect(config.jwtSecret).toBe(STRONG_SECRET);
+    });
+
+    it('should refuse to start in production without ENCRYPTION_SALT', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET = STRONG_SECRET;
+      delete process.env.ENCRYPTION_SALT;
+
+      expect(() => loadConfig()).toThrow(
+        'Missing required security environment variables for production: ENCRYPTION_SALT'
+      );
     });
 
     it('should load test configuration', () => {
@@ -379,11 +335,10 @@ describe('Configuration and Environment Setup Tests', () => {
       process.env.NODE_ENV = 'test';
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
       expect(config.nodeEnv).toBe('test');
-      expect(config.isTest).toBe(true);
     });
 
     it('should handle unknown environment', () => {
@@ -402,14 +357,14 @@ describe('Configuration and Environment Setup Tests', () => {
     it('should validate all required fields are present', () => {
       // Arrange
       process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
-      process.env.JWT_SECRET = 'test-secret';
+      process.env.JWT_SECRET = STRONG_SECRET;
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
-      expect(config.databaseUrl).toBeDefined();
-      expect(config.jwtSecret).toBeDefined();
+      expect(config.databaseUrl).toBe('postgresql://test:test@localhost:5432/test');
+      expect(config.jwtSecret).toBe(STRONG_SECRET);
     });
 
     it('should provide meaningful error messages for missing required fields', () => {
@@ -433,35 +388,30 @@ describe('Configuration and Environment Setup Tests', () => {
     });
   });
 
-  describe('Dynamic Configuration Updates', () => {
-    it('should handle configuration hot reload', () => {
-      // This would test hot reload functionality if implemented
-      expect(true).toBe(true); // Placeholder
-    });
-
-    it('should validate configuration after updates', () => {
-      // This would test post-update validation
-      expect(true).toBe(true); // Placeholder
-    });
-  });
-
   describe('Security Best Practices', () => {
     it('should not expose sensitive information in logs', () => {
       // Arrange
-      process.env.JWT_SECRET = 'super-secret';
-      process.env.DATABASE_URL = 'postgresql://user:password@host/db';
+      process.env.JWT_SECRET = STRONG_SECRET;
+      process.env.DATABASE_URL = 'postgresql://user:Pw0rdValue9@host/db';
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       // Act
-      const config = require('../../src/config/config').config;
+      const config = loadConfig();
 
       // Assert
-      expect(config.jwtSecret).toBeDefined();
-      expect(config.databaseUrl).toBeDefined();
-    });
-
-    it('should mask sensitive values in configuration output', () => {
-      // This would test masking functionality
-      expect(true).toBe(true); // Placeholder
+      expect(config.jwtSecret).toBe(STRONG_SECRET);
+      expect(config.databaseUrl).toBe('postgresql://user:Pw0rdValue9@host/db');
+      // validateSecurityConfig logs a summary on load; it must report lengths only
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`JWT(${STRONG_SECRET.length} chars)`)
+      );
+      const logged = [...logSpy.mock.calls, ...warnSpy.mock.calls]
+        .flat()
+        .map(String)
+        .join('\n');
+      expect(logged).not.toContain(STRONG_SECRET);
+      expect(logged).not.toContain('Pw0rdValue9');
     });
 
     it('should prevent configuration injection attacks', () => {

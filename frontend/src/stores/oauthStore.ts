@@ -132,6 +132,12 @@ export const useOAuthStore = create<OAuthStoreState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const result = await oauthService.reconnect();
+      // The callback page compares the returned state with this copy and
+      // rejects the login if it is missing, so it must be stored before the
+      // redirect to Google.
+      if (result.state) {
+        sessionStorage.setItem("oauth_state", result.state);
+      }
       set({ isLoading: false });
       return result.authUrl;
     } catch (error: any) {

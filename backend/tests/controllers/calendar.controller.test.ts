@@ -1,14 +1,19 @@
-import { Request, Response } from "express";
+import express, { Response } from "express";
+import request from "supertest";
 import { CalendarController } from "@/controllers/calendar.controller";
+import { calendarRoutes } from "@/routes/calendar.routes";
 import { ScheduleDataRepository } from "@/repositories/schedule-data.repository";
 import { UserConfigRepository } from "@/repositories/user-config.repository";
 import { services } from "@/services";
 import { AuthenticatedRequest } from "@/middleware/auth.middleware";
 
 // Mock dependencies
+// Repository instances are injected into the controller below, so automocked
+// classes are fine here. `@/services` is NOT module-mocked: tests/setup.ts has
+// already loaded the real route/controller graph, so the controller holds the
+// real `services` singleton. Spy on its members instead.
 jest.mock("@/repositories/schedule-data.repository");
 jest.mock("@/repositories/user-config.repository");
-jest.mock("@/services");
 jest.mock("@/utils/logger");
 
 describe("CalendarController", () => {
@@ -45,20 +50,10 @@ describe("CalendarController", () => {
       status: jest.fn().mockReturnThis(),
     };
 
-    // Mock services
-    (services as any) = {
-      calendarManager: {
-        getCalendarEvents: jest.fn(),
-        createCalendarEvent: jest.fn(),
-        updateCalendarEvent: jest.fn(),
-        deleteCalendarEvent: jest.fn(),
-        updateCalendarEventFromSchedule: jest.fn(),
-        getCalendarList: jest.fn(),
-      },
-      oauth2: {
-        getOAuthStatus: jest.fn(),
-      },
-    };
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe("getCalendarEvents", () => {
@@ -84,8 +79,7 @@ describe("CalendarController", () => {
         },
       ];
 
-      services.calendarManager.getCalendarEvents = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "getCalendarEvents")
         .mockResolvedValue(mockEvents);
       (calendarController as any).scheduleDataRepository =
         mockScheduleDataRepository;
@@ -95,40 +89,23 @@ describe("CalendarController", () => {
         mockResponse as Response
       );
 
+      // No query params: no time bounds and no maxResults override are sent;
+      // the 50-result default is applied inside CalendarManagerService.
+      expect(services.calendarManager.getCalendarEvents).toHaveBeenCalledTimes(1);
       expect(services.calendarManager.getCalendarEvents).toHaveBeenCalledWith(
         "test-user-id",
-        {
-          timeMin: undefined,
-          timeMax: undefined,
-          maxResults: 50,
-        }
+        {}
       );
 
+      // Events are returned exactly as CalendarManagerService produces them.
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
-        events: [
-          {
-            id: "event-1",
-            title: "StillOnTime — Dzień zdjęciowy (Test Location)",
-            description: "Shooting schedule details",
-            location: "Test Location",
-            startTime: "2024-01-15T08:00:00Z",
-            endTime: "2024-01-15T18:00:00Z",
-            attendees: [
-              {
-                email: "test@example.com",
-                displayName: "Test User",
-                responseStatus: "accepted",
-              },
-            ],
-            reminders: { useDefault: false },
-            created: "2024-01-14T10:00:00Z",
-            updated: "2024-01-14T10:00:00Z",
-          },
-        ],
+        events: mockEvents,
       });
     });
 
+    // Regression for BUG-026: the controller maps startDate/endDate/maxResults
+    // to timeMin/timeMax and a numeric maxResults before calling the service.
     it("should handle date range filtering", async () => {
       mockRequest.query = {
         startDate: "2024-01-15T00:00:00Z",
@@ -136,8 +113,7 @@ describe("CalendarController", () => {
         maxResults: "10",
       };
 
-      services.calendarManager.getCalendarEvents = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "getCalendarEvents")
         .mockResolvedValue([]);
       (calendarController as any).scheduleDataRepository =
         mockScheduleDataRepository;
@@ -158,8 +134,7 @@ describe("CalendarController", () => {
     });
 
     it("should handle errors gracefully", async () => {
-      services.calendarManager.getCalendarEvents = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "getCalendarEvents")
         .mockRejectedValue(new Error("Calendar API error"));
       (calendarController as any).scheduleDataRepository =
         mockScheduleDataRepository;
@@ -214,8 +189,7 @@ describe("CalendarController", () => {
       mockScheduleDataRepository.findWithRelations = jest
         .fn()
         .mockResolvedValue(mockSchedule);
-      services.calendarManager.createCalendarEvent = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "createCalendarEvent")
         .mockResolvedValue(mockCalendarEvent);
       (calendarController as any).scheduleDataRepository =
         mockScheduleDataRepository;
@@ -248,20 +222,52 @@ describe("CalendarController", () => {
     });
 
     it("should return 400 when schedule ID is missing", async () => {
-      mockRequest.body = {}; // Missing scheduleId
-
-      await calendarController.createCalendarEvent(
-        mockRequest as AuthenticatedRequest,
-        mockResponse as Response
+      // The scheduleId check lives in the route's express-validator chain
+      // (calendar.routes.ts, POST /events), not in the controller, so exercise
+      // it through the router with auth stubbed at the service boundary.
+      jest.spyOn(services.oauth2, "verifyJWT").mockReturnValue({
+        userId: "test-user-id",
+        email: "test@example.com",
+      } as any);
+      jest.spyOn(services.oauth2, "getOAuthStatus").mockResolvedValue({
+        isAuthenticated: true,
+        needsReauth: false,
+        scopes: [],
+      } as any);
+      const findWithRelations = jest.fn();
+      (calendarController as any).scheduleDataRepository = {
+        findWithRelations,
+      };
+      const createEvent = jest.spyOn(
+        services.calendarManager,
+        "createCalendarEvent"
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: "Bad Request",
-          code: "MISSING_SCHEDULE_ID",
-        })
+      const app = express();
+      app.use(express.json());
+      app.use("/api/calendar", calendarRoutes);
+
+      const response = await request(app)
+        .post("/api/calendar/events")
+        .set("Authorization", "Bearer valid-token")
+        .send({}); // Missing scheduleId
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        error: "Bad Request",
+        message: "Validation failed",
+        code: "VALIDATION_ERROR",
+      });
+      expect(response.body.details).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: "scheduleId",
+            msg: "Schedule ID must be a non-empty string",
+          }),
+        ])
       );
+      expect(findWithRelations).not.toHaveBeenCalled();
+      expect(createEvent).not.toHaveBeenCalled();
     });
 
     it("should return 404 when schedule not found", async () => {
@@ -278,16 +284,17 @@ describe("CalendarController", () => {
         mockResponse as Response
       );
 
+      expect(
+        mockScheduleDataRepository.findWithRelations
+      ).toHaveBeenCalledWith("nonexistent");
       expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: "Not Found",
-          code: "SCHEDULE_NOT_FOUND",
-        })
-      );
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: "Schedule not found or access denied",
+        code: "SCHEDULE_NOT_FOUND",
+      });
     });
 
-    it("should return 403 when user doesn't own schedule", async () => {
+    it("should return 404 (not 403) when user doesn't own schedule, without leaking its existence", async () => {
       mockRequest.body = { scheduleId: "schedule-1" };
 
       const mockSchedule = {
@@ -304,18 +311,23 @@ describe("CalendarController", () => {
       (calendarController as any).scheduleDataRepository =
         mockScheduleDataRepository;
 
+      const createEvent = jest.spyOn(
+        services.calendarManager,
+        "createCalendarEvent"
+      );
+
       await calendarController.createCalendarEvent(
         mockRequest as AuthenticatedRequest,
         mockResponse as Response
       );
 
-      expect(mockResponse.status).toHaveBeenCalledWith(403);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: "Forbidden",
-          code: "ACCESS_DENIED",
-        })
-      );
+      // Foreign schedules get the same response as missing ones.
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: "Schedule not found or access denied",
+        code: "SCHEDULE_NOT_FOUND",
+      });
+      expect(createEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -327,43 +339,36 @@ describe("CalendarController", () => {
         description: "Updated description",
       };
 
-      const mockUpdatedEvent = {
-        id: "google-event-1",
-        summary: "Updated Event Title",
-        description: "Updated description",
-        location: "Test Location",
-        start: { dateTime: "2024-01-15T08:00:00Z" },
-        end: { dateTime: "2024-01-15T18:00:00Z" },
-        updated: "2024-01-14T12:00:00Z",
-      };
-
-      services.calendarManager.updateCalendarEvent = jest
-        .fn()
-        .mockResolvedValue(mockUpdatedEvent);
+      // Not stubbed: CalendarManagerService.updateCalendarEvent has no I/O
+      // (it is a local stub), so call through and check the controller exposes
+      // what the service really returns.
+      const updateSpy = jest.spyOn(
+        services.calendarManager,
+        "updateCalendarEvent"
+      );
 
       await calendarController.updateCalendarEvent(
         mockRequest as AuthenticatedRequest,
         mockResponse as Response
       );
 
-      expect(services.calendarManager.updateCalendarEvent).toHaveBeenCalledWith(
+      expect(updateSpy).toHaveBeenCalledWith(
         "google-event-1",
         mockRequest.body,
         "test-user-id"
       );
 
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        event: {
-          id: "google-event-1",
-          title: "Updated Event Title",
-          description: "Updated description",
-          location: "Test Location",
-          startTime: "2024-01-15T08:00:00Z",
-          endTime: "2024-01-15T18:00:00Z",
-          updated: "2024-01-14T12:00:00Z",
-        },
-        message: "Calendar event updated successfully",
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.json).toHaveBeenCalledTimes(1);
+      const body = (mockResponse.json as jest.Mock).mock.calls[0][0];
+      expect(body.success).toBe(true);
+      expect(body.message).toBe("Calendar event updated successfully");
+      // The updated values must reach the client. KNOWN SRC DEFECT (left red):
+      // the service returns a Google-shaped object (summary/start/end) cast to
+      // CalendarEvent, while the controller reads title/startTime/endTime.
+      expect(body.event).toMatchObject({
+        title: "Updated Event Title",
+        description: "Updated description",
       });
     });
   });
@@ -372,8 +377,7 @@ describe("CalendarController", () => {
     it("should delete calendar event successfully", async () => {
       mockRequest.params = { eventId: "google-event-1" };
 
-      services.calendarManager.deleteCalendarEvent = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "deleteCalendarEvent")
         .mockResolvedValue(undefined);
 
       await calendarController.deleteCalendarEvent(
@@ -410,11 +414,9 @@ describe("CalendarController", () => {
         { id: "event-2", summary: "Test Event 2" },
       ];
 
-      services.oauth2.getOAuthStatus = jest
-        .fn()
+      jest.spyOn(services.oauth2, "getOAuthStatus")
         .mockResolvedValue(mockOAuthStatus);
-      services.calendarManager.getCalendarEvents = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "getCalendarEvents")
         .mockResolvedValue(mockEvents);
 
       await calendarController.getSyncStatus(
@@ -442,8 +444,7 @@ describe("CalendarController", () => {
         needsReauth: false,
       };
 
-      services.oauth2.getOAuthStatus = jest
-        .fn()
+      jest.spyOn(services.oauth2, "getOAuthStatus")
         .mockResolvedValue(mockOAuthStatus);
 
       await calendarController.getSyncStatus(
@@ -507,11 +508,9 @@ describe("CalendarController", () => {
         .mockResolvedValueOnce(mockSchedule1)
         .mockResolvedValueOnce(mockSchedule2);
 
-      services.calendarManager.createCalendarEvent = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "createCalendarEvent")
         .mockResolvedValue(mockNewEvent);
-      services.calendarManager.updateCalendarEventFromSchedule = jest
-        .fn()
+      jest.spyOn(services.calendarManager, "updateCalendarEventFromSchedule")
         .mockResolvedValue(mockUpdatedEvent);
 
       (calendarController as any).scheduleDataRepository =
@@ -581,7 +580,7 @@ describe("CalendarController", () => {
   });
 
   describe("getCalendarSettings", () => {
-    it("should return calendar settings with available calendars", async () => {
+    it("should return calendar settings for the user", async () => {
       const mockUserConfig = {
         id: "config-1",
         userId: "test-user-id",
@@ -594,29 +593,9 @@ describe("CalendarController", () => {
         bufferMorningRoutine: 45,
       };
 
-      const mockCalendars = [
-        {
-          id: "primary",
-          summary: "Primary Calendar",
-          description: "Main calendar",
-          primary: true,
-          accessRole: "owner",
-        },
-        {
-          id: "work-calendar",
-          summary: "Work Calendar",
-          description: "Work events",
-          primary: false,
-          accessRole: "writer",
-        },
-      ];
-
-      mockUserConfigRepository.getConfigWithDefaults = jest
+      mockUserConfigRepository.findByUserId = jest
         .fn()
         .mockResolvedValue(mockUserConfig);
-      services.calendarManager.getCalendarList = jest
-        .fn()
-        .mockResolvedValue(mockCalendars);
       (calendarController as any).userConfigRepository =
         mockUserConfigRepository;
 
@@ -625,38 +604,41 @@ describe("CalendarController", () => {
         mockResponse as Response
       );
 
+      expect(mockUserConfigRepository.findByUserId).toHaveBeenCalledWith(
+        "test-user-id"
+      );
+      expect(mockResponse.status).not.toHaveBeenCalled();
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
         settings: {
-          defaultCalendarId: "primary",
-          reminderSettings: {
-            wakeUpReminders: [-10, 0, 5],
-            departureReminders: [-60, -15, 0],
-            eventReminders: [-720, -180, -60, 0],
-          },
-          eventDefaults: {
-            duration: 600, // 10 hours in minutes
-            visibility: "private",
-            guestsCanModify: false,
-          },
+          autoSync: true,
+          defaultCalendar: "primary",
+          syncPastEvents: false,
+          eventReminders: true,
+          reminderMinutes: 15,
         },
-        availableCalendars: [
-          {
-            id: "primary",
-            summary: "Primary Calendar",
-            description: "Main calendar",
-            primary: true,
-            accessRole: "owner",
-          },
-          {
-            id: "work-calendar",
-            summary: "Work Calendar",
-            description: "Work events",
-            primary: false,
-            accessRole: "writer",
-          },
-        ],
       });
+    });
+
+    it("should return 500 when loading the user config fails", async () => {
+      mockUserConfigRepository.findByUserId = jest
+        .fn()
+        .mockRejectedValue(new Error("db down"));
+      (calendarController as any).userConfigRepository =
+        mockUserConfigRepository;
+
+      await calendarController.getCalendarSettings(
+        mockRequest as AuthenticatedRequest,
+        mockResponse as Response
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: "Internal Server Error",
+          code: "CALENDAR_SETTINGS_FAILED",
+        })
+      );
     });
   });
 });

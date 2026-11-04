@@ -627,7 +627,10 @@ export class NotificationService {
     }
 
     // Simple template rendering - replace {{variable}} with data values
-    const rendered = this.interpolateTemplate(template, data);
+    // The e-mail body is sent as HTML and values can come from untrusted input
+    // (e.g. text parsed from a PDF), so escape them there. Subject, SMS and
+    // push text are not HTML and stay as-is.
+    const rendered = this.interpolateTemplate(template, data, channel === "email");
     const renderedSubject = this.interpolateTemplate(subject, data);
 
     return {
@@ -641,12 +644,26 @@ export class NotificationService {
    */
   private interpolateTemplate(
     template: string,
-    data: NotificationTemplateData
+    data: NotificationTemplateData,
+    escapeHtml = false
   ): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    // Keys may be dotted paths ({{scheduleData.location}}); getNestedValue
+    // resolves them, so the pattern must accept "." as well.
+    return template.replace(/\{\{([\w.]+)\}\}/g, (match, key) => {
       const value = this.getNestedValue(data, key);
-      return value !== undefined ? String(value) : match;
+      if (value === undefined) return match;
+      const text = String(value);
+      return escapeHtml ? NotificationService.escapeHtml(text) : text;
     });
+  }
+
+  private static escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   /**
@@ -767,8 +784,14 @@ export class NotificationService {
           (cleaned.startsWith("+") || /^[45678]/.test(cleaned));
       }
 
+      // A number is only usable once the user has confirmed the
+      // verification code; until then GET /api/sms/status reports
+      // configured: false and POST /api/sms/test refuses to send.
+      const isVerified = !!userWithConfig?.userConfig?.smsVerified;
+
       return {
-        isValid: hasPhoneNumber && isServiceConfigured && phoneNumberValid,
+        isValid:
+          hasPhoneNumber && isServiceConfigured && phoneNumberValid && isVerified,
         hasPhoneNumber,
         isServiceConfigured,
         phoneNumberValid: hasPhoneNumber ? phoneNumberValid : undefined,

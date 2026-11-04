@@ -106,6 +106,12 @@ jest.mock("@/config/database", () => ({
     $disconnect: jest.fn(),
     $queryRaw: jest.fn(),
   },
+  // Kysely instance backed by a fake driver (see tests/helpers/kysely-test-db.ts).
+  // required lazily so the helper is loaded from inside the jest registry.
+  get db() {
+    return require("./helpers/kysely-test-db").testDb.db;
+  },
+  pool: { query: jest.fn(), end: jest.fn() },
   checkDatabaseConnection: jest.fn(),
   initializeDatabase: jest.fn(),
 }));
@@ -122,6 +128,7 @@ afterAll(async () => {
 beforeEach(() => {
   // Reset mocks before each test
   jest.clearAllMocks();
+  require("./helpers/kysely-test-db").testDb.reset();
 });
 
 import express from "express";

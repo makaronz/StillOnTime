@@ -90,12 +90,18 @@ if [ -f ".env" ]; then
     echo "📦 Backed up existing .env to $BACKUP_FILE"
 fi
 
-# Create backend/.env
-echo "$ENV_CONTENT" > backend/.env
+# Create backend/.env (fail loudly: setup-api.sh branches on our exit code)
+if ! echo "$ENV_CONTENT" > backend/.env; then
+    echo "❌ Failed to write backend/.env (run this script from the repository root)"
+    exit 1
+fi
 echo "✅ Created: backend/.env"
 
 # Create root .env
-echo "$ENV_CONTENT" > .env
+if ! echo "$ENV_CONTENT" > .env; then
+    echo "❌ Failed to write .env"
+    exit 1
+fi
 echo "✅ Created: .env"
 
 echo ""

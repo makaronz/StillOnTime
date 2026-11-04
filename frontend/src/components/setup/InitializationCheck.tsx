@@ -22,13 +22,13 @@ export function InitializationCheck({
 
   useEffect(() => {
     // If user is authenticated and setup is required, redirect to onboarding
-    if (isAuthenticated && isSetupRequired && redirectToOnboarding) {
+    if (isAuthenticated && isSetupRequired() && redirectToOnboarding) {
       navigate('/onboarding', { replace: true })
     }
   }, [isAuthenticated, isSetupRequired, redirectToOnboarding, navigate])
 
   // If setup is not required or user is not authenticated, show children
-  if (!isAuthenticated || !isSetupRequired || !showSetupPrompt) {
+  if (!isAuthenticated || !isSetupRequired() || !showSetupPrompt) {
     return <>{children}</>
   }
 

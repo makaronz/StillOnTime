@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react'
 import { create } from 'zustand'
 import { persist, subscribeWithSelector } from 'zustand/middleware'
 import { SetupState, StepValidation, OnboardingProgress } from '@/types/setup'
@@ -146,14 +145,14 @@ export const useSetupStore = create<SetupStore>()(
             validation.errors.forEach((error) => toast.error(error))
             return
           }
-          set((state) => ({ currentStep: Math.min(state.currentStep + 1, 4) }))
+          set((state) => ({ currentStep: Math.min(state.currentStep + 1, 5) }))
         },
 
         previousStep: () =>
           set((state) => ({ currentStep: Math.max(state.currentStep - 1, 0) })),
 
         skipStep: () =>
-          set((state) => ({ currentStep: Math.min(state.currentStep + 1, 4) })),
+          set((state) => ({ currentStep: Math.min(state.currentStep + 1, 5) })),
 
         completeSetup: async () => {
           set({ isLoading: true })
@@ -179,8 +178,18 @@ export const useSetupStore = create<SetupStore>()(
               },
             })
 
+            // The wizard stores short keys (pdf, email, ...) but the config API
+            // expects the enableEnhanced* names; sending the wizard shape
+            // verbatim saved none of the toggles.
+            const enhanced = get().setupData.systemConfig.enhancedServices
             await systemConfigService.updateLLMConfig({
-              enhancedServices: get().setupData.systemConfig.enhancedServices,
+              enhancedServices: {
+                enableEnhancedPDF: enhanced.pdf,
+                enableEnhancedEmail: enhanced.email,
+                enableEnhancedRouting: enhanced.routing,
+                enableEnhancedCalendar: enhanced.calendar,
+                enableAIClassification: enhanced.aiClassification,
+              },
             })
 
             set({ isCompleted: true, isLoading: false })

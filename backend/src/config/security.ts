@@ -239,6 +239,8 @@ export const corsConfig = {
     "Authorization",
     "X-Request-ID",
     "X-API-Key",
+    "X-CSRF-Token",
+    "X-XSRF-Token",
   ],
   exposedHeaders: [
     "X-Request-ID",

@@ -9,14 +9,12 @@ import { ScheduleData, UserConfig, RouteResult } from "../../src/types";
 jest.mock("../../src/services/google-maps.service");
 jest.mock("../../src/repositories/user-config.repository");
 jest.mock("../../src/repositories/route-plan.repository");
-jest.mock("../../src/utils/logger", () => ({
-  logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
+// NOTE: tests/setup.ts imports the whole route graph, so RoutePlannerService and
+// the real modules it imports (GoogleMapsService, repositories, logger) are already
+// in the module registry: the jest.mock() calls above only give this file automocked
+// classes to instantiate. The service builds its collaborators in its constructor,
+// so the automocked instances are injected into its fields, and the real logger
+// is spied on.
 
 const MockedGoogleMapsService = GoogleMapsService as jest.MockedClass<
   typeof GoogleMapsService
@@ -95,14 +93,16 @@ describe("RoutePlannerService", () => {
     mockRoutePlanRepository =
       new MockedRoutePlanRepository() as jest.Mocked<RoutePlanRepository>;
 
-    // Mock constructor calls
-    MockedGoogleMapsService.mockImplementation(() => mockGoogleMapsService);
-    MockedUserConfigRepository.mockImplementation(
-      () => mockUserConfigRepository
-    );
-    MockedRoutePlanRepository.mockImplementation(() => mockRoutePlanRepository);
+    jest.spyOn(logger, "info").mockImplementation(() => logger);
+    jest.spyOn(logger, "warn").mockImplementation(() => logger);
+    jest.spyOn(logger, "error").mockImplementation(() => logger);
 
     routePlannerService = new RoutePlannerService();
+    Object.assign(routePlannerService as any, {
+      googleMapsService: mockGoogleMapsService,
+      userConfigRepository: mockUserConfigRepository,
+      routePlanRepository: mockRoutePlanRepository,
+    });
   });
 
   describe("calculateRoutePlan", () => {
@@ -189,8 +189,8 @@ describe("RoutePlannerService", () => {
       expect(
         result.warnings.some(
           (warning) =>
-            warning.includes("Czas pobudki") &&
-            warning.includes("jest bardzo wczesny")
+            warning.startsWith("Wake up time (") &&
+            warning.includes(") is very early.")
         )
       ).toBe(true);
     });
@@ -291,14 +291,18 @@ describe("RoutePlannerService", () => {
 
       expect(result).toEqual(mockSavedRoutePlan);
       expect(mockRoutePlanRepository.create).toHaveBeenCalledWith({
+        id: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+        ),
         wakeUpTime: mockRouteCalculation.wakeUpTime,
         departureTime: mockRouteCalculation.departureTime,
         arrivalTime: mockRouteCalculation.arrivalTime,
         totalTravelMinutes: mockRouteCalculation.totalTravelMinutes,
         routeSegments: mockRouteCalculation.routeSegments,
         buffers: mockRouteCalculation.buffers,
-        user: { connect: { id: "user-1" } },
-        schedule: { connect: { id: "schedule-1" } },
+        calculatedAt: expect.any(Date),
+        userId: "user-1",
+        scheduleId: "schedule-1",
       });
     });
   });
@@ -428,7 +432,7 @@ describe("RoutePlannerService", () => {
 
         const warnings = generateMethod(earlyWakeUp, longTravel, buffers);
 
-        expect(warnings.some((w: string) => w.includes("bardzo wczesny"))).toBe(
+        expect(warnings.some((w: string) => w.includes("is very early"))).toBe(
           true
         );
         expect(warnings.some((w: string) => w.includes("bardzo długi"))).toBe(

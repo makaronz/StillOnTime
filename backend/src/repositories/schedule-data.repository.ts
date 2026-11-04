@@ -117,18 +117,104 @@ export class ScheduleDataRepository implements IScheduleDataRepository {
       query = query.limit(options.take);
     }
 
-    return await query.execute();
+    if (options.skip) {
+      query = query.offset(options.skip);
+    }
+
+    const rows = await query.execute();
+
+    if (options.include && rows.length > 0) {
+      return (await this.attachRelations(rows, options.include)) as any;
+    }
+
+    return rows;
   }
 
   /**
-   * Find schedule with all related data
+   * Load the relations named in a Prisma-style `include` for a page of
+   * schedules: one `in (...)` query per related table, grouped in memory.
+   */
+  private async attachRelations(
+    rows: ScheduleData[],
+    include: Record<string, unknown>
+  ): Promise<Array<ScheduleData & Record<string, unknown>>> {
+    const ids = rows.map((r) => r.id);
+    const emailIds = [...new Set(rows.map((r) => r.emailId).filter(Boolean))];
+
+    const [emails, routePlans, weather, events] = await Promise.all([
+      include.email && emailIds.length
+        ? db.selectFrom("processed_emails").selectAll().where("id", "in", emailIds).execute()
+        : Promise.resolve([]),
+      include.routePlan
+        ? db.selectFrom("route_plans").selectAll().where("scheduleId", "in", ids).execute()
+        : Promise.resolve([]),
+      include.weatherData
+        ? db.selectFrom("weather_data").selectAll().where("scheduleId", "in", ids).execute()
+        : Promise.resolve([]),
+      include.calendarEvent
+        ? db.selectFrom("calendar_events").selectAll().where("scheduleId", "in", ids).execute()
+        : Promise.resolve([]),
+    ]);
+
+    return rows.map((row) => {
+      const withRelations: ScheduleData & Record<string, unknown> = { ...row };
+      if (include.email) {
+        withRelations.email = emails.find((e: any) => e.id === row.emailId) ?? null;
+      }
+      if (include.routePlan) {
+        withRelations.routePlan =
+          routePlans.find((r: any) => r.scheduleId === row.id) ?? null;
+      }
+      if (include.weatherData) {
+        withRelations.weatherData = weather.filter((w: any) => w.scheduleId === row.id);
+      }
+      if (include.calendarEvent) {
+        withRelations.calendarEvent =
+          events.find((e: any) => e.scheduleId === row.id) ?? null;
+      }
+      return withRelations;
+    });
+  }
+
+  /**
+   * Find schedule with its email, route plan, weather data and calendar event
    */
   async findWithRelations(
     id: string
   ): Promise<ScheduleDataWithRelations | null> {
-    // Simplified - would need proper joins for full implementation
     const schedule = await this.findById(id);
-    return schedule as any;
+    if (!schedule) return null;
+
+    const [email, routePlan, weatherData, calendarEvent] = await Promise.all([
+      db
+        .selectFrom("processed_emails")
+        .selectAll()
+        .where("id", "=", schedule.emailId)
+        .executeTakeFirst(),
+      db
+        .selectFrom("route_plans")
+        .selectAll()
+        .where("scheduleId", "=", id)
+        .executeTakeFirst(),
+      db
+        .selectFrom("weather_data")
+        .selectAll()
+        .where("scheduleId", "=", id)
+        .execute(),
+      db
+        .selectFrom("calendar_events")
+        .selectAll()
+        .where("scheduleId", "=", id)
+        .executeTakeFirst(),
+    ]);
+
+    return {
+      ...schedule,
+      email: email ?? null,
+      routePlan: routePlan ?? null,
+      weatherData,
+      calendarEvent: calendarEvent ?? null,
+    } as any;
   }
 
   /**

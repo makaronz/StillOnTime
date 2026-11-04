@@ -153,11 +153,28 @@ export class WeatherDataRepository implements IWeatherDataRepository {
    * Find weather data with warnings
    */
   async findWeatherWarnings(userId: string): Promise<WeatherData[]> {
-    return await db
+    const rows = await db
       .selectFrom("weather_data")
       .selectAll()
       .where("userId", "=", userId)
       .execute();
+
+    // Callers (GET /api/schedule/weather/warnings) render the related
+    // schedule; attach it instead of leaving `schedule` undefined.
+    const scheduleIds = [...new Set(rows.map((r) => r.scheduleId))];
+    if (scheduleIds.length === 0) return rows;
+
+    const schedules = await db
+      .selectFrom("schedule_data")
+      .select(["id", "location", "shootingDate", "callTime", "sceneType"])
+      .where("id", "in", scheduleIds)
+      .where("userId", "=", userId)
+      .execute();
+
+    return rows.map((row) => ({
+      ...row,
+      schedule: schedules.find((s) => s.id === row.scheduleId) ?? null,
+    })) as WeatherData[];
   }
 
   /**

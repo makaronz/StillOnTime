@@ -64,11 +64,12 @@ export interface LLMConfig {
 }
 
 class SystemConfigService {
-  private baseURL = `${config.apiBaseUrl}/api/config`
+  // config.apiBaseUrl already ends in /api (e.g. http://localhost:3001/api).
+  private baseURL = `${config.apiBaseUrl}/config`
 
   async getSystemStatus(): Promise<{ success: boolean; status: SystemStatus; timestamp: string }> {
     try {
-      const response = await axios.get(`${this.baseURL}/status`, {
+      const response = await axios.get<{ success: boolean; status: SystemStatus; timestamp: string }>(`${this.baseURL}/status`, {
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
         },
@@ -82,7 +83,7 @@ class SystemConfigService {
 
   async testConnections(): Promise<{ success: boolean; results: ConnectionTestResults; timestamp: string }> {
     try {
-      const response = await axios.post(`${this.baseURL}/test-connections`, {}, {
+      const response = await axios.post<{ success: boolean; results: ConnectionTestResults; timestamp: string }>(`${this.baseURL}/test-connections`, {}, {
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
         },
@@ -96,7 +97,7 @@ class SystemConfigService {
 
   async getMailParsingConfig(): Promise<{ success: boolean; config: MailParsingConfig }> {
     try {
-      const response = await axios.get(`${this.baseURL}/mail-parsing`, {
+      const response = await axios.get<{ success: boolean; config: MailParsingConfig }>(`${this.baseURL}/mail-parsing`, {
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
         },
@@ -110,7 +111,7 @@ class SystemConfigService {
 
   async updateMailParsingConfig(config: Partial<MailParsingConfig>): Promise<{ success: boolean; config: MailParsingConfig; message: string }> {
     try {
-      const response = await axios.put(`${this.baseURL}/mail-parsing`, config, {
+      const response = await axios.put<{ success: boolean; config: MailParsingConfig; message: string }>(`${this.baseURL}/mail-parsing`, config, {
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
         },
@@ -124,7 +125,7 @@ class SystemConfigService {
 
   async getLLMConfig(): Promise<{ success: boolean; config: LLMConfig }> {
     try {
-      const response = await axios.get(`${this.baseURL}/llm`, {
+      const response = await axios.get<{ success: boolean; config: LLMConfig }>(`${this.baseURL}/llm`, {
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
         },
@@ -138,7 +139,7 @@ class SystemConfigService {
 
   async updateLLMConfig(config: Partial<LLMConfig>): Promise<{ success: boolean; config: LLMConfig; message: string }> {
     try {
-      const response = await axios.put(`${this.baseURL}/llm`, config, {
+      const response = await axios.put<{ success: boolean; config: LLMConfig; message: string }>(`${this.baseURL}/llm`, config, {
         headers: {
           Authorization: `Bearer ${this.getAuthToken()}`,
         },

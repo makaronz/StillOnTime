@@ -15,8 +15,6 @@ import { systemConfigRoutes } from "./system-config.routes";
 import codenetRoutes from "./codenet.routes";
 import { notificationsRoutes } from "./notifications.routes";
 import { performanceRoutes } from "./performance.routes";
-import { HealthController } from "../controllers/health.controller";
-import { MonitoringMiddleware } from "../middleware/monitoring.middleware";
 
 const router = Router();
 
@@ -73,17 +71,28 @@ router.use("/notifications", notificationsRoutes);
 router.use("/performance", performanceRoutes);
 
 // Monitoring and health routes - /api/monitoring/*
-// Note: These will be initialized in the main app with proper dependencies
-function initializeMonitoringRoutesImpl(
-  healthController: HealthController,
-  monitoringMiddleware: MonitoringMiddleware
-): void {
-  const monitoringRoutes = createMonitoringRoutes(
-    healthController,
-    monitoringMiddleware
-  );
-  router.use("/monitoring", monitoringRoutes);
-}
+// Reuses the controller/service instances built in health.routes.ts so both
+// /health/* and /api/monitoring/* report on the same MonitoringService.
+// Built on first request rather than at import time: health.routes.ts and the
+// monitoring middleware construct services, and loading them eagerly here
+// changes module-load order for everything that imports this file (including
+// tests that jest.mock those modules after tests/setup.ts has loaded routes).
+let monitoringRouter: Router | undefined;
+router.use("/monitoring", (req, res, next): void => {
+  if (!monitoringRouter) {
+    /* eslint-disable @typescript-eslint/no-var-requires */
+    const { healthController, monitoringService } = require("./health.routes");
+    const {
+      createMonitoringMiddleware,
+    } = require("../middleware/monitoring.middleware");
+    /* eslint-enable @typescript-eslint/no-var-requires */
+    monitoringRouter = createMonitoringRoutes(
+      healthController,
+      createMonitoringMiddleware(monitoringService)
+    );
+  }
+  monitoringRouter(req, res, next);
+});
 
 // API health check
 router.get("/health", (req, res) => {
@@ -110,7 +119,4 @@ router.get("/health", (req, res) => {
   });
 });
 
-export {
-  router as apiRoutes,
-  initializeMonitoringRoutesImpl as initializeMonitoringRoutes,
-};
+export { router as apiRoutes };

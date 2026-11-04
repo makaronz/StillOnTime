@@ -1,7 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { Pool } from 'pg';
-import { Kysely, PostgresDialect } from 'kysely';
-import { initializeDatabase, checkDatabaseConnection, db } from '../../src/config/database';
 import { config } from '../../src/config/config';
 import { logger } from '../../src/utils/logger';
 
@@ -9,29 +6,39 @@ import { logger } from '../../src/utils/logger';
 jest.mock('../../src/config/config');
 jest.mock('../../src/utils/logger');
 
+// The pg Pool is the network boundary: src/config/database.ts builds its pool
+// at import time, so hand it this stand-in instead of a real connection.
+const mockPool: any = {
+  query: jest.fn(),
+  end: jest.fn(),
+  on: jest.fn(),
+  connect: jest.fn(),
+};
+jest.mock('pg', () => ({ Pool: jest.fn(() => mockPool) }));
+
+// tests/setup.ts replaces '@/config/database' with stubs for every other
+// suite; this suite exercises the real module.
+const { Pool: MockedPool } = jest.requireMock('pg') as { Pool: jest.Mock };
+const realDatabase = jest.requireActual(
+  '../../src/config/database'
+) as typeof import('../../src/config/database');
+const { initializeDatabase, checkDatabaseConnection } = realDatabase;
+const poolConstructorArgs = MockedPool.mock.calls.map((call) => call[0]);
+const databaseUrlAtLoad = config.databaseUrl;
+
 const mockConfig = config as jest.Mocked<typeof config>;
 const mockLogger = logger as jest.Mocked<typeof logger>;
 
 describe('Database Initialization Tests', () => {
-  let mockPool: jest.Mocked<Pool>;
-  let mockDb: jest.Mocked<Kysely<any>>;
-
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
 
-    // Create mock pool
-    mockPool = {
-      query: jest.fn(),
-      end: jest.fn(),
-      on: jest.fn(),
-      connect: jest.fn(),
-    } as any;
-
-    // Create mock db
-    mockDb = {
-      destroy: jest.fn(),
-    } as any;
+    // Fresh pool methods (the module holds a reference to this same object)
+    mockPool.query = jest.fn();
+    mockPool.end = jest.fn();
+    mockPool.on = jest.fn();
+    mockPool.connect = jest.fn();
 
     // Setup config mock
     mockConfig.databaseUrl = 'postgresql://test:test@localhost:5432/testdb';
@@ -90,7 +97,7 @@ describe('Database Initialization Tests', () => {
       mockLogger.info.mockImplementation(() => {});
 
       // Act
-      await expect(initializeDatabase()).resolves.not.toThrow();
+      await expect(initializeDatabase()).resolves.toBeUndefined();
 
       // Assert
       expect(mockPool.query).toHaveBeenCalledWith('SELECT 1');
@@ -122,6 +129,31 @@ describe('Database Initialization Tests', () => {
   });
 
   describe('Database Configuration', () => {
+    it('should build the pg pool from config.databaseUrl', () => {
+      expect(poolConstructorArgs).toEqual([
+        {
+          connectionString: databaseUrlAtLoad,
+          max: 20,
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 10000,
+        },
+      ]);
+    });
+
+    it('should continue without a database in development', async () => {
+      // Arrange
+      mockConfig.nodeEnv = 'development';
+      const error = new Error('Database connection failed');
+      mockPool.query.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(initializeDatabase()).resolves.toBeUndefined();
+      expect(mockLogger.error).toHaveBeenCalledWith('❌ Failed to connect to database', { error });
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        '⚠️ Development mode: Continuing without database connection'
+      );
+    });
+
     it('should have correct pool configuration', () => {
       // Test that the database is configured with correct settings
       expect(mockConfig.databaseUrl).toBeDefined();
@@ -141,18 +173,24 @@ describe('Database Initialization Tests', () => {
 
   describe('Error Handling and Recovery', () => {
     it('should handle multiple connection attempts', async () => {
-      // Arrange
+      // Arrange: checkDatabaseConnection is a single-shot probe (no retry);
+      // each call reports the current state and a later call recovers.
       mockPool.query
         .mockRejectedValueOnce(new Error('First attempt failed'))
         .mockRejectedValueOnce(new Error('Second attempt failed'))
         .mockResolvedValueOnce({ rows: [] }); // Third attempt succeeds
 
       // Act
-      const result = await checkDatabaseConnection();
+      const results = [
+        await checkDatabaseConnection(),
+        await checkDatabaseConnection(),
+        await checkDatabaseConnection(),
+      ];
 
       // Assert
-      expect(result).toBe(true);
+      expect(results).toEqual([false, false, true]);
       expect(mockPool.query).toHaveBeenCalledTimes(3);
+      expect(mockLogger.error).toHaveBeenCalledTimes(2);
     });
 
     it('should handle network interruptions', async () => {

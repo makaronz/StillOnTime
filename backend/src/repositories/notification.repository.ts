@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import { db } from "@/config/database";
 import {
   Notification,
@@ -85,11 +86,14 @@ export class NotificationRepository implements INotificationRepository {
     return result || null;
   }
 
-  async findByMessageId(_messageId: string): Promise<Notification | null> {
-    // Simplified - Prisma used JSON path query, Kysely needs different approach
+  async findByMessageId(messageId: string): Promise<Notification | null> {
+    // The provider message id (e.g. Twilio SID) is stored in the JSONB
+    // `data` column by markAsSent; match on it instead of returning an
+    // arbitrary row.
     const result = await db
       .selectFrom("notifications")
       .selectAll()
+      .where(sql<string>`"data"->>'messageId'`, "=", messageId)
       .executeTakeFirst();
     return result || null;
   }

@@ -2,6 +2,7 @@ import { OAuth2Service } from "@/services/oauth2.service";
 import { UserRepository } from "@/repositories/user.repository";
 import { config } from "@/config/config";
 import * as crypto from "crypto";
+import { issueOAuthState, verifyOAuthState } from "@/utils/oauth-state";
 
 // Mock dependencies
 jest.mock("@/utils/logger");
@@ -23,25 +24,25 @@ const mockOAuth2Client = {
   revokeToken: jest.fn(),
 };
 
-jest.mock("googleapis", () => ({
-  google: {
-    auth: {
-      OAuth2: jest.fn().mockImplementation(() => mockOAuth2Client),
-    },
-    oauth2: jest.fn().mockReturnValue({
-      userinfo: {
-        get: jest.fn(),
-      },
-    }),
-  },
-}));
-
 describe("OAuth Security and Edge Case Tests", () => {
   let oauth2Service: OAuth2Service;
+
+  // Tokens as the service stores them (AES-256-GCM, salt:iv:authTag:data).
+  const encrypt = (token: string): string =>
+    (oauth2Service as any).encryptToken(token);
 
   beforeEach(() => {
     jest.clearAllMocks();
     oauth2Service = new OAuth2Service(mockUserRepository as UserRepository);
+    // tests/setup.ts loads the route graph (and with it oauth2.service and an
+    // automocked googleapis) before this file runs, so a googleapis factory
+    // mock here never reaches the constructor. Inject the client directly:
+    // it is the only Google boundary OAuth2Service talks to.
+    (oauth2Service as any).oauth2Client = mockOAuth2Client;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe("CSRF Protection", () => {
@@ -49,8 +50,9 @@ describe("OAuth Security and Edge Case Tests", () => {
       const { state } = await oauth2Service.getAuthUrl();
 
       expect(state).toBeDefined();
-      expect(state.length).toBe(64); // 32 bytes as hex
-      expect(state).toMatch(/^[a-f0-9]+$/);
+      // State is a server-signed value: <32 hex nonce>.<expiry ms>.<64 hex HMAC>
+      expect(state).toMatch(/^[a-f0-9]{32}\.\d+\.[a-f0-9]{64}$/);
+      expect(verifyOAuthState(state)).toBe(true);
 
       // Ensure uniqueness
       const { state: state2 } = await oauth2Service.getAuthUrl();
@@ -74,32 +76,27 @@ describe("OAuth Security and Edge Case Tests", () => {
     });
 
     it("should prevent timing attacks on state validation", () => {
-      const correctState = crypto.randomBytes(32).toString("hex");
-      const attackState1 = correctState.substring(0, 10) + crypto.randomBytes(22).toString("hex");
-      const attackState2 = crypto.randomBytes(32).toString("hex");
+      // A wall-clock comparison of two single calls is noise, not evidence.
+      // Instead verify that the real validator compares signatures with
+      // crypto.timingSafeEqual (constant time) for both a near-miss signature
+      // (long matching prefix) and a completely different one.
+      const [nonce, expiry, signature] = issueOAuthState().split(".");
+      const nearMiss = `${nonce}.${expiry}.${signature.slice(0, -2)}${
+        signature.endsWith("00") ? "11" : "00"
+      }`;
+      const different = `${nonce}.${expiry}.${crypto.randomBytes(32).toString("hex")}`;
 
-      // All comparisons should take roughly the same time
-      const timeSafeEqual = (a: string, b: string): boolean => {
-        if (a.length !== b.length) return false;
-        const bufA = Buffer.from(a);
-        const bufB = Buffer.from(b);
-        return crypto.timingSafeEqual(bufA, bufB);
-      };
+      const nodeCrypto = require("crypto");
+      const spy = jest.spyOn(nodeCrypto, "timingSafeEqual");
 
-      const start1 = process.hrtime.bigint();
-      timeSafeEqual(correctState, attackState1);
-      const duration1 = process.hrtime.bigint() - start1;
+      expect(verifyOAuthState(nearMiss)).toBe(false);
+      expect(verifyOAuthState(different)).toBe(false);
 
-      const start2 = process.hrtime.bigint();
-      timeSafeEqual(correctState, attackState2);
-      const duration2 = process.hrtime.bigint() - start2;
-
-      // Timing difference should be minimal (within 10%)
-      const timingDiff = Math.abs(Number(duration1 - duration2));
-      const avgTime = Number((duration1 + duration2) / 2n);
-      const percentDiff = (timingDiff / avgTime) * 100;
-
-      expect(percentDiff).toBeLessThan(50); // Allow 50% variance for test stability
+      expect(spy).toHaveBeenCalledTimes(2);
+      for (const [provided, expected] of spy.mock.calls as Array<[Buffer, Buffer]>) {
+        expect(provided.length).toBe(32);
+        expect(expected.length).toBe(32);
+      }
     });
 
     it("should reject state parameter tampering", async () => {
@@ -284,8 +281,8 @@ describe("OAuth Security and Edge Case Tests", () => {
     it("should prevent race conditions in token refresh", async () => {
       const user = {
         id: "user-123",
-        accessToken: "old-encrypted-token",
-        refreshToken: "encrypted-refresh-token",
+        accessToken: encrypt("old-access-token"),
+        refreshToken: encrypt("old-refresh-token"),
         tokenExpiry: new Date(Date.now() - 1000), // Expired
       };
 
@@ -311,7 +308,13 @@ describe("OAuth Security and Edge Case Tests", () => {
       await Promise.all(refreshPromises);
 
       // Update should be called but should handle race condition
-      expect(mockUserRepository.update).toHaveBeenCalled();
+      expect(mockOAuth2Client.refreshAccessToken).toHaveBeenCalled();
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
+        "user-123",
+        expect.objectContaining({
+          accessToken: expect.stringMatching(/^[a-f0-9]+:[a-f0-9]+:[a-f0-9]+:[a-f0-9]+$/),
+        })
+      );
     });
   });
 
@@ -410,7 +413,7 @@ describe("OAuth Security and Edge Case Tests", () => {
       const expiredToken = Date.now() - 1000; // Expired 1 second ago
       const user = {
         id: "user-123",
-        accessToken: "encrypted-token",
+        accessToken: encrypt("expired-access-token"),
         refreshToken: null,
         tokenExpiry: new Date(expiredToken),
       };
@@ -425,8 +428,8 @@ describe("OAuth Security and Edge Case Tests", () => {
     it("should rotate refresh tokens on use", async () => {
       const user = {
         id: "user-123",
-        accessToken: "old-encrypted-token",
-        refreshToken: "encrypted-refresh-token",
+        accessToken: encrypt("old-access-token"),
+        refreshToken: encrypt("old-refresh-token"),
         tokenExpiry: new Date(Date.now() - 1000),
       };
 
@@ -452,6 +455,9 @@ describe("OAuth Security and Edge Case Tests", () => {
       if (mockUserRepository.update!.mock.calls.length > 0) {
         const updateCall = mockUserRepository.update!.mock.calls[0][1];
         expect(updateCall).toHaveProperty("refreshToken");
+        expect((oauth2Service as any).decryptToken(updateCall.refreshToken)).toBe(
+          "new-refresh-token"
+        );
       }
     });
   });
