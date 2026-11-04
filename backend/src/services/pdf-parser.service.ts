@@ -378,6 +378,9 @@ export class PDFParserService {
     confidence: number;
   } {
     for (const pattern of this.LOCATION_PATTERNS) {
+      // Patterns are /g and shared by the instance: reset the cursor left by
+      // a previous call, or later parses start mid-text and miss the field.
+      pattern.lastIndex = 0;
       const match = pattern.exec(text);
       if (match && match[1]) {
         const location = match[1].trim();
@@ -452,6 +455,7 @@ export class PDFParserService {
     const equipment: string[] = [];
 
     for (const pattern of this.EQUIPMENT_PATTERNS) {
+      pattern.lastIndex = 0; // shared /g pattern, see extractLocation
       const match = pattern.exec(text);
       if (match && match[1]) {
         equipment.push(match[1].trim());
@@ -466,6 +470,7 @@ export class PDFParserService {
    */
   private extractSafetyNotes(text: string): string | undefined {
     for (const pattern of this.SAFETY_PATTERNS) {
+      pattern.lastIndex = 0; // shared /g pattern, see extractLocation
       const match = pattern.exec(text);
       if (match && match[1]) {
         return match[1].trim();
