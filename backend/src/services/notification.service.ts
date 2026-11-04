@@ -767,8 +767,14 @@ export class NotificationService {
           (cleaned.startsWith("+") || /^[45678]/.test(cleaned));
       }
 
+      // A number is only usable once the user has confirmed the
+      // verification code; until then GET /api/sms/status reports
+      // configured: false and POST /api/sms/test refuses to send.
+      const isVerified = !!userWithConfig?.userConfig?.smsVerified;
+
       return {
-        isValid: hasPhoneNumber && isServiceConfigured && phoneNumberValid,
+        isValid:
+          hasPhoneNumber && isServiceConfigured && phoneNumberValid && isVerified,
         hasPhoneNumber,
         isServiceConfigured,
         phoneNumberValid: hasPhoneNumber ? phoneNumberValid : undefined,
