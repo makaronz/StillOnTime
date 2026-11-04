@@ -14,7 +14,8 @@ import { logger } from "@/utils/logger";
 jest.mock("@/services/weather.service");
 jest.mock("@/repositories/weather-data.repository");
 jest.mock("@/repositories/schedule-data.repository");
-jest.mock("@/utils/logger");
+// The real logger instance is already loaded by tests/setup.ts (via the route
+// graph), so a jest.mock() here would not reach the service: spy on it instead.
 
 const MockedWeatherService = WeatherService as jest.MockedClass<
   typeof WeatherService
@@ -34,6 +35,10 @@ describe("WeatherMonitoringService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(logger, "info").mockImplementation(() => logger);
+    jest.spyOn(logger, "warn").mockImplementation(() => logger);
+    jest.spyOn(logger, "error").mockImplementation(() => logger);
+    jest.spyOn(logger, "debug").mockImplementation(() => logger);
 
     mockWeatherService = new MockedWeatherService(
       {} as any
@@ -178,16 +183,19 @@ describe("WeatherMonitoringService", () => {
       sceneType: "EXT",
       callTime: "08:00",
       user: { id: "user-1" } as any,
-      weatherData: {
-        id: "weather-1",
-        temperature: 15,
-        description: "cloudy",
-        windSpeed: 3,
-        precipitation: 0,
-        humidity: 70,
-        warnings: [],
-        fetchedAt: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
-      } as any,
+      // ScheduleDataWithRelations.weatherData is WeatherData[] (src/types/index.ts)
+      weatherData: [
+        {
+          id: "weather-1",
+          temperature: 15,
+          description: "cloudy",
+          windSpeed: 3,
+          precipitation: 0,
+          humidity: 70,
+          warnings: [],
+          fetchedAt: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
+        } as any,
+      ],
     } as ScheduleDataWithRelations;
 
     it("should detect weather changes and create notification", async () => {
@@ -224,6 +232,11 @@ describe("WeatherMonitoringService", () => {
       expect(
         result?.significantChanges.some((c) => c.type === "conditions")
       ).toBe(true);
+      expect(mockWeatherService.updateWeatherData).toHaveBeenCalledWith(
+        "weather-1",
+        newWeatherData
+      );
+      expect(mockWeatherService.storeWeatherData).not.toHaveBeenCalled();
     });
 
     it("should return null when no significant changes detected", async () => {
@@ -249,6 +262,12 @@ describe("WeatherMonitoringService", () => {
       );
 
       expect(result).toBeNull();
+      // Existing data is still refreshed even without significant changes
+      expect(mockWeatherService.updateWeatherData).toHaveBeenCalledWith(
+        "weather-1",
+        similarWeatherData
+      );
+      expect(mockWeatherService.storeWeatherData).not.toHaveBeenCalled();
     });
 
     it("should create new weather data when none exists", async () => {
@@ -454,14 +473,64 @@ describe("WeatherMonitoringService", () => {
         mockSchedule
       );
 
+      // Heavy rain alone is "severe"; adding wind must not downgrade it.
       expect(impact.shootingConditions.severity).toBe("severe");
+      expect(impact.shootingConditions.concerns).toContain("High temperature");
       expect(impact.shootingConditions.concerns).toContain(
-        "Wysoka temperatura"
+        "Heavy precipitation"
       );
-      expect(impact.shootingConditions.concerns).toContain("Intensywne opady");
-      expect(impact.shootingConditions.concerns).toContain("Silny wiatr");
-      expect(impact.shootingConditions.concerns).toContain("Burza");
+      expect(impact.shootingConditions.concerns).toContain("Strong wind");
+      // The storm warning is the one WeatherService actually emits ("⛈️ Burza ...")
+      expect(impact.shootingConditions.concerns).toContain("Storm");
       expect(impact.overallRisk).toBe("critical");
+    });
+
+    it("should not downgrade severe precipitation when wind is also strong", () => {
+      const rainAndWind: WeatherCacheData = {
+        temperature: 15,
+        description: "rain",
+        windSpeed: 12, // > 10 -> "Strong wind"
+        precipitation: 8, // >= 5 -> "Heavy precipitation" (severe)
+        humidity: 90,
+        warnings: [],
+        fetchedAt: new Date(),
+        location: "Warsaw",
+        date: "2024-01-15",
+      };
+
+      const impact = (weatherMonitoringService as any).analyzeWeatherImpact(
+        rainAndWind,
+        mockSchedule
+      );
+
+      expect(impact.shootingConditions.concerns).toEqual([
+        "Heavy precipitation",
+        "Strong wind",
+      ]);
+      expect(impact.shootingConditions.severity).toBe("severe");
+    });
+
+    it("should flag a storm from the warning WeatherService emits", () => {
+      const storm: WeatherCacheData = {
+        temperature: 18,
+        description: "thunderstorm",
+        windSpeed: 4,
+        precipitation: 0,
+        humidity: 70,
+        // exact text produced by WeatherService (src/services/weather.service.ts)
+        warnings: ["⛈️ Burza - rozważ przełożenie zdjęć zewnętrznych"],
+        fetchedAt: new Date(),
+        location: "Warsaw",
+        date: "2024-01-15",
+      };
+
+      const impact = (weatherMonitoringService as any).analyzeWeatherImpact(
+        storm,
+        mockSchedule
+      );
+
+      expect(impact.shootingConditions.concerns).toEqual(["Storm"]);
+      expect(impact.shootingConditions.severity).toBe("severe");
     });
 
     it("should have minimal impact for interior shoots", () => {
@@ -597,12 +666,15 @@ describe("WeatherMonitoringService", () => {
         weatherMonitoringService as any
       ).createWeatherChangeMessage(notification);
 
-      expect(message).toContain("🌤️ Zmiana pogody dla zdjęć w Warsaw");
-      expect(message).toContain("Temperatura wzrosła o 10°C");
-      expect(message).toContain("Wysoka temperatura");
-      expect(message).toContain("Zapewnij cień i nawodnienie dla ekipy");
-      expect(message).toContain("Sugerowany dodatkowy czas: 15 minut");
-      expect(message).toContain("🟡 Ogólne ryzyko: MEDIUM");
+      expect(message).toContain(
+        "🌤️ Weather change for shoot at Warsaw (2024-01-15)"
+      );
+      expect(message).toContain("• Temperatura wzrosła o 10°C");
+      expect(message).toContain("• Wysoka temperatura");
+      expect(message).toContain("• Zapewnij cień i nawodnienie dla ekipy");
+      expect(message).toContain("• Suggested additional time: 15 minutes");
+      expect(message).toContain("• Unikaj podróży w najgorętszych godzinach");
+      expect(message).toContain("🟡 Overall risk: MEDIUM");
     });
   });
 });

@@ -1,29 +1,23 @@
+import { google } from "googleapis";
 import { OAuth2Service } from "@/services/oauth2.service";
 import { UserRepository } from "@/repositories/user.repository";
 import { config } from "@/config/config";
-import { logger } from "@/utils/logger";
+import { verifyOAuthState } from "@/utils/oauth-state";
 import * as jwt from "jsonwebtoken";
 
-// Mock dependencies
+// NOTE: tests/setup.ts imports the whole route graph, so googleapis (auto-mocked
+// there) and the real @/config/config are already in the module registry when
+// this file runs; a jest.mock() factory here would not reach the service module.
+// The OAuth2 client is therefore injected by giving the auto-mocked constructor an
+// implementation, and JWTs are checked against the real config.jwtSecret.
 jest.mock("@/repositories/user.repository");
-jest.mock("@/utils/logger");
-jest.mock("googleapis");
-jest.mock("@/config/config", () => ({
-  config: {
-    google: {
-      clientId: "test-client-id",
-      clientSecret: "test-client-secret",
-      redirectUri: "http://localhost:3000/auth/callback",
-    },
-    jwtSecret: "test-jwt-secret",
-  },
-}));
 
 const mockUserRepository = {
   findById: jest.fn(),
   findByGoogleId: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  createOrUpdateFromOAuth: jest.fn(),
 } as jest.Mocked<Partial<UserRepository>>;
 
 const mockOAuth2Client = {
@@ -34,25 +28,16 @@ const mockOAuth2Client = {
   revokeToken: jest.fn(),
 };
 
-// Mock googleapis
-jest.mock("googleapis", () => ({
-  google: {
-    auth: {
-      OAuth2: jest.fn().mockImplementation(() => mockOAuth2Client),
-    },
-    oauth2: jest.fn().mockReturnValue({
-      userinfo: {
-        get: jest.fn(),
-      },
-    }),
-  },
-}));
+const ENCRYPTED_TOKEN_FORMAT = /^[0-9a-f]{32}:[0-9a-f]{32}:[0-9a-f]{32}:[0-9a-f]+$/;
 
 describe("OAuth2Service", () => {
   let oauth2Service: OAuth2Service;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (google.auth.OAuth2 as unknown as jest.Mock).mockImplementation(
+      () => mockOAuth2Client
+    );
     oauth2Service = new OAuth2Service(mockUserRepository as UserRepository);
   });
 
@@ -77,7 +62,7 @@ describe("OAuth2Service", () => {
         state: "test-state",
         include_granted_scopes: true,
       });
-      expect(result).toBe(expectedUrl);
+      expect(result).toEqual({ authUrl: expectedUrl, state: "test-state" });
     });
 
     it("should generate random state if not provided", async () => {
@@ -85,11 +70,14 @@ describe("OAuth2Service", () => {
         "https://accounts.google.com/oauth/authorize?client_id=test";
       mockOAuth2Client.generateAuthUrl.mockReturnValue(expectedUrl);
 
-      await oauth2Service.getAuthUrl();
+      const result = await oauth2Service.getAuthUrl();
 
+      // Default state is a server-signed, expiring value accepted by the callback
+      expect(verifyOAuthState(result.state)).toBe(true);
+      expect(result.authUrl).toBe(expectedUrl);
       expect(mockOAuth2Client.generateAuthUrl).toHaveBeenCalledWith(
         expect.objectContaining({
-          state: expect.any(String),
+          state: result.state,
         })
       );
     });
@@ -192,15 +180,16 @@ describe("OAuth2Service", () => {
   });
 
   describe("storeUserTokens", () => {
-    it("should create new user if not exists", async () => {
+    it("should upsert the user atomically with encrypted tokens", async () => {
       const mockUser = {
         id: "user-id",
         email: "test@example.com",
         name: "Test User",
         googleId: "google-id",
       };
-      mockUserRepository.findByGoogleId!.mockResolvedValue(null);
-      mockUserRepository.create!.mockResolvedValue(mockUser as any);
+      mockUserRepository.createOrUpdateFromOAuth!.mockResolvedValue(
+        mockUser as any
+      );
 
       const tokens = {
         access_token: "access-token",
@@ -209,6 +198,7 @@ describe("OAuth2Service", () => {
         token_type: "Bearer",
       };
 
+      const before = Date.now();
       const result = await oauth2Service.storeUserTokens(
         "google-id",
         "test@example.com",
@@ -216,32 +206,44 @@ describe("OAuth2Service", () => {
         tokens
       );
 
-      expect(mockUserRepository.create).toHaveBeenCalledWith({
+      expect(mockUserRepository.createOrUpdateFromOAuth).toHaveBeenCalledTimes(1);
+      expect(mockUserRepository.createOrUpdateFromOAuth).toHaveBeenCalledWith({
+        googleId: "google-id",
         email: "test@example.com",
         name: "Test User",
-        googleId: "google-id",
-        accessToken: expect.any(String),
-        refreshToken: expect.any(String),
+        accessToken: expect.stringMatching(ENCRYPTED_TOKEN_FORMAT),
+        refreshToken: expect.stringMatching(ENCRYPTED_TOKEN_FORMAT),
         tokenExpiry: expect.any(Date),
       });
+      const arg = mockUserRepository.createOrUpdateFromOAuth!.mock.calls[0][0];
+      // Tokens must never be stored in plaintext
+      expect(arg.accessToken).not.toContain("access-token");
+      expect(arg.refreshToken).not.toContain("refresh-token");
+      expect(arg.tokenExpiry!.getTime()).toBeGreaterThanOrEqual(
+        before + 3600 * 1000
+      );
+      expect(arg.tokenExpiry!.getTime()).toBeLessThanOrEqual(
+        Date.now() + 3600 * 1000
+      );
+      // The create/update decision lives in the repository now
+      expect(mockUserRepository.create).not.toHaveBeenCalled();
+      expect(mockUserRepository.update).not.toHaveBeenCalled();
       expect(result).toEqual(mockUser);
     });
 
-    it("should update existing user if found", async () => {
-      const existingUser = {
+    it("should pass no refresh token when none was issued", async () => {
+      const updatedUser = {
         id: "user-id",
         email: "test@example.com",
-        name: "Test User",
+        name: "Updated User",
         googleId: "google-id",
       };
-      const updatedUser = { ...existingUser, name: "Updated User" };
-
-      mockUserRepository.findByGoogleId!.mockResolvedValue(existingUser as any);
-      mockUserRepository.update!.mockResolvedValue(updatedUser as any);
+      mockUserRepository.createOrUpdateFromOAuth!.mockResolvedValue(
+        updatedUser as any
+      );
 
       const tokens = {
         access_token: "access-token",
-        refresh_token: "refresh-token",
         expires_in: 3600,
         token_type: "Bearer",
       };
@@ -253,14 +255,29 @@ describe("OAuth2Service", () => {
         tokens
       );
 
-      expect(mockUserRepository.update).toHaveBeenCalledWith("user-id", {
+      expect(mockUserRepository.createOrUpdateFromOAuth).toHaveBeenCalledWith({
+        googleId: "google-id",
         email: "test@example.com",
         name: "Updated User",
-        accessToken: expect.any(String),
-        refreshToken: expect.any(String),
+        accessToken: expect.stringMatching(ENCRYPTED_TOKEN_FORMAT),
+        refreshToken: undefined,
         tokenExpiry: expect.any(Date),
       });
       expect(result).toEqual(updatedUser);
+    });
+
+    it("should wrap repository failures", async () => {
+      mockUserRepository.createOrUpdateFromOAuth!.mockRejectedValue(
+        new Error("db down")
+      );
+
+      await expect(
+        oauth2Service.storeUserTokens("google-id", "test@example.com", "T", {
+          access_token: "access-token",
+          expires_in: 3600,
+          token_type: "Bearer",
+        })
+      ).rejects.toThrow("Failed to store user authentication tokens");
     });
   });
 
@@ -380,7 +397,7 @@ describe("OAuth2Service", () => {
     it("should revoke tokens and clear from database", async () => {
       const user = {
         id: "user-id",
-        accessToken: "encrypted-token",
+        accessToken: (oauth2Service as any).encryptToken("access-token"),
       };
       mockUserRepository.findById!.mockResolvedValue(user as any);
       mockUserRepository.update!.mockResolvedValue(user as any);
@@ -388,7 +405,8 @@ describe("OAuth2Service", () => {
 
       await oauth2Service.revokeTokens("user-id");
 
-      expect(mockOAuth2Client.revokeToken).toHaveBeenCalled();
+      // The decrypted (plaintext) token is what gets revoked with Google
+      expect(mockOAuth2Client.revokeToken).toHaveBeenCalledWith("access-token");
       expect(mockUserRepository.update).toHaveBeenCalledWith("user-id", {
         accessToken: null,
         refreshToken: null,
@@ -399,7 +417,7 @@ describe("OAuth2Service", () => {
     it("should handle revocation errors gracefully", async () => {
       const user = {
         id: "user-id",
-        accessToken: "encrypted-token",
+        accessToken: (oauth2Service as any).encryptToken("access-token"),
       };
       mockUserRepository.findById!.mockResolvedValue(user as any);
       mockUserRepository.update!.mockResolvedValue(user as any);
@@ -410,7 +428,8 @@ describe("OAuth2Service", () => {
       // Should not throw error
       await expect(
         oauth2Service.revokeTokens("user-id")
-      ).resolves.not.toThrow();
+      ).resolves.toBeUndefined();
+      expect(mockOAuth2Client.revokeToken).toHaveBeenCalledWith("access-token");
 
       // Should still clear tokens from database
       expect(mockUserRepository.update).toHaveBeenCalledWith("user-id", {

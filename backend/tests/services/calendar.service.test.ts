@@ -7,7 +7,8 @@ import { ScheduleData, RoutePlan, WeatherData, CalendarEvent } from "@/types";
 
 // Mock dependencies
 jest.mock("googleapis");
-jest.mock("@/utils/logger");
+// The real logger instance is already loaded by tests/setup.ts (via the route
+// graph), so a jest.mock() here would not reach the service: spy on it instead.
 jest.mock("@/services/oauth2.service");
 jest.mock("@/repositories/calendar-event.repository");
 
@@ -87,6 +88,9 @@ describe("CalendarService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(logger, "info").mockImplementation(() => logger);
+    jest.spyOn(logger, "warn").mockImplementation(() => logger);
+    jest.spyOn(logger, "error").mockImplementation(() => logger);
 
     // Mock OAuth2Service
     mockOAuth2Service = {
@@ -158,7 +162,7 @@ describe("CalendarService", () => {
       expect(mockCalendarAPI.events.insert).toHaveBeenCalledWith({
         calendarId: "primary",
         requestBody: expect.objectContaining({
-          summary: "StillOnTime — Dzień zdjęciowy (Studio Filmowe, Warszawa)",
+          summary: "StillOnTime — Shooting Day (Studio Filmowe, Warszawa)",
           location: "Studio Filmowe, Warszawa",
           start: expect.objectContaining({
             timeZone: "Europe/Warsaw",
@@ -180,14 +184,17 @@ describe("CalendarService", () => {
       });
 
       expect(mockCalendarEventRepository.create).toHaveBeenCalledWith({
+        id: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+        ),
+        userId: mockUserId,
+        scheduleId: "schedule-123",
         calendarEventId: "google-event-123",
-        title: "StillOnTime — Dzień zdjęciowy (Studio Filmowe, Warszawa)",
-        startTime: expect.any(Date),
+        title: "StillOnTime — Shooting Day (Studio Filmowe, Warszawa)",
+        startTime: mockRoutePlan.departureTime,
         endTime: expect.any(Date),
-        description: expect.stringContaining("🎬 DZIEŃ ZDJĘCIOWY"),
+        description: expect.stringContaining("🎬 SHOOTING DAY"),
         location: "Studio Filmowe, Warszawa",
-        user: { connect: { id: mockUserId } },
-        schedule: { connect: { id: "schedule-123" } },
       });
 
       expect(result).toEqual(mockCalendarEvent);
@@ -623,16 +630,17 @@ describe("CalendarService", () => {
       const createCall = mockCalendarEventRepository.create.mock.calls[0][0];
       const description = createCall.description;
 
-      expect(description).toContain("🎬 DZIEŃ ZDJĘCIOWY");
-      expect(description).toContain("📅 Data:");
+      expect(description).toContain("🎬 SHOOTING DAY");
+      expect(description).toContain("📅 Date:");
       expect(description).toContain("⏰ Call Time: 08:00");
       expect(description).toContain("📍 Lokacja: Studio Filmowe, Warszawa");
       expect(description).toContain("🎭 Typ sceny: EXT");
       expect(description).toContain("🎞️ Sceny: Scene 1, Scene 2");
-      expect(description).toContain("🚗 PLAN PODRÓŻY");
-      expect(description).toContain("⏰ Pobudka:");
-      expect(description).toContain("🚪 Wyjazd:");
-      expect(description).toContain("🎯 Przyjazd:");
+      expect(description).toContain("🚗 TRAVEL PLAN");
+      expect(description).toContain("⏰ Wake up:");
+      expect(description).toContain("🚪 Departure:");
+      expect(description).toContain("🎯 Arrival:");
+      expect(description).toContain("⏱️ Czas podróży: 60 minut");
       expect(description).toContain("🌤️ PROGNOZA POGODY");
       expect(description).toContain("🌡️ Temperatura: 15°C");
       expect(description).toContain("☁️ Warunki: Częściowo pochmurno");

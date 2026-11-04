@@ -6,7 +6,8 @@ import { logger } from "@/utils/logger";
 import { ScheduleData, RoutePlan, WeatherData, CalendarEvent } from "@/types";
 
 // Mock dependencies
-jest.mock("@/utils/logger");
+// The real logger instance is already loaded by tests/setup.ts (via the route
+// graph), so a jest.mock() here would not reach the service: spy on it instead.
 jest.mock("@/services/calendar.service");
 jest.mock("@/repositories/calendar-event.repository");
 jest.mock("@/repositories/schedule-data.repository");
@@ -99,6 +100,9 @@ describe("CalendarManagerService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(logger, "info").mockImplementation(() => logger);
+    jest.spyOn(logger, "warn").mockImplementation(() => logger);
+    jest.spyOn(logger, "error").mockImplementation(() => logger);
 
     // Mock CalendarService
     mockCalendarService = {
