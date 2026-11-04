@@ -29,13 +29,21 @@ export class CalendarController {
         return;
       }
       
+      // The route validates startDate/endDate/maxResults (ISO 8601 / int);
+      // translate them to the service's typed options.
+      const { startDate, endDate, maxResults } = req.query as Record<
+        string,
+        string | undefined
+      >;
+      const options: { timeMin?: Date; timeMax?: Date; maxResults?: number } =
+        {};
+      if (startDate) options.timeMin = new Date(startDate);
+      if (endDate) options.timeMax = new Date(endDate);
+      if (maxResults) options.maxResults = Number(maxResults);
+
       const events = await services.calendarManager.getCalendarEvents(
         req.user.userId,
-        req.query as {
-          timeMin?: Date;
-          timeMax?: Date;
-          maxResults?: number;
-        }
+        options
       );
       res.json({ success: true, events });
     } catch (error) {
