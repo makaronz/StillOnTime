@@ -134,6 +134,19 @@ export const errorHandler = (
       statusCode,
       code,
     });
+  } else if ((error as { type?: unknown }).type === "entity.parse.failed") {
+    // express.json() rejects a malformed body with a SyntaxError of type
+    // entity.parse.failed (status 400). It is a client error, not a 500.
+    statusCode = 400;
+    code = "INVALID_JSON";
+    message = "Request body is not valid JSON";
+
+    structuredLogger.warn("Malformed JSON body rejected", {
+      path: req.path,
+      method: req.method,
+      statusCode,
+      code,
+    });
   } else {
     // Handle unexpected errors
     structuredLogger.error(
