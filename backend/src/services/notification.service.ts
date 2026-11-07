@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import {
   Notification,
   NotificationChannel,
@@ -17,7 +17,7 @@ import { PushNotificationService } from "./push-notification.service";
 import { logger } from "../utils/logger";
 
 export class NotificationService {
-  private emailTransporter!: nodemailer.Transporter;
+  private emailTransporter!: Transporter;
   private smsService!: SMSService;
   private pushService!: PushNotificationService;
   private templates!: Map<NotificationTemplate, NotificationTemplateConfig>;
