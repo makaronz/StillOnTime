@@ -41,8 +41,8 @@ export class CodeNetRAGService {
 
       // Initialize LLM for code generation
       this.llm = new ChatOpenAI({
-        openAIApiKey: config.apis.openaiApiKey,
-        modelName: 'gpt-4',
+        apiKey: config.apis.openaiApiKey,
+        model: 'gpt-4',
         temperature: 0.2, // Lower temperature for more deterministic code
         maxTokens: 2000
       });
@@ -153,7 +153,7 @@ export class CodeNetRAGService {
 
       // Generate code
       const response = await this.llm.invoke(prompt);
-      const generatedCode = response.content as string;
+      const generatedCode = response.text;
 
       // Extract patterns used
       const patterns = this.extractPatternsFromExamples(examples);
