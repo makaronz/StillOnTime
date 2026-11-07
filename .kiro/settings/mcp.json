@@ -40,7 +40,7 @@
         "connect"
       ],
       "env": {
-        "MCPR_TOKEN": "mcpr_KDbOhUVD5D4-Qe3PaWq5rVm6TWFjovhZ"
+        "MCPR_TOKEN": "REPLACE_ME"
       },
       "disabled": false
     },
@@ -51,8 +51,8 @@
         "task-master-ai"
       ],
       "env": {
-        "ANTHROPIC_API_KEY": "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",
-        "PERPLEXITY_API_KEY": "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",
+        "ANTHROPIC_API_KEY": "REPLACE_ME",
+        "PERPLEXITY_API_KEY": "REPLACE_ME",
         "MODEL": "claude-3-7-sonnet-20250219",
         "PERPLEXITY_MODEL": "sonar-pro",
         "MAX_TOKENS": "64000",

@@ -2,11 +2,23 @@
 node_modules/
 */node_modules/
 
-# Environment variables
+# Environment variables and local secrets.
+# The !.env.example negation must stay after the ignore rules so templates remain tracked.
 .env
-.env.backup.*
+.env.*
+!.env.example
+**/.env.bak*
+**/.env.backup*
 .env.local
 .env.*.local
+
+# OAuth client downloads and private keys
+client_secret_*.json
+*.pem
+*.p12
+*.key
+id_rsa
+id_rsa.*
 
 # Build outputs
 dist/
