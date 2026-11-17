@@ -32,7 +32,7 @@
   "license": "MIT",
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.2",
-    "@googlemaps/routeoptimization": "^0.5.0",
+    "@googlemaps/routeoptimization": "^0.7.0",
     "@langchain/community": "^1.1.29",
     "@langchain/core": "^1.3.5",
     "@langchain/openai": "^1.8.2",
